@@ -1,0 +1,12 @@
+﻿bin/
+obj/
+.vs/
+*.user
+*.suo
+**/Platforms/Android/.gradle/
+**/Platforms/Android/local.properties
+**/Platforms/Android/**/*.keystore
+*.aab
+*.apk
+*.log
+secrets.json
