@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleItem> SaleItems => Set<SaleItem>();
     public DbSet<Return> Returns => Set<Return>();
+    public DbSet<ReturnItem> ReturnItems => Set<ReturnItem>();
     public DbSet<Stock> Stocks => Set<Stock>();
     public DbSet<Debt> Debts => Set<Debt>();
 
@@ -75,6 +76,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.HasKey(r => r.Id);
             b.Property(r => r.Sum).HasColumnType("decimal(18,2)");
             b.Property(r => r.CreatedAt).IsRequired();
+            b.Property(r => r.Reason).HasMaxLength(256);
+            b.HasMany(r => r.Items)
+             .WithOne(ri => ri.Return)
+             .HasForeignKey(ri => ri.ReturnId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ReturnItem>(b =>
+        {
+            b.HasKey(ri => ri.Id);
+            b.Property(ri => ri.Qty).HasColumnType("decimal(18,3)");
+            b.Property(ri => ri.UnitPrice).HasColumnType("decimal(18,2)");
+            b.HasOne(ri => ri.SaleItem)
+             .WithMany()
+             .HasForeignKey(ri => ri.SaleItemId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Stock>(b =>

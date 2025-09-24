@@ -1,0 +1,18 @@
+﻿services:
+  api:
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_URLS: "http://0.0.0.0:5028"
+      Auth__ApiKey: "dev-key"
+      ApiKey__Value: "dev-key"
+      ApiKey__Key: "dev-key"
+      Security__ApiKey: "dev-key"
+      ApiKey: "dev-key"
+      Swagger__Enabled: "true"
+      ConnectionStrings__DefaultConnection: "Data Source=/app/data/app.db"
+    volumes:
+      - projectapp_db:/app/data
+
+volumes:
+  projectapp_db:
+    driver: local

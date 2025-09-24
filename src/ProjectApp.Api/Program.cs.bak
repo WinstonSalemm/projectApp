@@ -1,4 +1,3 @@
-using Serilog;
 using System.Text.Json.Serialization;
 using System.IO;
 using System.Linq;
@@ -17,12 +16,6 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Host.UseSerilog((ctx, services, cfg) => cfg
-    .ReadFrom.Configuration(ctx.Configuration)
-    .Enrich.FromLogContext()
-    .Enrich.WithProperty("Application","ProjectApp.Api")
-    .WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter(renderMessage: true))
-);
 
 // Allow overriding configuration via environment variables with prefix PROJECTAPP__
 // Example: PROJECTAPP__Cors__Origins__0=http://localhost:5028
@@ -92,66 +85,49 @@ builder.Services.AddSwaggerGen(c =>
     c.OperationFilter<ProjectApp.Api.Swagger.AuthorizeCheckOperationFilter>();
 });
 
-// EF Core - Auto provider: MySQL (Pomelo) if MySQL-like connection string; else SQLite (local dev)
+// EF Core - SQLite (ensure DB file is under ContentRoot)
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     var conn = builder.Configuration.GetConnectionString("DefaultConnection");
+    string finalConn;
 
-    static bool LooksLikeMySql(string? cs)
-        => !string.IsNullOrWhiteSpace(cs) &&
-           (cs.Contains("Server=", StringComparison.OrdinalIgnoreCase)
-            || cs.Contains("Host=", StringComparison.OrdinalIgnoreCase));
-
-    if (LooksLikeMySql(conn))
+    if (string.IsNullOrWhiteSpace(conn))
     {
-        try
-        {
-            var serverVersion = Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerVersion.AutoDetect(conn!);
-            options.UseMySql(conn, serverVersion);
-        }
-        catch
-        {
-            // Fallback to MySQL 8.0 if autodetect fails
-            var serverVersion = new Pomelo.EntityFrameworkCore.MySql.Infrastructure.MySqlServerVersion(new Version(8, 0, 36));
-            options.UseMySql(conn!, serverVersion);
-        }
+        // No connection string => use ContentRoot anchored file
+        string dbPath = Path.Combine(builder.Environment.ContentRootPath, "projectapp.db");
+        finalConn = $"Data Source={dbPath}";
     }
     else
     {
-        // SQLite fallback (ContentRoot anchored file if relative)
-        string finalConn;
-        if (string.IsNullOrWhiteSpace(conn))
+        // Try to extract Data Source path and anchor if relative
+        var parts = conn.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        string? dataSourcePart = parts.FirstOrDefault(p => p.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase) || p.StartsWith("DataSource=", StringComparison.OrdinalIgnoreCase));
+        if (dataSourcePart is not null)
         {
-            string dbPath = Path.Combine(builder.Environment.ContentRootPath, "projectapp.db");
-            finalConn = $"Data Source={dbPath}";
-        }
-        else
-        {
-            var parts = conn.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            string? dataSourcePart = parts.FirstOrDefault(p => p.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase) || p.StartsWith("DataSource=", StringComparison.OrdinalIgnoreCase));
-            if (dataSourcePart is not null)
+            var kv = dataSourcePart.Split('=');
+            var pathVal = kv.Length > 1 ? kv[1] : string.Empty;
+            if (!string.IsNullOrWhiteSpace(pathVal) && !Path.IsPathRooted(pathVal))
             {
-                var kv = dataSourcePart.Split('=');
-                var pathVal = kv.Length > 1 ? kv[1] : string.Empty;
-                if (!string.IsNullOrWhiteSpace(pathVal) && !Path.IsPathRooted(pathVal))
-                {
-                    string dbPath = Path.Combine(builder.Environment.ContentRootPath, pathVal);
-                    finalConn = $"Data Source={dbPath}";
-                }
-                else
-                {
-                    finalConn = conn;
-                }
+                // Relative => anchor to ContentRoot
+                string dbPath = Path.Combine(builder.Environment.ContentRootPath, pathVal);
+                finalConn = $"Data Source={dbPath}";
             }
             else
             {
-                string dbPath = Path.Combine(builder.Environment.ContentRootPath, "projectapp.db");
-                finalConn = $"Data Source={dbPath}";
+                // Already rooted or empty => use provided connection string as-is
+                finalConn = conn;
             }
         }
-
-        options.UseSqlite(finalConn);
+        else
+        {
+            // No Data Source key present => fall back to ContentRoot
+            string dbPath = Path.Combine(builder.Environment.ContentRootPath, "projectapp.db");
+            finalConn = $"Data Source={dbPath}";
+        }
     }
+
+    // Normalize to avoid DB in Temp directories when relative paths are used
+    options.UseSqlite(finalConn);
 });
 
 // DI
@@ -177,56 +153,6 @@ builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>("db", tags: new[] { "ready" });
 
 var app = builder.Build();
-
-// ---------- DB init (provider-aware) ----------
-await using (var scope = app.Services.CreateAsyncScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    var provider = db.Database.ProviderName ?? string.Empty;
-    if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
-    {
-        // Temporary bootstrap for MySQL: generate schema from model.
-        // Later we can re-baseline migrations for MySQL.
-        await db.Database.EnsureCreatedAsync();
-    }
-    else
-    {
-        var pending = await db.Database.GetPendingMigrationsAsync();
-        if (pending.Any())
-            await db.Database.MigrateAsync();
-        else
-            await db.Database.EnsureCreatedAsync();
-    }
-
-    var seedEnabled = app.Configuration.GetValue("Seed:Enabled", true);
-    if (seedEnabled && !await db.Products.AnyAsync())
-    {
-        db.Products.AddRange(new[]
-        {
-            new ProjectApp.Api.Models.Product { Id = 1, Sku = "SKU-001", Name = "Coffee Beans 1kg", Unit = "kg",  Price = 15.99m },
-            new ProjectApp.Api.Models.Product { Id = 2, Sku = "SKU-002", Name = "Tea Leaves 500g",  Unit = "pkg", Price = 8.49m  },
-            new ProjectApp.Api.Models.Product { Id = 3, Sku = "SKU-003", Name = "Sugar 1kg",        Unit = "kg",  Price = 2.29m  },
-            new ProjectApp.Api.Models.Product { Id = 4, Sku = "SKU-004", Name = "Milk 1L",          Unit = "ltr", Price = 1.19m  },
-            new ProjectApp.Api.Models.Product { Id = 5, Sku = "SKU-005", Name = "Butter 200g",      Unit = "pkg", Price = 3.79m  },
-            new ProjectApp.Api.Models.Product { Id = 6, Sku = "SKU-006", Name = "Bread Loaf",       Unit = "pc",  Price = 1.99m  },
-            new ProjectApp.Api.Models.Product { Id = 7, Sku = "SKU-007", Name = "Eggs (12)",        Unit = "box", Price = 2.99m  },
-            new ProjectApp.Api.Models.Product { Id = 8, Sku = "SKU-008", Name = "Olive Oil 500ml",  Unit = "btl", Price = 6.49m  },
-            new ProjectApp.Api.Models.Product { Id = 9, Sku = "SKU-009", Name = "Pasta 1kg",        Unit = "kg",  Price = 2.59m  },
-            new ProjectApp.Api.Models.Product { Id = 10,Sku = "SKU-010", Name = "Tomato Sauce 300g",Unit = "jar", Price = 2.39m  }
-        });
-        await db.SaveChangesAsync();
-    }
-}
-// ------------------------------------------------------------------------
-
-var swaggerEnabled = app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled");
-if (swaggerEnabled)
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-app.UseSerilogRequestLogging();
 
 // Middleware
 app.UseCors("DefaultCors");
@@ -264,6 +190,9 @@ app.UseExceptionHandler(errorApp =>
 });
 
 // Always enable Swagger UI so it's available when running via CLI
+app.UseSwagger();
+app.UseSwaggerUI();
+
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
@@ -287,6 +216,37 @@ app.MapGet("/", () => Results.Redirect("/swagger"));
 
 // Controllers
 app.MapControllers();
+
+// Development-only: auto-apply migrations and optional seed
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+
+    var seedEnabled = app.Configuration.GetValue("Seed:Enabled", true);
+    if (seedEnabled)
+    {
+        // Seed minimal products if empty
+        if (!db.Products.Any())
+        {
+            db.Products.AddRange(new[]
+            {
+                new ProjectApp.Api.Models.Product { Id = 1, Sku = "SKU-001", Name = "Coffee Beans 1kg", Unit = "kg", Price = 15.99m },
+                new ProjectApp.Api.Models.Product { Id = 2, Sku = "SKU-002", Name = "Tea Leaves 500g", Unit = "pkg", Price = 8.49m },
+                new ProjectApp.Api.Models.Product { Id = 3, Sku = "SKU-003", Name = "Sugar 1kg", Unit = "kg", Price = 2.29m },
+                new ProjectApp.Api.Models.Product { Id = 4, Sku = "SKU-004", Name = "Milk 1L", Unit = "ltr", Price = 1.19m },
+                new ProjectApp.Api.Models.Product { Id = 5, Sku = "SKU-005", Name = "Butter 200g", Unit = "pkg", Price = 3.79m },
+                new ProjectApp.Api.Models.Product { Id = 6, Sku = "SKU-006", Name = "Bread Loaf", Unit = "pc", Price = 1.99m },
+                new ProjectApp.Api.Models.Product { Id = 7, Sku = "SKU-007", Name = "Eggs (12)", Unit = "box", Price = 2.99m },
+                new ProjectApp.Api.Models.Product { Id = 8, Sku = "SKU-008", Name = "Olive Oil 500ml", Unit = "btl", Price = 6.49m },
+                new ProjectApp.Api.Models.Product { Id = 9, Sku = "SKU-009", Name = "Pasta 1kg", Unit = "kg", Price = 2.59m },
+                new ProjectApp.Api.Models.Product { Id = 10, Sku = "SKU-010", Name = "Tomato Sauce 300g", Unit = "jar", Price = 2.39m }
+            });
+            db.SaveChanges();
+        }
+    }
+}
 
 app.Run();
 
