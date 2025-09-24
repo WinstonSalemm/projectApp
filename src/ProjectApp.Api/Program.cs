@@ -104,8 +104,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
     if (LooksLikeMySql(conn))
     {
-        // Use Pomelo's ServerVersion autodetection (fully-qualified to avoid missing using)
-        var serverVersion = Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerVersion.AutoDetect(conn!);
+        // Use ServerVersion.AutoDetect from Microsoft.EntityFrameworkCore (Pomelo compatible)
+        var serverVersion = ServerVersion.AutoDetect(conn!);
         options.UseMySql(conn!, serverVersion);
     }
     else
