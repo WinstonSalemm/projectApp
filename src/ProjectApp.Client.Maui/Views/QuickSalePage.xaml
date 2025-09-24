@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.QuickSalePage"
+             x:Name="RootPage"
+             Title="Быстрая продажа">
+  <ContentPage.ToolbarItems>
+    <ToolbarItem Text="Настройки" Clicked="OnSettingsClicked" />
+  </ContentPage.ToolbarItems>
+  <ContentPage.Content>
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto" Padding="12">
+      <!-- Offline banner -->
+      <Frame Grid.Row="0" BackgroundColor="#FFCC00" Padding="8" HasShadow="False" IsVisible="{Binding IsOffline}">
+        <HorizontalStackLayout Spacing="12">
+          <Label Text="Оффлайн режим (моки)" FontAttributes="Bold" VerticalOptions="Center"/>
+          <Button Text="Повторить" Command="{Binding RetryCommand}" />
+        </HorizontalStackLayout>
+      </Frame>
+
+      <!-- Search -->
+      <HorizontalStackLayout Grid.Row="1" Spacing="8">
+        <Label Text="Поиск:" VerticalOptions="Center"/>
+        <Entry Placeholder="SKU или название" Text="{Binding Query}" HorizontalOptions="FillAndExpand"/>
+      </HorizontalStackLayout>
+
+      <!-- Results & Cart side by side -->
+      <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
+        <!-- Search results -->
+        <VerticalStackLayout Grid.Column="0">
+          <Label Text="Результаты" FontAttributes="Bold"/>
+          <CollectionView ItemsSource="{Binding SearchResults}" Margin="0,8,0,0">
+            <CollectionView.ItemTemplate>
+              <DataTemplate>
+                <Grid ColumnDefinitions="*,Auto" Padding="4">
+                  <VerticalStackLayout>
+                    <Label Text="{Binding Name}" FontAttributes="Bold"/>
+                    <Label Text="{Binding Sku}" FontSize="12" TextColor="Gray"/>
+                    <Label Text="{Binding Price, StringFormat='Цена: {0:C}'}" FontSize="12"/>
+                  </VerticalStackLayout>
+                  <Button Grid.Column="1" Text="Добавить" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.AddToCartCommand}" CommandParameter="{Binding .}"/>
+                </Grid>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+        </VerticalStackLayout>
+
+        <!-- Cart -->
+        <VerticalStackLayout Grid.Column="1">
+          <Label Text="Корзина" FontAttributes="Bold"/>
+          <CollectionView ItemsSource="{Binding Cart}" Margin="0,8,0,0">
+            <CollectionView.ItemTemplate>
+              <DataTemplate>
+                <Grid ColumnDefinitions="*,Auto,Auto" Padding="4" ColumnSpacing="8">
+                  <VerticalStackLayout>
+                    <Label Text="{Binding Name}" FontAttributes="Bold"/>
+                    <Label Text="{Binding UnitPrice, StringFormat='Цена: {0:C}'}" FontSize="12"/>
+                    <Label Text="{Binding Source={x:Reference RootPage}, Path=BindingContext.Total, StringFormat=''}" IsVisible="False"/>
+                  </VerticalStackLayout>
+                  <Stepper Grid.Column="1" Minimum="0" Maximum="1000" Increment="1" Value="{Binding Qty, Mode=TwoWay}"/>
+                  <Button Grid.Column="2" Text="Удалить" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RemoveFromCartCommand}" CommandParameter="{Binding .}"/>
+                </Grid>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+        </VerticalStackLayout>
+      </Grid>
+
+      <!-- Payment type -->
+      <HorizontalStackLayout Grid.Row="3" Spacing="12" Margin="0,12,0,0">
+        <Label Text="Оплата:" VerticalOptions="Center"/>
+        <Picker ItemsSource="{Binding PaymentTypes}" SelectedItem="{Binding SelectedPaymentType}"/>
+        <Entry Placeholder="Имя клиента (необязательно)" Text="{Binding ClientName}" HorizontalOptions="FillAndExpand"/>
+      </HorizontalStackLayout>
+
+      <!-- Totals -->
+      <HorizontalStackLayout Grid.Row="4" Spacing="12">
+        <Label Text="Итого:" FontAttributes="Bold"/>
+        <Label Text="{Binding Total, StringFormat='{0:C}'}" FontAttributes="Bold"/>
+      </HorizontalStackLayout>
+
+      <!-- Submit -->
+      <Button Grid.Row="5" Text="Провести" Command="{Binding SubmitCommand}" Margin="0,8,0,0"/>
+    </Grid>
+  </ContentPage.Content>
+</ContentPage>

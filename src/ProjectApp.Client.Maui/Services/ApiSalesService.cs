@@ -1,0 +1,52 @@
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
+using ProjectApp.Client.Maui.Models;
+
+namespace ProjectApp.Client.Maui.Services;
+
+public class ApiSalesService : ISalesService
+{
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly AppSettings _settings;
+
+    public ApiSalesService(IHttpClientFactory httpClientFactory, AppSettings settings)
+    {
+        _httpClientFactory = httpClientFactory;
+        _settings = settings;
+    }
+
+    private class SaleCreateItemDto
+    {
+        public int ProductId { get; set; }
+        public decimal Qty { get; set; }
+    }
+
+    private class SaleCreateDto
+    {
+        public int? ClientId { get; set; }
+        public string ClientName { get; set; } = "Quick Sale";
+        public List<SaleCreateItemDto> Items { get; set; } = new();
+        public string PaymentType { get; set; } = "CashWithReceipt";
+    }
+
+    public async Task<bool> SubmitSaleAsync(SaleDraft draft, CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient();
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        var dto = new SaleCreateDto
+        {
+            ClientId = null,
+            ClientName = string.IsNullOrWhiteSpace(draft.ClientName) ? "Quick Sale" : draft.ClientName,
+            Items = draft.Items.Select(i => new SaleCreateItemDto
+            {
+                ProductId = i.ProductId,
+                Qty = (decimal)i.Qty
+            }).ToList(),
+            PaymentType = draft.PaymentType.ToString()
+        };
+
+        var response = await client.PostAsJsonAsync("/api/sales", dto, ct);
+        return (int)response.StatusCode == 201;
+    }
+}

@@ -1,0 +1,17 @@
+﻿services:
+  api:
+    build:
+      context: ./src
+      dockerfile: ProjectApp.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      PROJECTAPP__Cors__Origins__0: ""
+      PROJECTAPP__Auth__ApiKey: ""
+    ports:
+      - "5028:5028"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5028/health"] 
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
