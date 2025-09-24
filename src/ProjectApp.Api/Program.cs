@@ -104,8 +104,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
     if (LooksLikeMySql(conn))
     {
-        // Pomelo EFCore MySql (v9+) can auto-detect server version; use simple overload
-        options.UseMySql(conn!);
+        // Use Pomelo's ServerVersion autodetection (fully-qualified to avoid missing using)
+        var serverVersion = Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerVersion.AutoDetect(conn!);
+        options.UseMySql(conn!, serverVersion);
     }
     else
     {
