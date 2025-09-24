@@ -12,8 +12,6 @@ RUN dotnet publish ProjectApp.Api/ProjectApp.Api.csproj -c Release -o /app/publi
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080
-# Данные (SQLite) будут лежать рядом с приложением
-VOLUME ["/app"]
 COPY --from=build /app/publish .
 EXPOSE 8080
 ENTRYPOINT ["dotnet","ProjectApp.Api.dll"]
