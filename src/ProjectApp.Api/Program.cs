@@ -15,6 +15,7 @@ using ProjectApp.Api.Auth;
 using ProjectApp.Api.Middleware;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using MySqlConnector;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((ctx, services, cfg) => cfg
@@ -172,13 +173,39 @@ var app = builder.Build();
 // ---------- DB init (provider-aware) ----------
 await using (var scope = app.Services.CreateAsyncScope())
 {
+    // 0) If MySQL is configured, ensure the target database (schema) exists
+    var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+    var connForDetect = configuration.GetConnectionString("DefaultConnection");
+    if (!string.IsNullOrWhiteSpace(connForDetect) &&
+        (connForDetect.Contains("Server=", StringComparison.OrdinalIgnoreCase) || connForDetect.Contains("Host=", StringComparison.OrdinalIgnoreCase)))
+    {
+        try
+        {
+            var csb = new MySqlConnectionStringBuilder(connForDetect);
+            var targetDb = csb.Database;
+            if (!string.IsNullOrWhiteSpace(targetDb))
+            {
+                csb.Database = string.Empty; // connect to server without schema
+                await using var adminConn = new MySqlConnection(csb.ConnectionString);
+                await adminConn.OpenAsync();
+                await using var cmd = adminConn.CreateCommand();
+                cmd.CommandText = $"CREATE DATABASE IF NOT EXISTS `{targetDb}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+        catch
+        {
+            // ignore bootstrap errors; context init may still succeed if DB exists
+        }
+    }
+
+    // 1) Now use EF Core context to create schema/migrations
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
     var provider = db.Database.ProviderName ?? string.Empty;
     if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
     {
-        // Temporary bootstrap for MySQL: generate schema from model.
-        // Later we can re-baseline migrations for MySQL.
+        // Generate schema from model for MySQL
         await db.Database.EnsureCreatedAsync();
     }
     else
@@ -207,6 +234,39 @@ await using (var scope = app.Services.CreateAsyncScope())
             new ProjectApp.Api.Models.Product { Id = 10,Sku = "SKU-010", Name = "Tomato Sauce 300g",Unit = "jar", Price = 2.39m  }
         });
         await db.SaveChangesAsync();
+    }
+
+    // 2) Create MySQL views for stock availability (so the site can query directly if needed)
+    if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+    {
+        var createViewById = @"CREATE OR REPLACE VIEW app_available_stock AS
+SELECT
+  s.ProductId,
+  SUM(CASE WHEN s.Register IN (0,1) THEN s.Qty ELSE 0 END) AS total_qty,
+  SUM(CASE WHEN s.Register = 1 THEN s.Qty ELSE 0 END)       AS im40_qty,
+  SUM(CASE WHEN s.Register = 0 THEN s.Qty ELSE 0 END)       AS nd40_qty
+FROM Stocks s
+GROUP BY s.ProductId;";
+
+        var createViewBySku = @"CREATE OR REPLACE VIEW app_available_stock_sku AS
+SELECT
+  p.Sku,
+  SUM(CASE WHEN s.Register IN (0,1) THEN s.Qty ELSE 0 END) AS total_qty,
+  SUM(CASE WHEN s.Register = 1 THEN s.Qty ELSE 0 END)       AS im40_qty,
+  SUM(CASE WHEN s.Register = 0 THEN s.Qty ELSE 0 END)       AS nd40_qty
+FROM Stocks s
+JOIN Products p ON p.Id = s.ProductId
+GROUP BY p.Sku;";
+
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(createViewById);
+            await db.Database.ExecuteSqlRawAsync(createViewBySku);
+        }
+        catch
+        {
+            // ignore view creation errors (e.g., insufficient privileges), app can still run
+        }
     }
 }
 // ------------------------------------------------------------------------
