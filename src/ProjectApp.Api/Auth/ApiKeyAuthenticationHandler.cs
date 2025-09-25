@@ -53,7 +53,8 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, "api-key-user"),
-            new Claim(ClaimTypes.Name, "ApiKeyUser")
+            new Claim(ClaimTypes.Name, "ApiKeyUser"),
+            new Claim(ClaimTypes.Role, "Admin")
         };
         var identity = new ClaimsIdentity(claims, Options.AuthenticationType);
         var principal = new ClaimsPrincipal(identity);

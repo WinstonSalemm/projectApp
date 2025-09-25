@@ -16,6 +16,10 @@ using ProjectApp.Api.Middleware;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using MySqlConnector;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using ProjectApp.Api.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((ctx, services, cfg) => cfg
@@ -89,6 +93,16 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = ApiKeyAuthenticationOptions.DefaultScheme
     });
+    // Bearer security definition (JWT)
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
     // Apply requirement only to [Authorize] endpoints via operation filter
     c.OperationFilter<ProjectApp.Api.Swagger.AuthorizeCheckOperationFilter>();
 });
@@ -152,7 +166,31 @@ builder.Services.AddScoped<ISaleRepository, EfSaleRepository>();
 builder.Services.AddScoped<ISaleCalculator, SaleCalculator>();
 
 // Authentication & Authorization
-builder.Services.AddAuthentication(ApiKeyAuthenticationOptions.DefaultScheme)
+// JWT settings
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
+builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
+
+// Authentication: support both JWT and ApiKey
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+    .AddJwtBearer(options =>
+    {
+        var jwt = builder.Configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwt.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwt.Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Secret)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(2)
+        };
+    })
     .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationOptions.DefaultScheme, _ => { });
 
 builder.Services.AddAuthorization(options =>
@@ -160,7 +198,19 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequireApiKey", policy =>
     {
         policy.RequireAuthenticatedUser();
-        policy.AddAuthenticationSchemes(ApiKeyAuthenticationOptions.DefaultScheme);
+        policy.AddAuthenticationSchemes(ApiKeyAuthenticationOptions.DefaultScheme, JwtBearerDefaults.AuthenticationScheme);
+    });
+
+    options.AddPolicy("ManagerOnly", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole("Manager", "Admin");
+    });
+
+    options.AddPolicy("AdminOnly", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole("Admin");
     });
 });
 

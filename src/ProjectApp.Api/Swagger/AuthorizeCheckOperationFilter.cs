@@ -16,18 +16,23 @@ public class AuthorizeCheckOperationFilter : IOperationFilter
             return;
 
         operation.Security ??= new List<OpenApiSecurityRequirement>();
-        var requirement = new OpenApiSecurityRequirement
+        // Allow either ApiKey or Bearer
+        operation.Security.Add(new OpenApiSecurityRequirement
         {
             [ new OpenApiSecurityScheme
                 {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "ApiKey"
-                    }
+                    Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ApiKey" }
                 }
             ] = new List<string>()
-        };
-        operation.Security.Add(requirement);
+        });
+
+        operation.Security.Add(new OpenApiSecurityRequirement
+        {
+            [ new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                }
+            ] = new List<string>()
+        });
     }
 }
