@@ -38,7 +38,7 @@ public class ReturnsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = "RequireApiKey")]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(Return), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] ReturnCreateDto dto, CancellationToken ct)
@@ -67,6 +67,17 @@ public class ReturnsController : ControllerBase
                         _db.Stocks.Add(stock);
                     }
                     stock.Qty += it.Qty;
+
+                    // Add batch entry for returned goods (UnitCost=0 by default)
+                    _db.Batches.Add(new Batch
+                    {
+                        ProductId = it.ProductId,
+                        Register = register,
+                        Qty = it.Qty,
+                        UnitCost = 0m,
+                        CreatedAt = DateTime.UtcNow,
+                        Note = $"return full sale #{sale.Id}"
+                    });
                 }
 
                 var retFull = new Return
@@ -145,6 +156,17 @@ public class ReturnsController : ControllerBase
             {
                 var si = saleItemsMap[ri.SaleItemId];
                 await AdjustStockAsync(si.ProductId, StockRegister.ND40, +ri.Qty, ct);
+
+                // Also add batch for returned qty in ND40
+                _db.Batches.Add(new Batch
+                {
+                    ProductId = si.ProductId,
+                    Register = StockRegister.ND40,
+                    Qty = ri.Qty,
+                    UnitCost = 0m,
+                    CreatedAt = DateTime.UtcNow,
+                    Note = $"partial return saleItem #{si.Id}"
+                });
             }
 
             await _db.SaveChangesAsync(ct);

@@ -23,7 +23,7 @@ public class SalesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = "RequireApiKey")]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(Sale), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] SaleCreateDto dto, CancellationToken ct)
@@ -31,6 +31,7 @@ public class SalesController : ControllerBase
         try
         {
             var sale = await _calculator.BuildAndCalculateAsync(dto, ct);
+            sale.CreatedBy = User?.Identity?.Name;
             sale = await _sales.AddAsync(sale, ct);
 
             _logger.LogInformation("Sale created {SaleId} for client {ClientId} total {Total} payment {PaymentType}",

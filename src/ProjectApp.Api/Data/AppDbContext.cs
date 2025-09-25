@@ -13,6 +13,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ReturnItem> ReturnItems => Set<ReturnItem>();
     public DbSet<Stock> Stocks => Set<Stock>();
     public DbSet<Debt> Debts => Set<Debt>();
+    public DbSet<DebtPayment> DebtPayments => Set<DebtPayment>();
+    public DbSet<Batch> Batches => Set<Batch>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -107,11 +109,38 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.HasData(stocks);
         });
 
+        // Seed initial batches to align with initial stocks (UnitCost=0 by default, can be edited later)
+        var seedBatches = new List<Batch>();
+        var seedDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        int bid = 1;
+        for (int pid = 1; pid <= 10; pid++)
+        {
+            seedBatches.Add(new Batch { Id = bid++, ProductId = pid, Register = StockRegister.IM40, Qty = 100m, UnitCost = 0m, CreatedAt = seedDate, Note = "seed" });
+            seedBatches.Add(new Batch { Id = bid++, ProductId = pid, Register = StockRegister.ND40, Qty = 50m,  UnitCost = 0m, CreatedAt = seedDate, Note = "seed" });
+        }
+        modelBuilder.Entity<Batch>().HasData(seedBatches);
+
         modelBuilder.Entity<Debt>(b =>
         {
             b.HasKey(d => d.Id);
             b.Property(d => d.Amount).HasColumnType("decimal(18,2)");
             b.Property(d => d.DueDate).IsRequired();
+        });
+
+        modelBuilder.Entity<DebtPayment>(b =>
+        {
+            b.HasKey(p => p.Id);
+            b.Property(p => p.Amount).HasColumnType("decimal(18,2)");
+            b.Property(p => p.PaidAt).IsRequired();
+        });
+
+        modelBuilder.Entity<Batch>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Qty).HasColumnType("decimal(18,3)");
+            b.Property(x => x.UnitCost).HasColumnType("decimal(18,2)");
+            b.Property(x => x.CreatedAt).IsRequired();
+            b.HasIndex(x => new { x.ProductId, x.Register, x.CreatedAt, x.Id });
         });
     }
 }

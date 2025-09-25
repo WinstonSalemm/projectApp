@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
 using ProjectApp.Api.Auth;
+using ProjectApp.Api.Integrations.Telegram;
 using ProjectApp.Api.Middleware;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -164,6 +165,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IProductRepository, EfProductRepository>();
 builder.Services.AddScoped<ISaleRepository, EfSaleRepository>();
 builder.Services.AddScoped<ISaleCalculator, SaleCalculator>();
+
+// Telegram integration
+builder.Services.Configure<TelegramSettings>(builder.Configuration.GetSection("Telegram"));
+builder.Services.AddHttpClient("telegram");
 
 // Authentication & Authorization
 // JWT settings

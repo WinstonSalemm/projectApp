@@ -23,7 +23,7 @@ public class EfSaleRepository : ISaleRepository
 
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-        // Check and deduct stocks
+        // Check and deduct stocks and FIFO batches
         foreach (var it in sale.Items)
         {
             var stock = await _db.Stocks.FirstOrDefaultAsync(
@@ -35,6 +35,9 @@ public class EfSaleRepository : ISaleRepository
             var newQty = stock.Qty - it.Qty;
             if (newQty < 0)
                 throw new InvalidOperationException($"Insufficient stock for ProductId={it.ProductId} in {register}. Available={stock.Qty}, Required={it.Qty}");
+
+            // Deduct FIFO from batches
+            await DeductFromBatchesAsync(it.ProductId, register, it.Qty, ct);
 
             stock.Qty = newQty;
         }
@@ -81,5 +84,25 @@ public class EfSaleRepository : ISaleRepository
             PaymentType.Credit => StockRegister.IM40,
             _ => StockRegister.IM40
         };
+    }
+
+    private async Task DeductFromBatchesAsync(int productId, StockRegister register, decimal qty, CancellationToken ct)
+    {
+        var remain = qty;
+        var batches = await _db.Batches
+            .Where(b => b.ProductId == productId && b.Register == register && b.Qty > 0)
+            .OrderBy(b => b.CreatedAt).ThenBy(b => b.Id)
+            .ToListAsync(ct);
+
+        foreach (var b in batches)
+        {
+            if (remain <= 0) break;
+            var take = Math.Min(b.Qty, remain);
+            b.Qty -= take;
+            remain -= take;
+        }
+
+        if (remain > 0)
+            throw new InvalidOperationException($"FIFO batches are insufficient for ProductId={productId} in {register}. Missing={remain}");
     }
 }
