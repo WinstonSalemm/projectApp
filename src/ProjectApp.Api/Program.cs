@@ -169,6 +169,8 @@ builder.Services.AddScoped<ISaleCalculator, SaleCalculator>();
 // Telegram integration
 builder.Services.Configure<TelegramSettings>(builder.Configuration.GetSection("Telegram"));
 builder.Services.AddHttpClient("telegram");
+builder.Services.AddSingleton<ITelegramService, TelegramService>();
+builder.Services.AddSingleton<ISalesNotifier, SalesNotifier>();
 
 // Authentication & Authorization
 // JWT settings

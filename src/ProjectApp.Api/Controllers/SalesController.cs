@@ -4,6 +4,7 @@ using ProjectApp.Api.Dtos;
 using ProjectApp.Api.Models;
 using ProjectApp.Api.Repositories;
 using ProjectApp.Api.Services;
+using ProjectApp.Api.Integrations.Telegram;
 
 namespace ProjectApp.Api.Controllers;
 
@@ -14,12 +15,14 @@ public class SalesController : ControllerBase
     private readonly ISaleRepository _sales;
     private readonly ISaleCalculator _calculator;
     private readonly ILogger<SalesController> _logger;
+    private readonly ISalesNotifier _notifier;
 
-    public SalesController(ISaleRepository sales, ISaleCalculator calculator, ILogger<SalesController> logger)
+    public SalesController(ISaleRepository sales, ISaleCalculator calculator, ILogger<SalesController> logger, ISalesNotifier notifier)
     {
         _sales = sales;
         _calculator = calculator;
         _logger = logger;
+        _notifier = notifier;
     }
 
     [HttpPost]
@@ -36,6 +39,9 @@ public class SalesController : ControllerBase
 
             _logger.LogInformation("Sale created {SaleId} for client {ClientId} total {Total} payment {PaymentType}",
                 sale.Id, sale.ClientId, sale.Total, sale.PaymentType);
+
+            // Fire-and-forget notification (do not block the response)
+            _ = _notifier.NotifySaleAsync(sale, ct);
 
             var location = $"/api/sales/{sale.Id}";
             return Created(location, sale);

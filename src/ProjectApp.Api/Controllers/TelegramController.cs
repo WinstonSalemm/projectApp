@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Integrations.Telegram;
 using System.Text.Json;
+using System.Linq;
 
 namespace ProjectApp.Api.Controllers;
 
@@ -38,6 +39,12 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
         if (text.StartsWith("/start") || text.StartsWith("/help"))
         {
             await tg.SendMessageAsync(chatId, "Добро пожаловать! Доступные команды:\n/stock <SKU> — остатки по артикулу", HttpContext.RequestAborted);
+            return Ok();
+        }
+
+        if (text.StartsWith("/whoami", StringComparison.OrdinalIgnoreCase))
+        {
+            await tg.SendMessageAsync(chatId, $"Ваш chat id: {chatId}. Добавьте его в переменную PROJECTAPP__Telegram__AllowedChatIds, чтобы получать уведомления о продажах.", HttpContext.RequestAborted);
             return Ok();
         }
 
