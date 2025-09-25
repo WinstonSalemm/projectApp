@@ -35,10 +35,10 @@ public class StockController(AppDbContext db) : ControllerBase
                     join s in db.Stocks.AsNoTracking() on p.Id equals s.ProductId
                     group s by p.Sku into g
                     select new StockAvailabilityDto(
-                        Key: g.Key,
-                        TotalQty: g.Where(x => x.Register == Models.StockRegister.IM40 || x.Register == Models.StockRegister.ND40).Sum(x => x.Qty),
-                        Im40Qty: g.Where(x => x.Register == Models.StockRegister.IM40).Sum(x => x.Qty),
-                        Nd40Qty: g.Where(x => x.Register == Models.StockRegister.ND40).Sum(x => x.Qty)
+                        g.Key,
+                        g.Where(x => x.Register == Models.StockRegister.IM40 || x.Register == Models.StockRegister.ND40).Sum(x => x.Qty),
+                        g.Where(x => x.Register == Models.StockRegister.IM40).Sum(x => x.Qty),
+                        g.Where(x => x.Register == Models.StockRegister.ND40).Sum(x => x.Qty)
                     );
 
         var result = await query.ToListAsync();
@@ -65,10 +65,10 @@ public class StockController(AppDbContext db) : ControllerBase
                     where idList.Contains(s.ProductId)
                     group s by s.ProductId into g
                     select new StockAvailabilityDto(
-                        Key: g.Key.ToString(),
-                        TotalQty: g.Where(x => x.Register == Models.StockRegister.IM40 || x.Register == Models.StockRegister.ND40).Sum(x => x.Qty),
-                        Im40Qty: g.Where(x => x.Register == Models.StockRegister.IM40).Sum(x => x.Qty),
-                        Nd40Qty: g.Where(x => x.Register == Models.StockRegister.ND40).Sum(x => x.Qty)
+                        g.Key.ToString(),
+                        g.Where(x => x.Register == Models.StockRegister.IM40 || x.Register == Models.StockRegister.ND40).Sum(x => x.Qty),
+                        g.Where(x => x.Register == Models.StockRegister.IM40).Sum(x => x.Qty),
+                        g.Where(x => x.Register == Models.StockRegister.ND40).Sum(x => x.Qty)
                     );
 
         var result = await query.ToListAsync();
