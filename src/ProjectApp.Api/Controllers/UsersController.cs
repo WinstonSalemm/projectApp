@@ -293,6 +293,132 @@ public class UsersController(AppDbContext db, IPasswordHasher hasher) : Controll
         }
     }
 
+    private async Task EnsureUsersTableExistsAsync(CancellationToken ct)
+    {
+        var provider = db.Database.ProviderName ?? string.Empty;
+        if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+        {
+            string? actual = null;
+            using var conn = db.Database.GetDbConnection();
+            await conn.OpenAsync(ct);
+            await using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND UPPER(TABLE_NAME)='USERS' LIMIT 1";
+                var obj = await cmd.ExecuteScalarAsync(ct);
+                if (obj is string s && !string.IsNullOrWhiteSpace(s)) actual = s;
+            }
+            if (string.IsNullOrWhiteSpace(actual))
+            {
+                var sql = @"CREATE TABLE `Users` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `UserName` VARCHAR(64) NOT NULL,
+  `DisplayName` VARCHAR(128) NOT NULL,
+  `Role` VARCHAR(32) NOT NULL,
+  `PasswordHash` VARCHAR(512) NOT NULL,
+  `IsActive` TINYINT(1) NOT NULL,
+  `CreatedAt` DATETIME(6) NOT NULL,
+  PRIMARY KEY (`Id`),
+  UNIQUE INDEX `IX_Users_UserName` (`UserName` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                await db.Database.ExecuteSqlRawAsync(sql, ct);
+            }
+        }
+        else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            bool exists = false;
+            using var conn = db.Database.GetDbConnection();
+            await conn.OpenAsync(ct);
+            await using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Users'";
+                var scalar = await cmd.ExecuteScalarAsync(ct);
+                exists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!exists)
+            {
+                var sql = @"CREATE TABLE Users (
+  Id INTEGER NOT NULL CONSTRAINT PK_Users PRIMARY KEY AUTOINCREMENT,
+  UserName TEXT NOT NULL,
+  DisplayName TEXT NOT NULL,
+  Role TEXT NOT NULL,
+  PasswordHash TEXT NOT NULL,
+  IsActive INTEGER NOT NULL,
+  CreatedAt TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IX_Users_UserName ON Users(UserName);";
+                await db.Database.ExecuteSqlRawAsync(sql, ct);
+            }
+        }
+    }
+
+    private async Task EnsureUsersColumnsAsync(IEnumerable<string> columns, CancellationToken ct)
+    {
+        var provider = db.Database.ProviderName ?? string.Empty;
+        if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+        {
+            string table = await ResolveActualUsersTableAsync(ct);
+            foreach (var col in columns)
+            {
+                bool has = false;
+                using var conn = db.Database.GetDbConnection();
+                await conn.OpenAsync(ct);
+                await using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = $"SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND UPPER(TABLE_NAME)='USERS' AND UPPER(COLUMN_NAME)='{col.ToUpper()}'";
+                    var scalar = await cmd.ExecuteScalarAsync(ct);
+                    has = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+                }
+                if (!has)
+                {
+                    var alter = col switch
+                    {
+                        "UserName" => $"ALTER TABLE `{table}` ADD COLUMN `UserName` VARCHAR(64) NOT NULL;",
+                        "DisplayName" => $"ALTER TABLE `{table}` ADD COLUMN `DisplayName` VARCHAR(128) NOT NULL;",
+                        "Role" => $"ALTER TABLE `{table}` ADD COLUMN `Role` VARCHAR(32) NOT NULL;",
+                        "PasswordHash" => $"ALTER TABLE `{table}` ADD COLUMN `PasswordHash` VARCHAR(512) NOT NULL;",
+                        "IsActive" => $"ALTER TABLE `{table}` ADD COLUMN `IsActive` TINYINT(1) NOT NULL DEFAULT 1;",
+                        "CreatedAt" => $"ALTER TABLE `{table}` ADD COLUMN `CreatedAt` DATETIME(6) NOT NULL;",
+                        _ => null
+                    };
+                    if (alter is not null) await db.Database.ExecuteSqlRawAsync(alter, ct);
+                }
+            }
+        }
+        else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var col in columns)
+            {
+                bool has = false;
+                using var conn = db.Database.GetDbConnection();
+                await conn.OpenAsync(ct);
+                await using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "PRAGMA table_info('Users');";
+                    await using var reader = await cmd.ExecuteReaderAsync(ct);
+                    while (await reader.ReadAsync(ct))
+                    {
+                        var name = reader.GetString(1);
+                        if (string.Equals(name, col, StringComparison.OrdinalIgnoreCase)) { has = true; break; }
+                    }
+                }
+                if (!has)
+                {
+                    var alter = col switch
+                    {
+                        "UserName" => "ALTER TABLE Users ADD COLUMN UserName TEXT NOT NULL;",
+                        "DisplayName" => "ALTER TABLE Users ADD COLUMN DisplayName TEXT NOT NULL;",
+                        "Role" => "ALTER TABLE Users ADD COLUMN Role TEXT NOT NULL;",
+                        "PasswordHash" => "ALTER TABLE Users ADD COLUMN PasswordHash TEXT NOT NULL;",
+                        "IsActive" => "ALTER TABLE Users ADD COLUMN IsActive INTEGER NOT NULL DEFAULT 1;",
+                        "CreatedAt" => "ALTER TABLE Users ADD COLUMN CreatedAt TEXT NOT NULL;",
+                        _ => null
+                    };
+                    if (alter is not null) await db.Database.ExecuteSqlRawAsync(alter, ct);
+                }
+            }
+        }
+    }
+
     private async Task<string> ResolveActualUsersTableAsync(CancellationToken ct)
     {
         var provider = db.Database.ProviderName ?? string.Empty;
