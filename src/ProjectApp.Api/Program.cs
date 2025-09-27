@@ -20,6 +20,7 @@ using MySqlConnector;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((ctx, services, cfg) => cfg
@@ -178,6 +179,18 @@ builder.Services.AddSingleton<ProjectApp.Api.Integrations.Telegram.IDebtsNotifie
 // Authentication & Authorization
 // JWT settings
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
+// Provide safe defaults if not configured (prevents 500 on login)
+builder.Services.PostConfigure<JwtSettings>(opts =>
+{
+    if (string.IsNullOrWhiteSpace(opts.Secret))
+        opts.Secret = "dev-secret-please-override-140606tl-0123456789abcdef0123456789abcdef"; // override via config
+    if (string.IsNullOrWhiteSpace(opts.Issuer))
+        opts.Issuer = "ProjectApp";
+    if (string.IsNullOrWhiteSpace(opts.Audience))
+        opts.Audience = "ProjectApp.Clients";
+    if (opts.AccessTokenLifetimeMinutes <= 0)
+        opts.AccessTokenLifetimeMinutes = 720;
+});
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
 // Authentication: support both JWT and ApiKey
@@ -189,6 +202,14 @@ builder.Services.AddAuthentication(options =>
     .AddJwtBearer(options =>
     {
         var jwt = builder.Configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
+        // Fallbacks in case configuration is missing
+        if (string.IsNullOrWhiteSpace(jwt.Secret))
+        {
+            jwt.Secret = "dev-secret-please-override-140606tl-0123456789abcdef0123456789abcdef";
+            jwt.Issuer = string.IsNullOrWhiteSpace(jwt.Issuer) ? "ProjectApp" : jwt.Issuer;
+            jwt.Audience = string.IsNullOrWhiteSpace(jwt.Audience) ? "ProjectApp.Clients" : jwt.Audience;
+            if (jwt.AccessTokenLifetimeMinutes <= 0) jwt.AccessTokenLifetimeMinutes = 720;
+        }
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,

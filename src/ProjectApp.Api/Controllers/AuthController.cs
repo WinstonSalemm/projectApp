@@ -23,9 +23,17 @@ public class AuthController(IJwtTokenService tokenService, IOptions<JwtSettings>
         if (string.IsNullOrWhiteSpace(req.UserName))
             return Unauthorized();
 
-        // 1) Try database-backed users first
-        var dbUser = await db.Users.AsNoTracking()
-            .FirstOrDefaultAsync(u => u.UserName.ToLower() == req.UserName.Trim().ToLower());
+        // 1) Try database-backed users first (resilient to schema mismatches)
+        Models.User? dbUser = null;
+        try
+        {
+            dbUser = await db.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.UserName.ToLower() == req.UserName.Trim().ToLower());
+        }
+        catch
+        {
+            dbUser = null; // fall back to config users
+        }
         if (dbUser is not null && dbUser.IsActive)
         {
             var isAdmin = string.Equals(dbUser.Role, "Admin", StringComparison.OrdinalIgnoreCase);
