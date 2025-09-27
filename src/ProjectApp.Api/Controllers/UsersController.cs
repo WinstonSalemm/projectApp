@@ -109,16 +109,25 @@ public class UsersController(AppDbContext db, IPasswordHasher hasher) : Controll
                     await db.SaveChangesAsync(ct);
                     return CreatedAtAction(nameof(GetById), new { id = u.Id }, new UserDto(u.Id, u.UserName, u.DisplayName, u.Role, u.IsActive, u.CreatedAt));
                 }
-                catch
+                catch (Exception ex2)
                 {
                     // If ALTER TABLE is not permitted, fallback to manual INSERT without IsPasswordless
-                    await InsertUserWithoutIsPasswordlessAsync(u, ct);
-                    var id = await RawGetUserIdByUserNameAsync(u.UserName, ct);
-                    var dto = new UserDto(id ?? 0, u.UserName, u.DisplayName, u.Role, u.IsActive, u.CreatedAt);
-                    var location = id.HasValue ? $"/api/users/{id.Value}" : "/api/users";
-                    return Created(location, dto);
+                    try
+                    {
+                        await InsertUserWithoutIsPasswordlessAsync(u, ct);
+                        var id = await RawGetUserIdByUserNameAsync(u.UserName, ct);
+                        var dto = new UserDto(id ?? 0, u.UserName, u.DisplayName, u.Role, u.IsActive, u.CreatedAt);
+                        var location = id.HasValue ? $"/api/users/{id.Value}" : "/api/users";
+                        return Created(location, dto);
+                    }
+                    catch (Exception insertEx)
+                    {
+                        if (IsDuplicateKeyError(insertEx)) return Conflict("UserName already exists");
+                        throw;
+                    }
                 }
             }
+            if (IsDuplicateKeyError(ex)) return Conflict("UserName already exists");
             throw;
         }
     }
@@ -207,6 +216,15 @@ public class UsersController(AppDbContext db, IPasswordHasher hasher) : Controll
         return msg.Contains(column, StringComparison.OrdinalIgnoreCase)
             && (msg.Contains("no such column", StringComparison.OrdinalIgnoreCase)
                 || msg.Contains("Unknown column", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsDuplicateKeyError(Exception ex)
+    {
+        var msg = ex.ToString();
+        return msg.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("UNIQUE constraint", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsMissingTableError(Exception ex, string table)
