@@ -129,7 +129,24 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         string finalConn;
         if (string.IsNullOrWhiteSpace(conn))
         {
-            string dbPath = Path.Combine(builder.Environment.ContentRootPath, "projectapp.db");
+            // In non-Dev cloud environments (like Railway), ContentRoot may be read-only.
+            // Use OS temp directory instead to ensure write access.
+            string basePath;
+            if (builder.Environment.IsDevelopment())
+            {
+                basePath = builder.Environment.ContentRootPath;
+            }
+            else
+            {
+                basePath = Path.GetTempPath(); // e.g., /tmp on Linux
+            }
+            string dbPath = Path.Combine(basePath, "projectapp.db");
+            try
+            {
+                var dir = Path.GetDirectoryName(dbPath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            }
+            catch { }
             finalConn = $"Data Source={dbPath}";
         }
         else
@@ -142,7 +159,22 @@ builder.Services.AddDbContext<AppDbContext>(options =>
                 var pathVal = kv.Length > 1 ? kv[1] : string.Empty;
                 if (!string.IsNullOrWhiteSpace(pathVal) && !Path.IsPathRooted(pathVal))
                 {
-                    string dbPath = Path.Combine(builder.Environment.ContentRootPath, pathVal);
+                    string basePath;
+                    if (builder.Environment.IsDevelopment())
+                    {
+                        basePath = builder.Environment.ContentRootPath;
+                    }
+                    else
+                    {
+                        basePath = Path.GetTempPath();
+                    }
+                    string dbPath = Path.Combine(basePath, pathVal);
+                    try
+                    {
+                        var dir = Path.GetDirectoryName(dbPath);
+                        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                    }
+                    catch { }
                     finalConn = $"Data Source={dbPath}";
                 }
                 else
@@ -152,7 +184,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
             }
             else
             {
-                string dbPath = Path.Combine(builder.Environment.ContentRootPath, "projectapp.db");
+                string basePath = builder.Environment.IsDevelopment() ? builder.Environment.ContentRootPath : Path.GetTempPath();
+                string dbPath = Path.Combine(basePath, "projectapp.db");
+                try
+                {
+                    var dir = Path.GetDirectoryName(dbPath);
+                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                }
+                catch { }
                 finalConn = $"Data Source={dbPath}";
             }
         }
