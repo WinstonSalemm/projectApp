@@ -44,7 +44,7 @@ public class AuthController(IJwtTokenService tokenService, IOptions<JwtSettings>
                 // Passwordless login (e.g., Manager)
                 var token1 = tokenService.CreateToken(dbUser.Id.ToString(), dbUser.UserName, dbUser.Role);
                 var exp1 = DateTime.UtcNow.AddMinutes(jwtOptions.Value.AccessTokenLifetimeMinutes);
-                return Ok(new LoginResponse(token1, dbUser.Role, exp1));
+                return Ok(new LoginResponse(token1, dbUser.Role, exp1, dbUser.UserName, dbUser.DisplayName));
             }
         }
 
