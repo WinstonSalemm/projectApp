@@ -53,7 +53,23 @@ public class UsersController(AppDbContext db, IPasswordHasher hasher) : Controll
         if (u.Role == "Admin" && string.IsNullOrWhiteSpace(req.Password))
             return BadRequest("Password is required for Admin users");
         db.Users.Add(u);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            // Try to self-heal if IsPasswordless column is missing
+            if (IsMissingColumnError(ex, "IsPasswordless"))
+            {
+                await EnsureUsersIsPasswordlessColumnAsync(ct);
+                await db.SaveChangesAsync(ct);
+            }
+            else
+            {
+                throw;
+            }
+        }
         return CreatedAtAction(nameof(GetAll), new { id = u.Id }, new UserDto(u.Id, u.UserName, u.DisplayName, u.Role, u.IsActive, u.CreatedAt));
     }
 
@@ -63,7 +79,19 @@ public class UsersController(AppDbContext db, IPasswordHasher hasher) : Controll
         var u = await db.Users.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (u is null) return NotFound();
         u.Role = req.Role;
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            if (IsMissingColumnError(ex, "IsPasswordless"))
+            {
+                await EnsureUsersIsPasswordlessColumnAsync(ct);
+                await db.SaveChangesAsync(ct);
+            }
+            else throw;
+        }
         return NoContent();
     }
 
@@ -73,7 +101,19 @@ public class UsersController(AppDbContext db, IPasswordHasher hasher) : Controll
         var u = await db.Users.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (u is null) return NotFound();
         u.IsActive = req.IsActive;
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            if (IsMissingColumnError(ex, "IsPasswordless"))
+            {
+                await EnsureUsersIsPasswordlessColumnAsync(ct);
+                await db.SaveChangesAsync(ct);
+            }
+            else throw;
+        }
         return NoContent();
     }
 
@@ -85,7 +125,19 @@ public class UsersController(AppDbContext db, IPasswordHasher hasher) : Controll
         if (u is null) return NotFound();
         u.PasswordHash = hasher.Hash(req.NewPassword);
         u.IsPasswordless = false; // once password set, require it
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            if (IsMissingColumnError(ex, "IsPasswordless"))
+            {
+                await EnsureUsersIsPasswordlessColumnAsync(ct);
+                await db.SaveChangesAsync(ct);
+            }
+            else throw;
+        }
         return NoContent();
     }
 
@@ -97,5 +149,42 @@ public class UsersController(AppDbContext db, IPasswordHasher hasher) : Controll
         db.Users.Remove(u);
         await db.SaveChangesAsync(ct);
         return NoContent();
+    }
+
+    private static bool IsMissingColumnError(Exception ex, string column)
+    {
+        var msg = ex.ToString();
+        return msg.Contains(column, StringComparison.OrdinalIgnoreCase)
+            && (msg.Contains("no such column", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("Unknown column", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task EnsureUsersIsPasswordlessColumnAsync(CancellationToken ct)
+    {
+        var provider = db.Database.ProviderName ?? string.Empty;
+        if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+        {
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Users` ADD COLUMN IF NOT EXISTS `IsPasswordless` TINYINT(1) NOT NULL DEFAULT 0;", ct);
+        }
+        else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            var hasCol = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync(ct);
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info('Users');";
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+                while (await reader.ReadAsync(ct))
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "IsPasswordless", StringComparison.OrdinalIgnoreCase)) { hasCol = true; break; }
+                }
+            }
+            if (!hasCol)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Users ADD COLUMN IsPasswordless INTEGER NOT NULL DEFAULT 0;", ct);
+            }
+        }
     }
 }
