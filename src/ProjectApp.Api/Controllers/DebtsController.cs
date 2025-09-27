@@ -4,12 +4,13 @@ using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Dtos;
 using ProjectApp.Api.Models;
+using ProjectApp.Api.Integrations.Telegram;
 
 namespace ProjectApp.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class DebtsController(AppDbContext db) : ControllerBase
+public class DebtsController(AppDbContext db, IDebtsNotifier debtsNotifier) : ControllerBase
 {
     // GET /api/debts?clientId=&status=&from=&to=&page=&size=
     [HttpGet]
@@ -60,6 +61,8 @@ public class DebtsController(AppDbContext db) : ControllerBase
         }
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
+        // notify
+        try { await debtsNotifier.NotifyDebtPaymentAsync(debt, pay, ct); } catch { /* ignore */ }
         return Ok(new { debt.Id, debt.Amount, debt.Status });
     }
 }

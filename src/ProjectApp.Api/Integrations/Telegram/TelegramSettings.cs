@@ -6,6 +6,7 @@ public class TelegramSettings
     public string SecretToken { get; set; } = "140606tl"; // used to validate webhook header
     public string? AllowedChatIds { get; set; } // comma-separated list; if null => allow all
     public string? PublicUrl { get; set; } // e.g., https://tranquil-upliftment-production.up.railway.app
+    public int TimeZoneOffsetMinutes { get; set; } = 300; // default UTC+5
 
     public HashSet<long> ParseAllowedChatIds()
     {

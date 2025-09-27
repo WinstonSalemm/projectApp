@@ -71,6 +71,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.HasKey(i => i.Id);
             b.Property(i => i.UnitPrice).HasColumnType("decimal(18,2)");
             b.Property(i => i.Qty).HasColumnType("decimal(18,3)");
+            b.Property(i => i.Cost).HasColumnType("decimal(18,2)");
         });
 
         modelBuilder.Entity<Return>(b =>

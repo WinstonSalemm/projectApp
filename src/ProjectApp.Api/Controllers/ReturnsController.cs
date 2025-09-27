@@ -16,11 +16,13 @@ public class ReturnsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ILogger<ReturnsController> _logger;
+    private readonly ProjectApp.Api.Integrations.Telegram.IReturnsNotifier _retNotifier;
 
-    public ReturnsController(AppDbContext db, ILogger<ReturnsController> logger)
+    public ReturnsController(AppDbContext db, ILogger<ReturnsController> logger, ProjectApp.Api.Integrations.Telegram.IReturnsNotifier retNotifier)
     {
         _db = db;
         _logger = logger;
+        _retNotifier = retNotifier;
     }
 
     [HttpGet("{id:int}")]
@@ -94,7 +96,8 @@ public class ReturnsController : ControllerBase
 
                 _logger.LogInformation("Return created {ReturnId} for sale {SaleId} client {ClientId} sum {Sum} payment {PaymentType} register {Register}",
                     retFull.Id, sale.Id, retFull.ClientId, retFull.Sum, sale.PaymentType, register);
-
+                // notify
+                await _retNotifier.NotifyReturnAsync(retFull, sale, ct);
                 return CreatedAtAction(nameof(GetById), new { id = retFull.Id }, retFull);
             }
 
@@ -170,6 +173,8 @@ public class ReturnsController : ControllerBase
             }
 
             await _db.SaveChangesAsync(ct);
+            // notify
+            await _retNotifier.NotifyReturnAsync(retPartial, sale, ct);
             _logger.LogInformation("Partial return {ReturnId} for sale {SaleId} client {ClientId} sum {Sum}", retPartial.Id, sale.Id, retPartial.ClientId, retPartial.Sum);
             return CreatedAtAction(nameof(GetById), new { id = retPartial.Id }, retPartial);
         }

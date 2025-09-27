@@ -38,7 +38,21 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
 
         if (text.StartsWith("/start") || text.StartsWith("/help"))
         {
-            await tg.SendMessageAsync(chatId, "Добро пожаловать! Доступные команды:\n/stock <SKU> — остатки по артикулу", HttpContext.RequestAborted);
+            var kb = new
+            {
+                keyboard = new object[]
+                {
+                    new object[] { new { text = "/report today" }, new { text = "/top today" } },
+                    new object[] { new { text = "/report week" }, new { text = "/top week" } },
+                    new object[] { new { text = "/report month" }, new { text = "/top month" } }
+                },
+                resize_keyboard = true,
+                one_time_keyboard = false
+            };
+            await tg.SendMessageAsync(chatId,
+                "Добро пожаловать! Доступные команды:\n/report today|week|month — отчёт по продажам\n/top today|week|month — топ-1 продавец\n/stock <SKU> — остатки по артикулу\n/whoami — показать ваш chat id",
+                kb,
+                HttpContext.RequestAborted);
             return Ok();
         }
 
@@ -80,6 +94,36 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
             };
 
             var msg = $"{title}\nПериод: {from:yyyy-MM-dd}..{to:yyyy-MM-dd}\nОборот: {totalAmount}\nШтук: {totalQty}\nЧеки: {salesCount}\nТоп продавец: {top?.Seller ?? "нет"} ({top?.Amount ?? 0m})";
+            await tg.SendMessageAsync(chatId, msg, HttpContext.RequestAborted);
+            return Ok();
+        }
+
+        if (text.StartsWith("/top", StringComparison.OrdinalIgnoreCase))
+        {
+            // Usage: /top today|week|month
+            var preset = "today";
+            var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length >= 2) preset = parts[1].ToLowerInvariant();
+
+            (DateTime from, DateTime to) = ResolveRange(preset);
+
+            var rows = await db.Sales
+                .AsNoTracking()
+                .Where(s => s.CreatedAt >= from && s.CreatedAt < to)
+                .Select(s => new { s.Total, s.CreatedBy })
+                .ToListAsync(HttpContext.RequestAborted);
+
+            var top = rows
+                .GroupBy(r => r.CreatedBy ?? "unknown")
+                .Select(g => new { Seller = g.Key, Amount = g.Sum(x => x.Total) })
+                .OrderByDescending(x => x.Amount)
+                .FirstOrDefault();
+
+            var title = preset switch { "week" => "ТОП за неделю", "month" => "ТОП за месяц", _ => "ТОП за сегодня" };
+            var msg = top is null
+                ? $"{title}: данных нет"
+                : $"{title}: {top.Seller} — {top.Amount}";
+
             await tg.SendMessageAsync(chatId, msg, HttpContext.RequestAborted);
             return Ok();
         }

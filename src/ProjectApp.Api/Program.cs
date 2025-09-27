@@ -171,6 +171,9 @@ builder.Services.Configure<TelegramSettings>(builder.Configuration.GetSection("T
 builder.Services.AddHttpClient("telegram");
 builder.Services.AddSingleton<ITelegramService, TelegramService>();
 builder.Services.AddSingleton<ISalesNotifier, SalesNotifier>();
+builder.Services.AddHostedService<DailySummaryHostedService>();
+builder.Services.AddSingleton<ProjectApp.Api.Integrations.Telegram.IReturnsNotifier, ProjectApp.Api.Integrations.Telegram.ReturnsNotifier>();
+builder.Services.AddSingleton<ProjectApp.Api.Integrations.Telegram.IDebtsNotifier, ProjectApp.Api.Integrations.Telegram.DebtsNotifier>();
 
 // Authentication & Authorization
 // JWT settings
@@ -272,6 +275,57 @@ await using (var scope = app.Services.CreateAsyncScope())
             await db.Database.MigrateAsync();
         else
             await db.Database.EnsureCreatedAsync();
+    }
+
+    // 1.1) Minimal schema patchers (idempotent)
+    try
+    {
+        var provider2 = db.Database.ProviderName ?? string.Empty;
+        if (provider2.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+        {
+            var costExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'SaleItems' AND COLUMN_NAME = 'Cost'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                if (scalar != null && scalar != DBNull.Value)
+                {
+                    var cnt = Convert.ToInt64(scalar);
+                    costExists = cnt > 0;
+                }
+            }
+            if (!costExists)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `SaleItems` ADD COLUMN `Cost` DECIMAL(18,2) NOT NULL DEFAULT 0;");
+            }
+        }
+        else if (provider2.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            // Check PRAGMA for column presence
+            var hasCost = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info('SaleItems');";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "Cost", StringComparison.OrdinalIgnoreCase)) { hasCost = true; break; }
+                }
+            }
+            if (!hasCost)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE SaleItems ADD COLUMN Cost DECIMAL(18,2) NOT NULL DEFAULT 0;");
+            }
+        }
+    }
+    catch
+    {
+        // ignore patch errors; app remains functional and sales flow will still work
     }
 
     var seedEnabled = app.Configuration.GetValue("Seed:Enabled", true);

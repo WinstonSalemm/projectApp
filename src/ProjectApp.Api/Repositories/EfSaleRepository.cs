@@ -23,7 +23,7 @@ public class EfSaleRepository : ISaleRepository
 
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-        // Check and deduct stocks and FIFO batches
+        // Check and deduct stocks and FIFO batches; compute COGS per item
         foreach (var it in sale.Items)
         {
             var stock = await _db.Stocks.FirstOrDefaultAsync(
@@ -36,8 +36,9 @@ public class EfSaleRepository : ISaleRepository
             if (newQty < 0)
                 throw new InvalidOperationException($"Insufficient stock for ProductId={it.ProductId} in {register}. Available={stock.Qty}, Required={it.Qty}");
 
-            // Deduct FIFO from batches
-            await DeductFromBatchesAsync(it.ProductId, register, it.Qty, ct);
+            // Deduct FIFO from batches and compute average unit cost (COGS)
+            var avgUnitCost = await DeductFromBatchesAndComputeCostAsync(it.ProductId, register, it.Qty, ct);
+            it.Cost = avgUnitCost;
 
             stock.Qty = newQty;
         }
@@ -86,9 +87,10 @@ public class EfSaleRepository : ISaleRepository
         };
     }
 
-    private async Task DeductFromBatchesAsync(int productId, StockRegister register, decimal qty, CancellationToken ct)
+    private async Task<decimal> DeductFromBatchesAndComputeCostAsync(int productId, StockRegister register, decimal qty, CancellationToken ct)
     {
         var remain = qty;
+        var totalCost = 0m;
         var batches = await _db.Batches
             .Where(b => b.ProductId == productId && b.Register == register && b.Qty > 0)
             .OrderBy(b => b.CreatedAt).ThenBy(b => b.Id)
@@ -98,11 +100,18 @@ public class EfSaleRepository : ISaleRepository
         {
             if (remain <= 0) break;
             var take = Math.Min(b.Qty, remain);
-            b.Qty -= take;
-            remain -= take;
+            if (take > 0)
+            {
+                totalCost += take * b.UnitCost;
+                b.Qty -= take;
+                remain -= take;
+            }
         }
 
         if (remain > 0)
             throw new InvalidOperationException($"FIFO batches are insufficient for ProductId={productId} in {register}. Missing={remain}");
+
+        var avgUnitCost = qty == 0 ? 0 : decimal.Round(totalCost / qty, 2, MidpointRounding.AwayFromZero);
+        return avgUnitCost;
     }
 }
