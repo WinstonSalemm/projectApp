@@ -289,12 +289,32 @@ public class UsersController(AppDbContext db, IPasswordHasher hasher) : Controll
         if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
         {
             var sql = $"INSERT INTO `{table}` (`UserName`,`DisplayName`,`Role`,`PasswordHash`,`IsActive`,`CreatedAt`) VALUES (@p0,@p1,@p2,@p3,@p4,@p5);";
-            await db.Database.ExecuteSqlRawAsync(sql, new object?[] { u.UserName, u.DisplayName, u.Role, u.PasswordHash, u.IsActive ? 1 : 0, u.CreatedAt }, ct);
+            await db.Database.ExecuteSqlRawAsync(sql, new object[] { u.UserName, u.DisplayName, u.Role, u.PasswordHash, u.IsActive ? 1 : 0, u.CreatedAt }, ct);
         }
         else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
             var sql = $"INSERT INTO {table} (UserName,DisplayName,Role,PasswordHash,IsActive,CreatedAt) VALUES (@p0,@p1,@p2,@p3,@p4,@p5);";
-            await db.Database.ExecuteSqlRawAsync(sql, new object?[] { u.UserName, u.DisplayName, u.Role, u.PasswordHash, u.IsActive ? 1 : 0, u.CreatedAt.ToString("o") }, ct);
+            await db.Database.ExecuteSqlRawAsync(sql, new object[] { u.UserName, u.DisplayName, u.Role, u.PasswordHash, u.IsActive ? 1 : 0, u.CreatedAt.ToString("o") }, ct);
         }
+    }
+
+    private async Task<int?> RawGetUserIdByUserNameAsync(string userName, CancellationToken ct)
+    {
+        var provider = db.Database.ProviderName ?? string.Empty;
+        var table = await ResolveActualUsersTableAsync(ct);
+        using var conn = db.Database.GetDbConnection();
+        await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+        {
+            cmd.CommandText = $"SELECT Id FROM `{table}` WHERE UserName = @p0 LIMIT 1";
+        }
+        else
+        {
+            cmd.CommandText = $"SELECT Id FROM {table} WHERE UserName = @p0 LIMIT 1";
+        }
+        var p = cmd.CreateParameter(); p.ParameterName = "@p0"; p.Value = userName; cmd.Parameters.Add(p);
+        var obj = await cmd.ExecuteScalarAsync(ct);
+        return obj == null || obj == DBNull.Value ? (int?)null : Convert.ToInt32(obj);
     }
 }
