@@ -165,6 +165,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IProductRepository, EfProductRepository>();
 builder.Services.AddScoped<ISaleRepository, EfSaleRepository>();
 builder.Services.AddScoped<ISaleCalculator, SaleCalculator>();
+builder.Services.AddSingleton<ProjectApp.Api.Services.IPasswordHasher, ProjectApp.Api.Services.PasswordHasher>();
 
 // Telegram integration
 builder.Services.Configure<TelegramSettings>(builder.Configuration.GetSection("Telegram"));
@@ -327,6 +328,128 @@ await using (var scope = app.Services.CreateAsyncScope())
     {
         // ignore patch errors; app remains functional and sales flow will still work
     }
+
+    // 1.2) Ensure Users table exists (provider-specific) before seeding users
+    try
+    {
+        var provider3 = db.Database.ProviderName ?? string.Empty;
+        if (provider3.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+        {
+            var exists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Users'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                exists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!exists)
+            {
+                var sql = @"CREATE TABLE `Users` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `UserName` VARCHAR(64) NOT NULL,
+  `DisplayName` VARCHAR(128) NOT NULL,
+  `Role` VARCHAR(32) NOT NULL,
+  `PasswordHash` VARCHAR(512) NOT NULL,
+  `IsPasswordless` TINYINT(1) NOT NULL,
+  `IsActive` TINYINT(1) NOT NULL,
+  `CreatedAt` DATETIME(6) NOT NULL,
+  PRIMARY KEY (`Id`),
+  UNIQUE INDEX `IX_Users_UserName` (`UserName` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                await db.Database.ExecuteSqlRawAsync(sql);
+            }
+            else
+            {
+                // Patch: add IsPasswordless column if missing
+                var hasCol = false;
+                using (var conn = db.Database.GetDbConnection())
+                {
+                    await conn.OpenAsync();
+                    await using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Users' AND COLUMN_NAME = 'IsPasswordless'";
+                    var scalar = await cmd.ExecuteScalarAsync();
+                    hasCol = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+                }
+                if (!hasCol)
+                {
+                    await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Users` ADD COLUMN `IsPasswordless` TINYINT(1) NOT NULL DEFAULT 0;");
+                }
+            }
+        }
+        else if (provider3.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            var exists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Users'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                exists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!exists)
+            {
+                var sql = @"CREATE TABLE Users (
+  Id INTEGER NOT NULL CONSTRAINT PK_Users PRIMARY KEY AUTOINCREMENT,
+  UserName TEXT NOT NULL,
+  DisplayName TEXT NOT NULL,
+  Role TEXT NOT NULL,
+  PasswordHash TEXT NOT NULL,
+  IsPasswordless INTEGER NOT NULL,
+  IsActive INTEGER NOT NULL,
+  CreatedAt TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IX_Users_UserName ON Users(UserName);";
+                await db.Database.ExecuteSqlRawAsync(sql);
+            }
+            else
+            {
+                // Patch: add IsPasswordless column if missing
+                var hasCol = false;
+                using (var conn = db.Database.GetDbConnection())
+                {
+                    await conn.OpenAsync();
+                    await using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "PRAGMA table_info('Users');";
+                    await using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        var name = reader.GetString(1);
+                        if (string.Equals(name, "IsPasswordless", StringComparison.OrdinalIgnoreCase)) { hasCol = true; break; }
+                    }
+                }
+                if (!hasCol)
+                {
+                    await db.Database.ExecuteSqlRawAsync("ALTER TABLE Users ADD COLUMN IsPasswordless INTEGER NOT NULL DEFAULT 0;");
+                }
+            }
+        }
+    }
+    catch { }
+
+    // 1.3) Seed default admin user if none exist
+    try
+    {
+        if (!await db.Users.AnyAsync())
+        {
+            var hasher = scope.ServiceProvider.GetRequiredService<ProjectApp.Api.Services.IPasswordHasher>();
+            var admin = new ProjectApp.Api.Models.User
+            {
+                UserName = "admin",
+                DisplayName = "Администратор",
+                Role = "Admin",
+                IsPasswordless = false,
+                PasswordHash = hasher.Hash("140606tl"),
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            db.Users.Add(admin);
+            await db.SaveChangesAsync();
+        }
+    }
+    catch { }
 
     var seedEnabled = app.Configuration.GetValue("Seed:Enabled", true);
     if (seedEnabled && !await db.Products.AnyAsync())

@@ -15,6 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Debt> Debts => Set<Debt>();
     public DbSet<DebtPayment> DebtPayments => Set<DebtPayment>();
     public DbSet<Batch> Batches => Set<Batch>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -142,6 +143,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(x => x.UnitCost).HasColumnType("decimal(18,2)");
             b.Property(x => x.CreatedAt).IsRequired();
             b.HasIndex(x => new { x.ProductId, x.Register, x.CreatedAt, x.Id });
+        });
+
+        modelBuilder.Entity<User>(b =>
+        {
+            b.HasKey(u => u.Id);
+            b.Property(u => u.UserName).IsRequired().HasMaxLength(64);
+            b.Property(u => u.DisplayName).IsRequired().HasMaxLength(128);
+            b.Property(u => u.Role).IsRequired().HasMaxLength(32);
+            b.Property(u => u.PasswordHash).IsRequired().HasMaxLength(512);
+            b.Property(u => u.IsPasswordless).IsRequired();
+            b.Property(u => u.IsActive).IsRequired();
+            b.Property(u => u.CreatedAt).IsRequired();
+            b.HasIndex(u => u.UserName).IsUnique();
         });
     }
 }
