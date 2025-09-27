@@ -127,6 +127,14 @@ public class UsersController(AppDbContext db, IPasswordHasher hasher) : Controll
                     }
                 }
             }
+            // If Users table missing entirely, create it and retry EF save
+            if (IsMissingTableError(ex, "Users"))
+            {
+                await EnsureUsersTableExistsAsync(ct);
+                await EnsureUsersColumnsAsync(new[] { "UserName", "DisplayName", "Role", "PasswordHash", "IsActive", "CreatedAt" }, ct);
+                await db.SaveChangesAsync(ct);
+                return CreatedAtAction(nameof(GetById), new { id = u.Id }, new UserDto(u.Id, u.UserName, u.DisplayName, u.Role, u.IsActive, u.CreatedAt));
+            }
             if (IsDuplicateKeyError(ex)) return Conflict("UserName already exists");
             throw;
         }
@@ -306,13 +314,13 @@ public class UsersController(AppDbContext db, IPasswordHasher hasher) : Controll
         var table = await ResolveActualUsersTableAsync(ct);
         if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
         {
-            var sql = $"INSERT INTO `{table}` (`UserName`,`DisplayName`,`Role`,`PasswordHash`,`IsActive`,`CreatedAt`) VALUES (@p0,@p1,@p2,@p3,@p4,@p5);";
+            var sql = $"INSERT INTO `{table}` (`UserName`,`DisplayName`,`Role`,`PasswordHash`,`IsActive`,`CreatedAt`) VALUES ({{0}},{{1}},{{2}},{{3}},{{4}},{{5}});";
             await db.Database.ExecuteSqlRawAsync(sql, new object[] { u.UserName, u.DisplayName, u.Role, u.PasswordHash, u.IsActive ? 1 : 0, u.CreatedAt }, ct);
         }
         else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
-            var sql = $"INSERT INTO {table} (UserName,DisplayName,Role,PasswordHash,IsActive,CreatedAt) VALUES (@p0,@p1,@p2,@p3,@p4,@p5);";
-            await db.Database.ExecuteSqlRawAsync(sql, new object[] { u.UserName, u.DisplayName, u.Role, u.PasswordHash, u.IsActive ? 1 : 0, u.CreatedAt.ToString("o") }, ct);
+            var sql = $"INSERT INTO {table} (UserName,DisplayName,Role,PasswordHash,IsActive,CreatedAt) VALUES ({{0}},{{1}},{{2}},{{3}},{{4}},{{5}});";
+            await db.Database.ExecuteSqlRawAsync(sql, new object[] { u.UserName, u.DisplayName, u.Role, u.PasswordHash, u.IsActive ? 1 : 0, u.CreatedAt }, ct);
         }
     }
 
