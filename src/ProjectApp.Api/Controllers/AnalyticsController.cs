@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Data;
 using System.Globalization;
+using System.Linq;
 
 namespace ProjectApp.Api.Controllers;
 
@@ -11,6 +12,23 @@ namespace ProjectApp.Api.Controllers;
 [Authorize(Policy = "AdminOnly")] // аналитика доступна только админам
 public class AnalyticsController(AppDbContext db) : ControllerBase
 {
+    private sealed class ProductRow
+    {
+        public int ProductId { get; set; }
+        public string Sku { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public decimal Qty { get; set; }
+        public decimal Revenue { get; set; }
+        public decimal Margin { get; set; }
+    }
+
+    private sealed class SellerRow
+    {
+        public string Seller { get; set; } = "unknown";
+        public decimal Qty { get; set; }
+        public decimal Revenue { get; set; }
+        public decimal Margin { get; set; }
+    }
     // GET /api/analytics/products?from=2025-01-01&to=2025-12-31&metric=revenue&top=10&format=json
     [HttpGet("products")]
     public async Task<IActionResult> Products([FromQuery] DateTime? from, [FromQuery] DateTime? to,
@@ -19,37 +37,69 @@ public class AnalyticsController(AppDbContext db) : ControllerBase
     {
         var dateFrom = from ?? DateTime.UtcNow.Date;
         var dateTo = to ?? DateTime.UtcNow.Date.AddDays(1);
-        var q = await db.Sales
-            .AsNoTracking()
-            .Where(s => s.CreatedAt >= dateFrom && s.CreatedAt < dateTo)
-            .SelectMany(s => s.Items.Select(i => new { s.CreatedAt, i.ProductId, i.Qty, i.UnitPrice, i.Cost }))
-            .ToListAsync(ct);
 
-        var grouped = q
-            .GroupBy(x => x.ProductId)
-            .Select(g => new
-            {
-                ProductId = g.Key,
-                Qty = g.Sum(x => x.Qty),
-                Revenue = g.Sum(x => x.Qty * x.UnitPrice),
-                Margin = g.Sum(x => x.Qty * (x.UnitPrice - x.Cost))
-            })
-            .ToList();
+        List<ProductRow> rows;
+        try
+        {
+            var q = await db.Sales
+                .AsNoTracking()
+                .Where(s => s.CreatedAt >= dateFrom && s.CreatedAt < dateTo)
+                .SelectMany(s => s.Items.Select(i => new { i.ProductId, i.Qty, i.UnitPrice, i.Cost }))
+                .ToListAsync(ct);
 
-        var products = await db.Products.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
-        var rows = grouped
-            .Select(r => new
+            var grouped = q
+                .GroupBy(x => x.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    Qty = g.Sum(x => x.Qty),
+                    Revenue = g.Sum(x => x.Qty * x.UnitPrice),
+                    Margin = g.Sum(x => x.Qty * (x.UnitPrice - x.Cost))
+                })
+                .ToList();
+
+            var products = await db.Products.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
+            rows = grouped.Select(r => new ProductRow
             {
-                r.ProductId,
-                Sku = products.TryGetValue(r.ProductId, out var p) ? p.Sku : "",
-                Name = products.TryGetValue(r.ProductId, out var p2) ? p2.Name : "",
+                ProductId = r.ProductId,
+                Sku = products.TryGetValue(r.ProductId, out var p) ? p.Sku : string.Empty,
+                Name = products.TryGetValue(r.ProductId, out var p2) ? p2.Name : string.Empty,
                 Qty = r.Qty,
                 Revenue = decimal.Round(r.Revenue, 2),
                 Margin = decimal.Round(r.Margin, 2)
-            })
-            .ToList();
+            }).ToList();
+        }
+        catch
+        {
+            var q2 = await db.Sales
+                .AsNoTracking()
+                .Where(s => s.CreatedAt >= dateFrom && s.CreatedAt < dateTo)
+                .SelectMany(s => s.Items.Select(i => new { i.ProductId, i.Qty, i.UnitPrice }))
+                .ToListAsync(ct);
 
-        IEnumerable<dynamic> ordered = metric.ToLowerInvariant() switch
+            var grouped2 = q2
+                .GroupBy(x => x.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    Qty = g.Sum(x => x.Qty),
+                    Revenue = g.Sum(x => x.Qty * x.UnitPrice)
+                })
+                .ToList();
+
+            var products = await db.Products.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
+            rows = grouped2.Select(r => new ProductRow
+            {
+                ProductId = r.ProductId,
+                Sku = products.TryGetValue(r.ProductId, out var p) ? p.Sku : string.Empty,
+                Name = products.TryGetValue(r.ProductId, out var p2) ? p2.Name : string.Empty,
+                Qty = r.Qty,
+                Revenue = decimal.Round(r.Revenue, 2),
+                Margin = 0m
+            }).ToList();
+        }
+
+        IEnumerable<ProductRow> ordered = metric.ToLowerInvariant() switch
         {
             "qty" => rows.OrderByDescending(r => r.Qty),
             "margin" => rows.OrderByDescending(r => r.Margin),
@@ -75,34 +125,62 @@ public class AnalyticsController(AppDbContext db) : ControllerBase
     {
         var dateFrom = from ?? DateTime.UtcNow.Date;
         var dateTo = to ?? DateTime.UtcNow.Date.AddDays(1);
-        var q = await db.Sales
-            .AsNoTracking()
-            .Where(s => s.CreatedAt >= dateFrom && s.CreatedAt < dateTo)
-            .Select(s => new
-            {
-                s.CreatedBy,
-                Revenue = s.Items.Sum(i => i.Qty * i.UnitPrice),
-                Qty = s.Items.Sum(i => i.Qty),
-                Margin = s.Items.Sum(i => i.Qty * (i.UnitPrice - i.Cost))
-            })
-            .ToListAsync(ct);
-
-        var grouped = q
-            .GroupBy(x => x.CreatedBy ?? "unknown")
-            .Select(g => new
-            {
-                Seller = g.Key,
-                Qty = g.Sum(x => x.Qty),
-                Revenue = g.Sum(x => x.Revenue),
-                Margin = g.Sum(x => x.Margin)
-            })
-            .ToList();
-
-        IEnumerable<dynamic> ordered = metric.ToLowerInvariant() switch
+        List<SellerRow> rows;
+        try
         {
-            "qty" => grouped.OrderByDescending(r => r.Qty),
-            "margin" => grouped.OrderByDescending(r => r.Margin),
-            _ => grouped.OrderByDescending(r => r.Revenue)
+            var q = await db.Sales
+                .AsNoTracking()
+                .Where(s => s.CreatedAt >= dateFrom && s.CreatedAt < dateTo)
+                .Select(s => new
+                {
+                    s.CreatedBy,
+                    Revenue = s.Items.Sum(i => i.Qty * i.UnitPrice),
+                    Qty = s.Items.Sum(i => i.Qty),
+                    Margin = s.Items.Sum(i => i.Qty * (i.UnitPrice - i.Cost))
+                })
+                .ToListAsync(ct);
+
+            rows = q
+                .GroupBy(x => x.CreatedBy ?? "unknown")
+                .Select(g => new SellerRow
+                {
+                    Seller = g.Key,
+                    Qty = g.Sum(x => x.Qty),
+                    Revenue = g.Sum(x => x.Revenue),
+                    Margin = g.Sum(x => x.Margin)
+                })
+                .ToList();
+        }
+        catch
+        {
+            var q = await db.Sales
+                .AsNoTracking()
+                .Where(s => s.CreatedAt >= dateFrom && s.CreatedAt < dateTo)
+                .Select(s => new
+                {
+                    s.CreatedBy,
+                    Revenue = s.Items.Sum(i => i.Qty * i.UnitPrice),
+                    Qty = s.Items.Sum(i => i.Qty)
+                })
+                .ToListAsync(ct);
+
+            rows = q
+                .GroupBy(x => x.CreatedBy ?? "unknown")
+                .Select(g => new SellerRow
+                {
+                    Seller = g.Key,
+                    Qty = g.Sum(x => x.Qty),
+                    Revenue = g.Sum(x => x.Revenue),
+                    Margin = 0m
+                })
+                .ToList();
+        }
+
+        IEnumerable<SellerRow> ordered = metric.ToLowerInvariant() switch
+        {
+            "qty" => rows.OrderByDescending(r => r.Qty),
+            "margin" => rows.OrderByDescending(r => r.Margin),
+            _ => rows.OrderByDescending(r => r.Revenue)
         };
 
         var result = ordered.Take(Math.Clamp(top, 1, 100)).ToList();
