@@ -11,7 +11,7 @@ namespace ProjectApp.Api.Controllers;
 [Route("api/[controller]")]
 public class AuthController(IJwtTokenService tokenService, IOptions<JwtSettings> jwtOptions, IConfiguration config, AppDbContext db, IPasswordHasher hasher) : ControllerBase
 {
-    public record LoginRequest(string UserName, string Password);
+    public record LoginRequest(string UserName, string? Password);
     public record LoginResponse(string AccessToken, string Role, DateTime ExpiresAtUtc, string UserName, string DisplayName);
     public class ConfigUser { public string UserName { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; public string Role { get; set; } = "Manager"; public string DisplayName { get; set; } = string.Empty; }
 

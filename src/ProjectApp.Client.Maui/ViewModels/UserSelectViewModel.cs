@@ -25,7 +25,8 @@ public partial class UserSelectViewModel : ObservableObject
         var ok = await _auth.LoginAsync(userName, null);
         if (!ok)
         {
-            await Application.Current!.MainPage!.DisplayAlert("Ошибка", $"Не удалось войти: {userName}", "OK");
+            var detail = string.IsNullOrWhiteSpace(_auth.LastErrorMessage) ? string.Empty : $"\n{_auth.LastErrorMessage}";
+            await Application.Current!.MainPage!.DisplayAlert("Ошибка входа", $"Пользователь: {userName}.{detail}", "OK");
             return;
         }
         var qs = _services.GetRequiredService<ProjectApp.Client.Maui.Views.QuickSalePage>();

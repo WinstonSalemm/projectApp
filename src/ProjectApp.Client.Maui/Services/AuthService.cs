@@ -4,16 +4,17 @@ using Microsoft.Maui.Storage;
 
 namespace ProjectApp.Client.Maui.Services;
 
-public class AuthService
-{
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly AppSettings _settings;
+    public class AuthService
+    {
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly AppSettings _settings;
 
     public string? AccessToken { get; private set; }
     public string? Role { get; private set; }
     public string? UserName { get; private set; }
     public string? DisplayName { get; private set; }
     public DateTimeOffset? ExpiresAtUtc { get; private set; }
+    public string? LastErrorMessage { get; private set; }
 
     public bool IsAuthenticated => !string.IsNullOrWhiteSpace(AccessToken) && ExpiresAtUtc > DateTimeOffset.UtcNow.AddMinutes(1);
 
@@ -56,7 +57,13 @@ public class AuthService
             client.BaseAddress = new Uri(baseUrl);
             var req = new LoginRequest { UserName = userName.Trim(), Password = string.IsNullOrWhiteSpace(password) ? null : password };
             var resp = await client.PostAsJsonAsync("/api/auth/login", req, ct);
-            if (!resp.IsSuccessStatusCode) return false;
+            if (!resp.IsSuccessStatusCode)
+            {
+                string body = string.Empty;
+                try { body = await resp.Content.ReadAsStringAsync(ct); } catch { }
+                LastErrorMessage = $"HTTP {(int)resp.StatusCode} {resp.StatusCode}. {Truncate(body, 300)}";
+                return false;
+            }
             var dto = await resp.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken: ct);
             if (dto is null || string.IsNullOrWhiteSpace(dto.AccessToken)) return false;
             AccessToken = dto.AccessToken;
@@ -65,12 +72,20 @@ public class AuthService
             DisplayName = dto.DisplayName;
             ExpiresAtUtc = dto.ExpiresAtUtc;
             Persist();
+            LastErrorMessage = null;
             return true;
         }
         catch
         {
+            LastErrorMessage = "Сетевая ошибка при обращении к API (проверьте URL и интернет).";
             return false;
         }
+    }
+
+    private static string Truncate(string s, int max)
+    {
+        if (string.IsNullOrEmpty(s)) return s;
+        return s.Length <= max ? s : s.Substring(0, max) + "...";
     }
 
     public Task LogoutAsync()
