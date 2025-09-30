@@ -8,11 +8,13 @@ public class ApiSalesService : ISalesService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly AppSettings _settings;
+    private readonly AuthService _auth;
 
-    public ApiSalesService(IHttpClientFactory httpClientFactory, AppSettings settings)
+    public ApiSalesService(IHttpClientFactory httpClientFactory, AppSettings settings, AuthService auth)
     {
         _httpClientFactory = httpClientFactory;
         _settings = settings;
+        _auth = auth;
     }
 
     private class SaleCreateItemDto
@@ -34,6 +36,7 @@ public class ApiSalesService : ISalesService
         var client = _httpClientFactory.CreateClient();
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
         var dto = new SaleCreateDto
         {
             ClientId = null,

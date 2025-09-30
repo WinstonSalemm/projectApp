@@ -488,6 +488,56 @@ CREATE UNIQUE INDEX IX_Users_UserName ON Users(UserName);";
     }
     catch { }
 
+    // 1.2.1) Ensure ManagerStats table exists (provider-specific)
+    try
+    {
+        var provider4 = db.Database.ProviderName ?? string.Empty;
+        if (provider4.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+        {
+            var exists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ManagerStats'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                exists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!exists)
+            {
+                var sql = @"CREATE TABLE `ManagerStats` (
+  `UserName` VARCHAR(64) NOT NULL,
+  `SalesCount` INT NOT NULL,
+  `Turnover` DECIMAL(18,2) NOT NULL,
+  PRIMARY KEY (`UserName`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;";
+                await db.Database.ExecuteSqlRawAsync(sql);
+            }
+        }
+        else if (provider4.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            var exists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ManagerStats'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                exists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!exists)
+            {
+                var sql = @"CREATE TABLE ManagerStats (
+  UserName TEXT NOT NULL CONSTRAINT PK_ManagerStats PRIMARY KEY,
+  SalesCount INTEGER NOT NULL,
+  Turnover DECIMAL(18,2) NOT NULL
+);";
+                await db.Database.ExecuteSqlRawAsync(sql);
+            }
+        }
+    }
+    catch { }
+
     // 1.3) Seed default admin user if none exist
     try
     {
@@ -507,6 +557,56 @@ CREATE UNIQUE INDEX IX_Users_UserName ON Users(UserName);";
             db.Users.Add(admin);
             await db.SaveChangesAsync();
         }
+        // Ensure 'shop' manager (Магазин) exists
+        try
+        {
+            var hasher = scope.ServiceProvider.GetRequiredService<ProjectApp.Api.Services.IPasswordHasher>();
+            if (!await db.Users.AnyAsync(u => u.UserName == "shop"))
+            {
+                var shop = new ProjectApp.Api.Models.User
+                {
+                    UserName = "shop",
+                    DisplayName = "Магазин",
+                    Role = "Manager",
+                    IsPasswordless = true,
+                    PasswordHash = hasher.Hash(string.Empty),
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                db.Users.Add(shop);
+                await db.SaveChangesAsync();
+            }
+
+            // Ensure 6 named managers exist (passwordless)
+            var managerSeeds = new (string UserName, string DisplayName)[]
+            {
+                ("liliya", "Лилия"),
+                ("timur", "Тимур"),
+                ("valeriy", "Валерий"),
+                ("albert", "Альберт"),
+                ("rasim", "Расим"),
+                ("alisher", "Алишер"),
+            };
+            foreach (var m in managerSeeds)
+            {
+                if (!await db.Users.AnyAsync(u => u.UserName == m.UserName))
+                {
+                    var u = new ProjectApp.Api.Models.User
+                    {
+                        UserName = m.UserName,
+                        DisplayName = m.DisplayName,
+                        Role = "Manager",
+                        IsPasswordless = true,
+                        PasswordHash = hasher.Hash(string.Empty),
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    db.Users.Add(u);
+                }
+            }
+            await db.SaveChangesAsync();
+        }
+        catch { }
     }
     catch { }
 
@@ -529,7 +629,7 @@ CREATE UNIQUE INDEX IX_Users_UserName ON Users(UserName);";
         await db.SaveChangesAsync();
     }
 
-    // 2) Create MySQL views for stock availability (so the site can query directly if needed)
+    // 2) Create MySQL views for stock availability and manager stats (so the site can query directly if needed)
     if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
     {
         var createViewById = @"CREATE OR REPLACE VIEW app_available_stock AS
@@ -551,15 +651,41 @@ FROM Stocks s
 JOIN Products p ON p.Id = s.ProductId
 GROUP BY p.Sku;";
 
+        var createManagerStatsView = @"CREATE OR REPLACE VIEW app_manager_stats AS
+SELECT
+  COALESCE(s.CreatedBy, 'unknown') AS user_name,
+  COUNT(*) AS sales_count,
+  COALESCE(SUM(s.Total), 0) AS turnover
+FROM Sales s
+GROUP BY COALESCE(s.CreatedBy, 'unknown');";
+
         try
         {
             await db.Database.ExecuteSqlRawAsync(createViewById);
             await db.Database.ExecuteSqlRawAsync(createViewBySku);
+            await db.Database.ExecuteSqlRawAsync(createManagerStatsView);
         }
         catch
         {
             // ignore view creation errors (e.g., insufficient privileges), app can still run
         }
+    }
+    else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+    {
+        var drop = "DROP VIEW IF EXISTS app_manager_stats;";
+        var create = @"CREATE VIEW app_manager_stats AS
+SELECT
+  COALESCE(CreatedBy, 'unknown') AS user_name,
+  COUNT(*) AS sales_count,
+  COALESCE(SUM(Total), 0) AS turnover
+FROM Sales
+GROUP BY COALESCE(CreatedBy, 'unknown');";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(drop);
+            await db.Database.ExecuteSqlRawAsync(create);
+        }
+        catch { }
     }
 }
 // ------------------------------------------------------------------------

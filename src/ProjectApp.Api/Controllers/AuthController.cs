@@ -13,7 +13,7 @@ public class AuthController(IJwtTokenService tokenService, IOptions<JwtSettings>
 {
     public record LoginRequest(string UserName, string Password);
     public record LoginResponse(string AccessToken, string Role, DateTime ExpiresAtUtc, string UserName, string DisplayName);
-    public class ConfigUser { public string UserName { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; public string Role { get; set; } = "Manager"; }
+    public class ConfigUser { public string UserName { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; public string Role { get; set; } = "Manager"; public string DisplayName { get; set; } = string.Empty; }
 
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
@@ -59,16 +59,25 @@ public class AuthController(IJwtTokenService tokenService, IOptions<JwtSettings>
         // 2) Fallback to config users (for local/dev)
         var users = config.GetSection("Users").Get<List<ConfigUser>>() ?? new List<ConfigUser>
         {
-            new() { UserName = "admin", Password = "140606tl", Role = "Admin" },
-            new() { UserName = "manager", Password = "140606tl", Role = "Manager" },
+            new() { UserName = "admin",   Password = "140606tl", Role = "Admin",   DisplayName = "Администратор" },
+            // Passwordless managers (accept null/empty password)
+            new() { UserName = "shop",    Password = "",         Role = "Manager", DisplayName = "Магазин" },
+            new() { UserName = "liliya",  Password = "",         Role = "Manager", DisplayName = "Лилия" },
+            new() { UserName = "timur",   Password = "",         Role = "Manager", DisplayName = "Тимур" },
+            new() { UserName = "valeriy", Password = "",         Role = "Manager", DisplayName = "Валерий" },
+            new() { UserName = "albert",  Password = "",         Role = "Manager", DisplayName = "Альберт" },
+            new() { UserName = "rasim",   Password = "",         Role = "Manager", DisplayName = "Расим" },
+            new() { UserName = "alisher", Password = "",         Role = "Manager", DisplayName = "Алишер" },
         };
 
+        var reqPwd = req.Password ?? string.Empty; // treat null as empty for passwordless logins
         var cfgUser = users.FirstOrDefault(u => string.Equals(u.UserName, req.UserName, StringComparison.OrdinalIgnoreCase)
-                                           && u.Password == req.Password);
+                                           && string.Equals(u.Password ?? string.Empty, reqPwd, StringComparison.Ordinal));
         if (cfgUser is null) return Unauthorized();
 
         var token = tokenService.CreateToken(cfgUser.UserName, cfgUser.UserName, cfgUser.Role);
         var exp = DateTime.UtcNow.AddMinutes(jwtOptions.Value.AccessTokenLifetimeMinutes);
-        return Ok(new LoginResponse(token, cfgUser.Role, exp, cfgUser.UserName, cfgUser.UserName));
+        var display = string.IsNullOrWhiteSpace(cfgUser.DisplayName) ? cfgUser.UserName : cfgUser.DisplayName;
+        return Ok(new LoginResponse(token, cfgUser.Role, exp, cfgUser.UserName, display));
     }
 }

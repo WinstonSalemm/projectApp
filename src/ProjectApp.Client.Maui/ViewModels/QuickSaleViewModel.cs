@@ -32,7 +32,13 @@ public partial class QuickSaleViewModel : ObservableObject
         PaymentType.CashWithReceipt,
         PaymentType.CashNoReceipt,
         PaymentType.CardWithReceipt,
-        PaymentType.Click,
+        PaymentType.ClickWithReceipt,
+        PaymentType.ClickNoReceipt,
+        PaymentType.Click, // legacy
+        PaymentType.Site,
+        PaymentType.Exchange,
+        PaymentType.Credit,
+        PaymentType.Payme,
     };
 
     [ObservableProperty]
@@ -168,7 +174,7 @@ public partial class QuickSaleViewModel : ObservableObject
         {
             ClientName = string.IsNullOrWhiteSpace(ClientName) ? "Quick Client" : ClientName,
             PaymentType = SelectedPaymentType,
-            Items = Cart.Select(c => new SaleDraftItem { ProductId = c.ProductId, Qty = c.Qty, UnitPrice = c.UnitPrice }).ToList()
+            Items = Cart.Select(c => new SaleDraftItem { ProductId = c.ProductId, Qty = c.Qty }).ToList()
         };
         _lastAction = LastAction.Submit;
         _lastDraft = draft;

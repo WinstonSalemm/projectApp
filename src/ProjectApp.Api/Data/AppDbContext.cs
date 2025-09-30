@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<DebtPayment> DebtPayments => Set<DebtPayment>();
     public DbSet<Batch> Batches => Set<Batch>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<ManagerStat> ManagerStats => Set<ManagerStat>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -156,6 +157,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(u => u.IsActive).IsRequired();
             b.Property(u => u.CreatedAt).IsRequired();
             b.HasIndex(u => u.UserName).IsUnique();
+        });
+
+        modelBuilder.Entity<ManagerStat>(b =>
+        {
+            b.HasKey(m => m.UserName);
+            b.Property(m => m.UserName).HasMaxLength(64);
+            b.Property(m => m.SalesCount);
+            b.Property(m => m.Turnover).HasColumnType("decimal(18,2)");
         });
     }
 }

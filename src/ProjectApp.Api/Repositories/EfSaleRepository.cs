@@ -20,30 +20,88 @@ public class EfSaleRepository : ISaleRepository
             throw new ArgumentException("Sale must have at least one item");
 
         var register = MapPaymentToRegister(sale.PaymentType);
+        var isGreyPayment = sale.PaymentType == PaymentType.CashNoReceipt
+                          || sale.PaymentType == PaymentType.ClickNoReceipt
+                          || sale.PaymentType == PaymentType.Click // legacy mapping kept as grey
+                          || sale.PaymentType == PaymentType.Payme;
 
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
         // Check and deduct stocks and FIFO batches; compute COGS per item
         foreach (var it in sale.Items)
         {
-            var stock = await _db.Stocks.FirstOrDefaultAsync(
-                s => s.ProductId == it.ProductId && s.Register == register, ct);
+            if (isGreyPayment)
+            {
+                // 1) Забираем с ND-40 максимум возможного
+                var stockNd = await _db.Stocks.FirstOrDefaultAsync(
+                    s => s.ProductId == it.ProductId && s.Register == StockRegister.ND40, ct);
+                var availableNd = stockNd?.Qty ?? 0m;
+                var takeNd = Math.Min(availableNd, it.Qty);
 
-            if (stock is null)
-                throw new InvalidOperationException($"Stock record not found for ProductId={it.ProductId} Register={register}");
+                decimal costNd = 0m;
+                if (takeNd > 0)
+                {
+                    costNd = await DeductFromBatchesAndComputeCostAsync(it.ProductId, StockRegister.ND40, takeNd, ct);
+                    stockNd!.Qty -= takeNd;
+                }
 
-            var newQty = stock.Qty - it.Qty;
-            if (newQty < 0)
-                throw new InvalidOperationException($"Insufficient stock for ProductId={it.ProductId} in {register}. Available={stock.Qty}, Required={it.Qty}");
+                // 2) Остаток — с IM-40
+                var remain = it.Qty - takeNd;
+                decimal costIm = 0m;
+                if (remain > 0)
+                {
+                    var stockIm = await _db.Stocks.FirstOrDefaultAsync(
+                        s => s.ProductId == it.ProductId && s.Register == StockRegister.IM40, ct);
+                    if (stockIm is null)
+                        throw new InvalidOperationException($"Stock record not found for ProductId={it.ProductId} Register={StockRegister.IM40}");
 
-            // Deduct FIFO from batches and compute average unit cost (COGS)
-            var avgUnitCost = await DeductFromBatchesAndComputeCostAsync(it.ProductId, register, it.Qty, ct);
-            it.Cost = avgUnitCost;
+                    if (stockIm.Qty < remain)
+                        throw new InvalidOperationException($"Insufficient stock for ProductId={it.ProductId} in {StockRegister.IM40}. Available={stockIm.Qty}, Required={remain}");
 
-            stock.Qty = newQty;
+                    costIm = await DeductFromBatchesAndComputeCostAsync(it.ProductId, StockRegister.IM40, remain, ct);
+                    stockIm.Qty -= remain;
+                }
+
+                // 3) Средневзвешенная себестоимость по всем списанным регистрам
+                var totalCost = costNd * takeNd + costIm * (it.Qty - takeNd);
+                var avg = it.Qty == 0 ? 0 : decimal.Round(totalCost / it.Qty, 2, MidpointRounding.AwayFromZero);
+                it.Cost = avg;
+            }
+            else
+            {
+                // Официальные оплаты: списываем только с IM-40
+                var stock = await _db.Stocks.FirstOrDefaultAsync(
+                    s => s.ProductId == it.ProductId && s.Register == register, ct);
+
+                if (stock is null)
+                    throw new InvalidOperationException($"Stock record not found for ProductId={it.ProductId} Register={register}");
+
+                var newQty = stock.Qty - it.Qty;
+                if (newQty < 0)
+                    throw new InvalidOperationException($"Insufficient stock for ProductId={it.ProductId} in {register}. Available={stock.Qty}, Required={it.Qty}");
+
+                var avgUnitCost = await DeductFromBatchesAndComputeCostAsync(it.ProductId, register, it.Qty, ct);
+                it.Cost = avgUnitCost;
+                stock.Qty = newQty;
+            }
         }
 
         _db.Sales.Add(sale);
+        await _db.SaveChangesAsync(ct);
+
+        // Update per-manager stats (CreatedBy is username from JWT)
+        var managerKey = string.IsNullOrWhiteSpace(sale.CreatedBy) ? "unknown" : sale.CreatedBy!;
+        var stat = await _db.ManagerStats.FirstOrDefaultAsync(m => m.UserName == managerKey, ct);
+        if (stat is null)
+        {
+            stat = new ManagerStat { UserName = managerKey, SalesCount = 1, Turnover = sale.Total };
+            _db.ManagerStats.Add(stat);
+        }
+        else
+        {
+            stat.SalesCount += 1;
+            stat.Turnover += sale.Total;
+        }
         await _db.SaveChangesAsync(ct);
 
         // Create debt for Credit
@@ -80,8 +138,8 @@ public class EfSaleRepository : ISaleRepository
     {
         return payment switch
         {
-            PaymentType.CashWithReceipt or PaymentType.CardWithReceipt or PaymentType.Site or PaymentType.Exchange => StockRegister.IM40,
-            PaymentType.CashNoReceipt or PaymentType.Click or PaymentType.Payme => StockRegister.ND40,
+            PaymentType.CashWithReceipt or PaymentType.CardWithReceipt or PaymentType.ClickWithReceipt or PaymentType.Site or PaymentType.Exchange => StockRegister.IM40,
+            PaymentType.CashNoReceipt or PaymentType.ClickNoReceipt or PaymentType.Click or PaymentType.Payme => StockRegister.ND40,
             PaymentType.Credit => StockRegister.IM40,
             _ => StockRegister.IM40
         };

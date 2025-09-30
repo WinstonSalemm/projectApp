@@ -49,6 +49,7 @@ public static class MauiProgram
 
         // Register concrete API and Mock services
         builder.Services.AddHttpClient(); // generic factory
+        builder.Services.AddSingleton<AuthService>();
         builder.Services.AddSingleton<ApiCatalogService>();
         builder.Services.AddSingleton<ApiSalesService>();
         builder.Services.AddSingleton<MockCatalogService>();
@@ -60,6 +61,10 @@ public static class MauiProgram
         // VM and Views
         builder.Services.AddTransient<QuickSaleViewModel>();
         builder.Services.AddTransient<QuickSalePage>();
+        builder.Services.AddTransient<LoginViewModel>();
+        builder.Services.AddTransient<LoginPage>();
+        builder.Services.AddTransient<UserSelectViewModel>();
+        builder.Services.AddTransient<UserSelectPage>();
         builder.Services.AddTransient<SettingsViewModel>();
         builder.Services.AddTransient<SettingsPage>();
 

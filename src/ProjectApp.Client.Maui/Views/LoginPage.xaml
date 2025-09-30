@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.LoginPage"
+             Title="Вход">
+  <ContentPage.Content>
+    <ScrollView>
+      <VerticalStackLayout Padding="24" Spacing="12">
+        <Label Text="Вход" FontAttributes="Bold" FontSize="20"/>
+        <Entry Placeholder="Логин" Text="{Binding UserName}"/>
+        <Entry Placeholder="Пароль (для Админа)" IsPassword="True" Text="{Binding Password}" IsVisible="{Binding IsPasswordVisible}"/>
+        <Button Text="Войти" Command="{Binding LoginCommand}"/>
+      </VerticalStackLayout>
+    </ScrollView>
+  </ContentPage.Content>
+</ContentPage>

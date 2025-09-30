@@ -7,11 +7,13 @@ public class ApiCatalogService : ICatalogService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly AppSettings _settings;
+    private readonly AuthService _auth;
 
-    public ApiCatalogService(IHttpClientFactory httpClientFactory, AppSettings settings)
+    public ApiCatalogService(IHttpClientFactory httpClientFactory, AppSettings settings, AuthService auth)
     {
         _httpClientFactory = httpClientFactory;
         _settings = settings;
+        _auth = auth;
     }
 
     public async Task<IEnumerable<ProductModel>> SearchAsync(string? query, CancellationToken ct = default)
@@ -19,6 +21,7 @@ public class ApiCatalogService : ICatalogService
         var client = _httpClientFactory.CreateClient();
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
 
         var url = string.IsNullOrWhiteSpace(query)
             ? "/api/products?page=1&size=50"

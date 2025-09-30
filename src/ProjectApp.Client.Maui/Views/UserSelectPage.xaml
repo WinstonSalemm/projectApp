@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.UserSelectPage"
+             Title="Выбор пользователя">
+  <ContentPage.ToolbarItems>
+    <ToolbarItem Text="Настройки" Clicked="OnSettingsClicked" />
+  </ContentPage.ToolbarItems>
+  <ScrollView>
+    <VerticalStackLayout Padding="24" Spacing="16">
+      <Label Text="Кто работает сейчас?" FontAttributes="Bold" FontSize="22"/>
+
+      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="16">
+        <!-- 6 менеджеров -->
+        <Button Text="Лилия" Grid.Row="0" Grid.Column="0" StyleClass="BigUserButton" Command="{Binding LoginManagerCommand}" CommandParameter="liliya" />
+        <Button Text="Тимур"  Grid.Row="0" Grid.Column="1" StyleClass="BigUserButton" Command="{Binding LoginManagerCommand}" CommandParameter="timur" />
+
+        <Button Text="Валерий" Grid.Row="1" Grid.Column="0" StyleClass="BigUserButton" Command="{Binding LoginManagerCommand}" CommandParameter="valeriy" />
+        <Button Text="Альберт" Grid.Row="1" Grid.Column="1" StyleClass="BigUserButton" Command="{Binding LoginManagerCommand}" CommandParameter="albert" />
+
+        <Button Text="Расим" Grid.Row="2" Grid.Column="0" StyleClass="BigUserButton" Command="{Binding LoginManagerCommand}" CommandParameter="rasim" />
+        <Button Text="Алишер" Grid.Row="2" Grid.Column="1" StyleClass="BigUserButton" Command="{Binding LoginManagerCommand}" CommandParameter="alisher" />
+
+        <!-- Магазин и Админ (увеличенные кнопки) -->
+        <Button Text="МАГАЗИН"
+                Grid.Row="3" Grid.Column="0"
+                Command="{Binding LoginShopCommand}"
+                HeightRequest="72"
+                FontSize="20"
+                BackgroundColor="#2E7D32"
+                TextColor="White"
+                CornerRadius="10"/>
+        <Button Text="АДМИН"
+                Grid.Row="3" Grid.Column="1"
+                Command="{Binding LoginAdminCommand}"
+                HeightRequest="72"
+                FontSize="20"
+                BackgroundColor="#1565C0"
+                TextColor="White"
+                CornerRadius="10"/>
+      </Grid>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>
