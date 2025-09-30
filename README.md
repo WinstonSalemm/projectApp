@@ -14,7 +14,7 @@ API поднимется на `http://localhost:5028`.
 
 Переопределение конфигурации через переменные окружения (подхватываются с префиксом `PROJECTAPP__`):
 
-```powershell
+```powershellвввв
 # Задать API ключ (для мутаций)
 $env:PROJECTAPP__Security__ApiKey = "prod-secret"
 
