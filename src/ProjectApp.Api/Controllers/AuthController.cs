@@ -56,23 +56,41 @@ public class AuthController(IJwtTokenService tokenService, IOptions<JwtSettings>
             }
         }
 
-        // 2) Fallback to config users (for local/dev)
-        var users = config.GetSection("Users").Get<List<ConfigUser>>() ?? new List<ConfigUser>
+        // 2) Fallback to config users (for local/dev and bootstrap). If section is missing or empty, use built-ins.
+        var configured = config.GetSection("Users").Get<List<ConfigUser>>();
+        var users = (configured == null || configured.Count == 0)
+            ? new List<ConfigUser>
+            {
+                new() { UserName = "admin",   Password = "140606tl", Role = "Admin",   DisplayName = "Администратор" },
+                // Passwordless managers (accept null/empty password)
+                new() { UserName = "shop",    Password = "",         Role = "Manager", DisplayName = "Магазин" },
+                new() { UserName = "liliya",  Password = "",         Role = "Manager", DisplayName = "Лилия" },
+                new() { UserName = "timur",   Password = "",         Role = "Manager", DisplayName = "Тимур" },
+                new() { UserName = "valeriy", Password = "",         Role = "Manager", DisplayName = "Валерий" },
+                new() { UserName = "albert",  Password = "",         Role = "Manager", DisplayName = "Альберт" },
+                new() { UserName = "rasim",   Password = "",         Role = "Manager", DisplayName = "Расим" },
+                new() { UserName = "alisher", Password = "",         Role = "Manager", DisplayName = "Алишер" },
+            }
+            : configured;
+
+        // Ensure built-ins exist even if section present
+        void Ensure(List<ConfigUser> list, string u, string role, string display, string? pwd = "")
         {
-            new() { UserName = "admin",   Password = "140606tl", Role = "Admin",   DisplayName = "Администратор" },
-            // Passwordless managers (accept null/empty password)
-            new() { UserName = "shop",    Password = "",         Role = "Manager", DisplayName = "Магазин" },
-            new() { UserName = "liliya",  Password = "",         Role = "Manager", DisplayName = "Лилия" },
-            new() { UserName = "timur",   Password = "",         Role = "Manager", DisplayName = "Тимур" },
-            new() { UserName = "valeriy", Password = "",         Role = "Manager", DisplayName = "Валерий" },
-            new() { UserName = "albert",  Password = "",         Role = "Manager", DisplayName = "Альберт" },
-            new() { UserName = "rasim",   Password = "",         Role = "Manager", DisplayName = "Расим" },
-            new() { UserName = "alisher", Password = "",         Role = "Manager", DisplayName = "Алишер" },
-        };
+            if (!list.Any(x => string.Equals(x.UserName, u, StringComparison.OrdinalIgnoreCase)))
+                list.Add(new ConfigUser { UserName = u, Password = pwd ?? string.Empty, Role = role, DisplayName = display });
+        }
+        Ensure(users, "admin",   "Admin",   "Администратор", "140606tl");
+        Ensure(users, "shop",    "Manager", "Магазин",      "");
+        Ensure(users, "liliya",  "Manager", "Лилия",        "");
+        Ensure(users, "timur",   "Manager", "Тимур",         "");
+        Ensure(users, "valeriy", "Manager", "Валерий",       "");
+        Ensure(users, "albert",  "Manager", "Альберт",       "");
+        Ensure(users, "rasim",   "Manager", "Расим",         "");
+        Ensure(users, "alisher", "Manager", "Алишер",        "");
 
         var reqPwd = req.Password ?? string.Empty; // treat null as empty for passwordless logins
         var cfgUser = users.FirstOrDefault(u => string.Equals(u.UserName, req.UserName, StringComparison.OrdinalIgnoreCase)
-                                           && string.Equals(u.Password ?? string.Empty, reqPwd, StringComparison.Ordinal));
+                                           && string.Equals((u.Password ?? string.Empty), reqPwd, StringComparison.Ordinal));
         if (cfgUser is null) return Unauthorized();
 
         var token = tokenService.CreateToken(cfgUser.UserName, cfgUser.UserName, cfgUser.Role);
