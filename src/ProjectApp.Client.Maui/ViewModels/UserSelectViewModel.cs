@@ -29,9 +29,12 @@ public partial class UserSelectViewModel : ObservableObject
             await Application.Current!.MainPage!.DisplayAlert("Ошибка входа", $"Пользователь: {userName}.{detail}", "OK");
             return;
         }
-        var qs = _services.GetRequiredService<ProjectApp.Client.Maui.Views.QuickSalePage>();
-        // Reset navigation to QuickSale
-        Application.Current!.MainPage = new NavigationPage(qs);
+        var pay = _services.GetRequiredService<ProjectApp.Client.Maui.Views.PaymentSelectPage>();
+        // Reset navigation to Payment selection first (on UI thread)
+        await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            Application.Current!.MainPage = new NavigationPage(pay);
+        });
     }
 
     [RelayCommand]

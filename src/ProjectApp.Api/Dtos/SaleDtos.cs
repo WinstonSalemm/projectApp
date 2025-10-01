@@ -14,4 +14,5 @@ public class SaleCreateDto
     public string ClientName { get; set; } = string.Empty;
     public List<SaleCreateItemDto> Items { get; set; } = new();
     public PaymentType PaymentType { get; set; }
+    public List<string>? ReservationNotes { get; set; }
 }

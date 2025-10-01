@@ -188,9 +188,9 @@ public class ReturnsController : ControllerBase
     {
         return payment switch
         {
-            PaymentType.CashWithReceipt or PaymentType.CardWithReceipt or PaymentType.Site or PaymentType.Exchange => StockRegister.IM40,
+            PaymentType.CashWithReceipt or PaymentType.CardWithReceipt or PaymentType.Site or PaymentType.Return => StockRegister.IM40,
             PaymentType.CashNoReceipt or PaymentType.Click or PaymentType.Payme => StockRegister.ND40,
-            PaymentType.Credit => StockRegister.IM40,
+            PaymentType.Reservation => StockRegister.IM40,
             _ => StockRegister.IM40
         };
     }

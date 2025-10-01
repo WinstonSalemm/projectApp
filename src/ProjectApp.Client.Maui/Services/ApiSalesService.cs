@@ -29,6 +29,7 @@ public class ApiSalesService : ISalesService
         public string ClientName { get; set; } = "Quick Sale";
         public List<SaleCreateItemDto> Items { get; set; } = new();
         public string PaymentType { get; set; } = "CashWithReceipt";
+        public List<string>? ReservationNotes { get; set; }
     }
 
     public async Task<bool> SubmitSaleAsync(SaleDraft draft, CancellationToken ct = default)
@@ -46,7 +47,8 @@ public class ApiSalesService : ISalesService
                 ProductId = i.ProductId,
                 Qty = (decimal)i.Qty
             }).ToList(),
-            PaymentType = draft.PaymentType.ToString()
+            PaymentType = draft.PaymentType.ToString(),
+            ReservationNotes = draft.ReservationNotes
         };
 
         var response = await client.PostAsJsonAsync("/api/sales", dto, ct);

@@ -18,6 +18,7 @@ public class SaleDraft
     public string ClientName { get; set; } = string.Empty;
     public PaymentType PaymentType { get; set; } = PaymentType.CashWithReceipt;
     public List<SaleDraftItem> Items { get; set; } = new();
+    public List<string>? ReservationNotes { get; set; }
 }
 
 public class SaleDraftItem

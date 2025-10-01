@@ -22,15 +22,13 @@ namespace ProjectApp.Client.Maui.Services;
     {
         _httpClientFactory = httpClientFactory;
         _settings = settings;
-        // Load from preferences
-        AccessToken = Preferences.Get("Auth_AccessToken", (string?)null);
-        Role = Preferences.Get("Auth_Role", (string?)null);
-        UserName = Preferences.Get("Auth_UserName", (string?)null);
-        DisplayName = Preferences.Get("Auth_DisplayName", (string?)null);
-        var expStr = Preferences.Get("Auth_ExpiresAtUtc", (string?)null);
-        if (DateTimeOffset.TryParse(expStr, out var exp)) ExpiresAtUtc = exp;
-        // Drop expired token
-        if (!IsAuthenticated) ClearPersisted();
+        // Do not restore persisted auth: start each run logged out
+        AccessToken = null;
+        Role = null;
+        UserName = null;
+        DisplayName = null;
+        ExpiresAtUtc = null;
+        ClearPersisted();
     }
 
     private class LoginRequest
@@ -99,14 +97,7 @@ namespace ProjectApp.Client.Maui.Services;
         return Task.CompletedTask;
     }
 
-    private void Persist()
-    {
-        Preferences.Set("Auth_AccessToken", AccessToken);
-        Preferences.Set("Auth_Role", Role);
-        Preferences.Set("Auth_UserName", UserName);
-        Preferences.Set("Auth_DisplayName", DisplayName);
-        Preferences.Set("Auth_ExpiresAtUtc", ExpiresAtUtc?.ToString("o"));
-    }
+    private void Persist() { /* no-op: do not persist auth between runs */ }
 
     private void ClearPersisted()
     {

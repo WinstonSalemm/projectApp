@@ -27,62 +27,71 @@ public class EfSaleRepository : ISaleRepository
 
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-        // Check and deduct stocks and FIFO batches; compute COGS per item
-        foreach (var it in sale.Items)
+        // Reservation: не списываем остатки (фиксируем бронь), себестоимость = 0
+        if (sale.PaymentType == PaymentType.Reservation)
         {
-            if (isGreyPayment)
+            foreach (var it in sale.Items)
+                it.Cost = 0m;
+        }
+        else
+        {
+            // Check and deduct stocks and FIFO batches; compute COGS per item
+            foreach (var it in sale.Items)
             {
-                // 1) Забираем с ND-40 максимум возможного
-                var stockNd = await _db.Stocks.FirstOrDefaultAsync(
-                    s => s.ProductId == it.ProductId && s.Register == StockRegister.ND40, ct);
-                var availableNd = stockNd?.Qty ?? 0m;
-                var takeNd = Math.Min(availableNd, it.Qty);
-
-                decimal costNd = 0m;
-                if (takeNd > 0)
+                if (isGreyPayment)
                 {
-                    costNd = await DeductFromBatchesAndComputeCostAsync(it.ProductId, StockRegister.ND40, takeNd, ct);
-                    stockNd!.Qty -= takeNd;
-                }
+                    // 1) Забираем с ND-40 максимум возможного
+                    var stockNd = await _db.Stocks.FirstOrDefaultAsync(
+                        s => s.ProductId == it.ProductId && s.Register == StockRegister.ND40, ct);
+                    var availableNd = stockNd?.Qty ?? 0m;
+                    var takeNd = Math.Min(availableNd, it.Qty);
 
-                // 2) Остаток — с IM-40
-                var remain = it.Qty - takeNd;
-                decimal costIm = 0m;
-                if (remain > 0)
+                    decimal costNd = 0m;
+                    if (takeNd > 0)
+                    {
+                        costNd = await DeductFromBatchesAndComputeCostAsync(it.ProductId, StockRegister.ND40, takeNd, ct);
+                        stockNd!.Qty -= takeNd;
+                    }
+
+                    // 2) Остаток — с IM-40
+                    var remain = it.Qty - takeNd;
+                    decimal costIm = 0m;
+                    if (remain > 0)
+                    {
+                        var stockIm = await _db.Stocks.FirstOrDefaultAsync(
+                            s => s.ProductId == it.ProductId && s.Register == StockRegister.IM40, ct);
+                        if (stockIm is null)
+                            throw new InvalidOperationException($"Stock record not found for ProductId={it.ProductId} Register={StockRegister.IM40}");
+
+                        if (stockIm.Qty < remain)
+                            throw new InvalidOperationException($"Insufficient stock for ProductId={it.ProductId} in {StockRegister.IM40}. Available={stockIm.Qty}, Required={remain}");
+
+                        costIm = await DeductFromBatchesAndComputeCostAsync(it.ProductId, StockRegister.IM40, remain, ct);
+                        stockIm.Qty -= remain;
+                    }
+
+                    // 3) Средневзвешенная себестоимость по всем списанным регистрам
+                    var totalCost = costNd * takeNd + costIm * (it.Qty - takeNd);
+                    var avg = it.Qty == 0 ? 0 : decimal.Round(totalCost / it.Qty, 2, MidpointRounding.AwayFromZero);
+                    it.Cost = avg;
+                }
+                else
                 {
-                    var stockIm = await _db.Stocks.FirstOrDefaultAsync(
-                        s => s.ProductId == it.ProductId && s.Register == StockRegister.IM40, ct);
-                    if (stockIm is null)
-                        throw new InvalidOperationException($"Stock record not found for ProductId={it.ProductId} Register={StockRegister.IM40}");
+                    // Официальные оплаты: списываем только с IM-40
+                    var stock = await _db.Stocks.FirstOrDefaultAsync(
+                        s => s.ProductId == it.ProductId && s.Register == register, ct);
 
-                    if (stockIm.Qty < remain)
-                        throw new InvalidOperationException($"Insufficient stock for ProductId={it.ProductId} in {StockRegister.IM40}. Available={stockIm.Qty}, Required={remain}");
+                    if (stock is null)
+                        throw new InvalidOperationException($"Stock record not found for ProductId={it.ProductId} Register={register}");
 
-                    costIm = await DeductFromBatchesAndComputeCostAsync(it.ProductId, StockRegister.IM40, remain, ct);
-                    stockIm.Qty -= remain;
+                    var newQty = stock.Qty - it.Qty;
+                    if (newQty < 0)
+                        throw new InvalidOperationException($"Insufficient stock for ProductId={it.ProductId} in {register}. Available={stock.Qty}, Required={it.Qty}");
+
+                    var avgUnitCost = await DeductFromBatchesAndComputeCostAsync(it.ProductId, register, it.Qty, ct);
+                    it.Cost = avgUnitCost;
+                    stock.Qty = newQty;
                 }
-
-                // 3) Средневзвешенная себестоимость по всем списанным регистрам
-                var totalCost = costNd * takeNd + costIm * (it.Qty - takeNd);
-                var avg = it.Qty == 0 ? 0 : decimal.Round(totalCost / it.Qty, 2, MidpointRounding.AwayFromZero);
-                it.Cost = avg;
-            }
-            else
-            {
-                // Официальные оплаты: списываем только с IM-40
-                var stock = await _db.Stocks.FirstOrDefaultAsync(
-                    s => s.ProductId == it.ProductId && s.Register == register, ct);
-
-                if (stock is null)
-                    throw new InvalidOperationException($"Stock record not found for ProductId={it.ProductId} Register={register}");
-
-                var newQty = stock.Qty - it.Qty;
-                if (newQty < 0)
-                    throw new InvalidOperationException($"Insufficient stock for ProductId={it.ProductId} in {register}. Available={stock.Qty}, Required={it.Qty}");
-
-                var avgUnitCost = await DeductFromBatchesAndComputeCostAsync(it.ProductId, register, it.Qty, ct);
-                it.Cost = avgUnitCost;
-                stock.Qty = newQty;
             }
         }
 
@@ -104,23 +113,7 @@ public class EfSaleRepository : ISaleRepository
         }
         await _db.SaveChangesAsync(ct);
 
-        // Create debt for Credit
-        if (sale.PaymentType == PaymentType.Credit)
-        {
-            if (sale.ClientId is null)
-                throw new InvalidOperationException("ClientId is required for Credit payments");
-
-            var debt = new Debt
-            {
-                ClientId = sale.ClientId.Value,
-                SaleId = sale.Id,
-                Amount = sale.Total,
-                DueDate = DateTime.UtcNow.AddDays(14),
-                Status = DebtStatus.Open
-            };
-            _db.Debts.Add(debt);
-            await _db.SaveChangesAsync(ct);
-        }
+        // No special post-processing for Reservation in current version
 
         await tx.CommitAsync(ct);
         return sale;
@@ -138,9 +131,8 @@ public class EfSaleRepository : ISaleRepository
     {
         return payment switch
         {
-            PaymentType.CashWithReceipt or PaymentType.CardWithReceipt or PaymentType.ClickWithReceipt or PaymentType.Site or PaymentType.Exchange => StockRegister.IM40,
-            PaymentType.CashNoReceipt or PaymentType.ClickNoReceipt or PaymentType.Click or PaymentType.Payme => StockRegister.ND40,
-            PaymentType.Credit => StockRegister.IM40,
+            PaymentType.CashWithReceipt or PaymentType.CardWithReceipt or PaymentType.ClickWithReceipt or PaymentType.Site or PaymentType.Return => StockRegister.IM40,
+            PaymentType.CashNoReceipt or PaymentType.ClickNoReceipt or PaymentType.Click or PaymentType.Payme or PaymentType.Reservation => StockRegister.ND40,
             _ => StockRegister.IM40
         };
     }

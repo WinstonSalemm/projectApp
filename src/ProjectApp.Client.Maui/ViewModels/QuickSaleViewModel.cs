@@ -36,8 +36,8 @@ public partial class QuickSaleViewModel : ObservableObject
         PaymentType.ClickNoReceipt,
         PaymentType.Click, // legacy
         PaymentType.Site,
-        PaymentType.Exchange,
-        PaymentType.Credit,
+        PaymentType.Return,
+        PaymentType.Reservation,
         PaymentType.Payme,
     };
 
@@ -48,6 +48,9 @@ public partial class QuickSaleViewModel : ObservableObject
     private PaymentType selectedPaymentType = PaymentType.CashWithReceipt;
 
     [ObservableProperty]
+    private bool isReservation;
+
+    [ObservableProperty]
     private bool isOffline = true;
 
     [ObservableProperty]
@@ -55,6 +58,10 @@ public partial class QuickSaleViewModel : ObservableObject
 
     [ObservableProperty]
     private string clientName = string.Empty;
+
+    public ObservableCollection<string> ReservationNotes { get; } = new();
+    [ObservableProperty]
+    private string newReservationNote = string.Empty;
 
     public QuickSaleViewModel(ICatalogService catalog, ISalesService sales, AppSettings settings)
     {
@@ -66,6 +73,7 @@ public partial class QuickSaleViewModel : ObservableObject
         IsOffline = !settings.UseApi;
 
         Cart.CollectionChanged += (_, __) => RecalculateTotalWithSubscriptions();
+        IsReservation = SelectedPaymentType == PaymentType.Reservation;
     }
 
     partial void OnQueryChanged(string value)
@@ -158,6 +166,11 @@ public partial class QuickSaleViewModel : ObservableObject
         Total = Cart.Sum(i => (decimal)i.Qty * i.UnitPrice);
     }
 
+    partial void OnSelectedPaymentTypeChanged(PaymentType value)
+    {
+        IsReservation = value == PaymentType.Reservation;
+    }
+
     [RelayCommand]
     private void RemoveFromCart(CartItemModel? item)
     {
@@ -176,6 +189,10 @@ public partial class QuickSaleViewModel : ObservableObject
             PaymentType = SelectedPaymentType,
             Items = Cart.Select(c => new SaleDraftItem { ProductId = c.ProductId, Qty = c.Qty }).ToList()
         };
+        if (SelectedPaymentType == PaymentType.Reservation && ReservationNotes.Any())
+        {
+            draft.ReservationNotes = ReservationNotes.ToList();
+        }
         _lastAction = LastAction.Submit;
         _lastDraft = draft;
         bool ok = false;

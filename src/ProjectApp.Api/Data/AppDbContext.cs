@@ -62,6 +62,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.HasKey(s => s.Id);
             b.Property(s => s.Total).HasColumnType("decimal(18,2)");
             b.Property(s => s.CreatedAt).IsRequired();
+            b.Property(s => s.ReservationNotes).HasColumnType("text");
             b.HasMany<SaleItem>(s => s.Items)
              .WithOne()
              .HasForeignKey(i => i.SaleId)

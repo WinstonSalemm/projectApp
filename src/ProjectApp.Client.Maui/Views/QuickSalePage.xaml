@@ -8,7 +8,7 @@
     <ToolbarItem Text="Настройки" Clicked="OnSettingsClicked" />
   </ContentPage.ToolbarItems>
   <ContentPage.Content>
-    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto" Padding="12">
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto" Padding="12">
       <!-- Offline banner -->
       <Frame Grid.Row="0" BackgroundColor="#FFCC00" Padding="8" HasShadow="False" IsVisible="{Binding IsOffline}">
         <HorizontalStackLayout Spacing="12">
@@ -79,7 +79,26 @@
       </HorizontalStackLayout>
 
       <!-- Submit -->
-      <Button Grid.Row="5" Text="Провести" Command="{Binding SubmitCommand}" Margin="0,8,0,0"/>
+      <!-- Reservation notes (visible only for Reservation) -->
+      <VerticalStackLayout Grid.Row="5" Spacing="8" IsVisible="{Binding IsReservation}">
+        <Label Text="Заметки к броне" FontAttributes="Bold"/>
+        <HorizontalStackLayout Spacing="8">
+          <Entry Placeholder="Текст заметки" Text="{Binding NewReservationNote}" HorizontalOptions="FillAndExpand"/>
+          <Button Text="Добавить" Command="{Binding AddReservationNoteCommand}"/>
+        </HorizontalStackLayout>
+        <CollectionView ItemsSource="{Binding ReservationNotes}" Margin="0,4,0,0">
+          <CollectionView.ItemTemplate>
+            <DataTemplate>
+              <Grid ColumnDefinitions="*,Auto" Padding="4" ColumnSpacing="8">
+                <Label Text="{Binding .}"/>
+                <Button Grid.Column="1" Text="Удалить" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RemoveReservationNoteCommand}" CommandParameter="{Binding .}"/>
+              </Grid>
+            </DataTemplate>
+          </CollectionView.ItemTemplate>
+        </CollectionView>
+      </VerticalStackLayout>
+
+      <Button Grid.Row="6" Text="Провести" Command="{Binding SubmitCommand}" Margin="0,8,0,0"/>
     </Grid>
   </ContentPage.Content>
 </ContentPage>
