@@ -42,9 +42,9 @@ public class StocksController : ControllerBase
                 Sku = g.Key.Sku,
                 Name = g.Key.Name,
                 Category = g.Key.Category ?? string.Empty,
-                Nd40Qty = g.Where(x => x != null && x.Register == StockRegister.ND40).Sum(x => x!.Qty),
-                Im40Qty = g.Where(x => x != null && x.Register == StockRegister.IM40).Sum(x => x!.Qty),
-                TotalQty = g.Where(x => x != null).Sum(x => x!.Qty)
+                Nd40Qty = g.Sum(x => x != null && x.Register == StockRegister.ND40 ? x.Qty : 0m),
+                Im40Qty = g.Sum(x => x != null && x.Register == StockRegister.IM40 ? x.Qty : 0m),
+                TotalQty = g.Sum(x => x != null ? x.Qty : 0m)
             }
         ).OrderBy(r => r.ProductId).ToListAsync(ct);
 
