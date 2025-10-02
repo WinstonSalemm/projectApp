@@ -360,6 +360,25 @@ await using (var scope = app.Services.CreateAsyncScope())
             {
                 await db.Database.ExecuteSqlRawAsync("ALTER TABLE `SaleItems` ADD COLUMN `Cost` DECIMAL(18,2) NOT NULL DEFAULT 0;");
             }
+
+            // Ensure Batches.Code exists
+            var codeExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Batches' AND COLUMN_NAME = 'Code'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                if (scalar != null && scalar != DBNull.Value)
+                {
+                    var cnt = Convert.ToInt64(scalar);
+                    codeExists = cnt > 0;
+                }
+            }
+            if (!codeExists)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Batches` ADD COLUMN `Code` VARCHAR(128) NULL;");
+            }
         }
         else if (provider2.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
@@ -380,6 +399,25 @@ await using (var scope = app.Services.CreateAsyncScope())
             if (!hasCost)
             {
                 await db.Database.ExecuteSqlRawAsync("ALTER TABLE SaleItems ADD COLUMN Cost DECIMAL(18,2) NOT NULL DEFAULT 0;");
+            }
+
+            // Ensure Batches.Code exists
+            var hasCode = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info('Batches');";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "Code", StringComparison.OrdinalIgnoreCase)) { hasCode = true; break; }
+                }
+            }
+            if (!hasCode)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Batches ADD COLUMN Code TEXT NULL;");
             }
         }
     }
@@ -611,22 +649,46 @@ CREATE UNIQUE INDEX IX_Users_UserName ON Users(UserName);";
     catch { }
 
     var seedEnabled = app.Configuration.GetValue("Seed:Enabled", true);
-    if (seedEnabled && !await db.Products.AnyAsync())
+    if (seedEnabled)
     {
-        db.Products.AddRange(new[]
+        // If there are no fire-safety products yet, seed them idempotently by SKU
+        var hasFire = await db.Products.AnyAsync(p => p.Category == "Огнетушители");
+        if (!hasFire)
         {
-            new ProjectApp.Api.Models.Product { Id = 1, Sku = "SKU-001", Name = "Coffee Beans 1kg", Unit = "kg",  Price = 15.99m },
-            new ProjectApp.Api.Models.Product { Id = 2, Sku = "SKU-002", Name = "Tea Leaves 500g",  Unit = "pkg", Price = 8.49m  },
-            new ProjectApp.Api.Models.Product { Id = 3, Sku = "SKU-003", Name = "Sugar 1kg",        Unit = "kg",  Price = 2.29m  },
-            new ProjectApp.Api.Models.Product { Id = 4, Sku = "SKU-004", Name = "Milk 1L",          Unit = "ltr", Price = 1.19m  },
-            new ProjectApp.Api.Models.Product { Id = 5, Sku = "SKU-005", Name = "Butter 200g",      Unit = "pkg", Price = 3.79m  },
-            new ProjectApp.Api.Models.Product { Id = 6, Sku = "SKU-006", Name = "Bread Loaf",       Unit = "pc",  Price = 1.99m  },
-            new ProjectApp.Api.Models.Product { Id = 7, Sku = "SKU-007", Name = "Eggs (12)",        Unit = "box", Price = 2.99m  },
-            new ProjectApp.Api.Models.Product { Id = 8, Sku = "SKU-008", Name = "Olive Oil 500ml",  Unit = "btl", Price = 6.49m  },
-            new ProjectApp.Api.Models.Product { Id = 9, Sku = "SKU-009", Name = "Pasta 1kg",        Unit = "kg",  Price = 2.59m  },
-            new ProjectApp.Api.Models.Product { Id = 10,Sku = "SKU-010", Name = "Tomato Sauce 300g",Unit = "jar", Price = 2.39m  }
-        });
-        await db.SaveChangesAsync();
+            var toAdd = new List<ProjectApp.Api.Models.Product>
+            {
+                new() { Sku = "OP-1",   Name = "ОП-1 (порошковый) 1 кг",            Unit = "шт", Price = 150000m, Category = "Огнетушители" },
+                new() { Sku = "OP-2",   Name = "ОП-2 (порошковый) 2 кг",            Unit = "шт", Price = 200000m, Category = "Огнетушители" },
+                new() { Sku = "OP-5",   Name = "ОП-5 (порошковый) 5 кг",            Unit = "шт", Price = 350000m, Category = "Огнетушители" },
+                new() { Sku = "OU-2",   Name = "ОУ-2 (углекислотный) 2 кг",         Unit = "шт", Price = 400000m, Category = "Огнетушители" },
+                new() { Sku = "OU-5",   Name = "ОУ-5 (углекислотный) 5 кг",         Unit = "шт", Price = 650000m, Category = "Огнетушители" },
+                new() { Sku = "BR-OP2", Name = "Кронштейн настенный для ОП-2/ОУ-2", Unit = "шт", Price = 50000m,  Category = "Кронштейны"   },
+                new() { Sku = "BR-OP5", Name = "Кронштейн настенный для ОП-5",      Unit = "шт", Price = 60000m,  Category = "Кронштейны"   },
+                new() { Sku = "BR-UNI", Name = "Кронштейн универсальный металлический", Unit = "шт", Price = 70000m,  Category = "Кронштейны"   },
+                new() { Sku = "ST-S",   Name = "Подставка под огнетушитель (малая)", Unit = "шт", Price = 80000m,  Category = "Подставки"     },
+                new() { Sku = "ST-D",   Name = "Подставка под огнетушители двойная", Unit = "шт", Price = 120000m, Category = "Подставки"     },
+                new() { Sku = "ST-FLR", Name = "Напольная стойка для огнетушителя",  Unit = "шт", Price = 180000m, Category = "Подставки"     },
+                new() { Sku = "CAB-1",  Name = "Шкаф для огнетушителя (металл)",     Unit = "шт", Price = 450000m, Category = "Шкафы"         }
+            };
+
+            foreach (var p in toAdd)
+            {
+                if (!await db.Products.AnyAsync(x => x.Sku == p.Sku))
+                {
+                    db.Products.Add(p);
+                    await db.SaveChangesAsync();
+
+                    // Default stocks and batches for the new product
+                    db.Stocks.Add(new ProjectApp.Api.Models.Stock { ProductId = p.Id, Register = ProjectApp.Api.Models.StockRegister.IM40, Qty = 100m });
+                    db.Stocks.Add(new ProjectApp.Api.Models.Stock { ProductId = p.Id, Register = ProjectApp.Api.Models.StockRegister.ND40, Qty = 50m });
+                    await db.SaveChangesAsync();
+
+                    db.Batches.Add(new ProjectApp.Api.Models.Batch { ProductId = p.Id, Register = ProjectApp.Api.Models.StockRegister.IM40, Qty = 100m, UnitCost = 0m, CreatedAt = DateTime.UtcNow, Note = "seed" });
+                    db.Batches.Add(new ProjectApp.Api.Models.Batch { ProductId = p.Id, Register = ProjectApp.Api.Models.StockRegister.ND40, Qty = 50m,  UnitCost = 0m, CreatedAt = DateTime.UtcNow, Note = "seed" });
+                    await db.SaveChangesAsync();
+                }
+            }
+        }
     }
 
     // 2) Create MySQL views for stock availability and manager stats (so the site can query directly if needed)

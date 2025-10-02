@@ -22,6 +22,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     {
         base.OnModelCreating(modelBuilder);
 
+        // Seed fire-safety products with categories
+        var seedProducts = new List<Product>
+        {
+            new Product { Id = 1,  Sku = "OP-1",   Name = "ОП-1 (порошковый) 1 кг",            Unit = "шт", Price = 150000m, Category = "Огнетушители" },
+            new Product { Id = 2,  Sku = "OP-2",   Name = "ОП-2 (порошковый) 2 кг",            Unit = "шт", Price = 200000m, Category = "Огнетушители" },
+            new Product { Id = 3,  Sku = "OP-5",   Name = "ОП-5 (порошковый) 5 кг",            Unit = "шт", Price = 350000m, Category = "Огнетушители" },
+            new Product { Id = 4,  Sku = "OU-2",   Name = "ОУ-2 (углекислотный) 2 кг",         Unit = "шт", Price = 400000m, Category = "Огнетушители" },
+            new Product { Id = 5,  Sku = "OU-5",   Name = "ОУ-5 (углекислотный) 5 кг",         Unit = "шт", Price = 650000m, Category = "Огнетушители" },
+            new Product { Id = 6,  Sku = "BR-OP2", Name = "Кронштейн настенный для ОП-2/ОУ-2", Unit = "шт", Price = 50000m,  Category = "Кронштейны"   },
+            new Product { Id = 7,  Sku = "BR-OP5", Name = "Кронштейн настенный для ОП-5",      Unit = "шт", Price = 60000m,  Category = "Кронштейны"   },
+            new Product { Id = 8,  Sku = "BR-UNI", Name = "Кронштейн универсальный металлический", Unit = "шт", Price = 70000m,  Category = "Кронштейны"   },
+            new Product { Id = 9,  Sku = "ST-S",   Name = "Подставка под огнетушитель (малая)", Unit = "шт", Price = 80000m,  Category = "Подставки"     },
+            new Product { Id = 10, Sku = "ST-D",   Name = "Подставка под огнетушители двойная", Unit = "шт", Price = 120000m, Category = "Подставки"     },
+            new Product { Id = 11, Sku = "ST-FLR", Name = "Напольная стойка для огнетушителя",  Unit = "шт", Price = 180000m, Category = "Подставки"     },
+            new Product { Id = 12, Sku = "CAB-1",  Name = "Шкаф для огнетушителя (металл)",     Unit = "шт", Price = 450000m, Category = "Шкафы"         }
+        };
+
         modelBuilder.Entity<Product>(b =>
         {
             b.HasKey(p => p.Id);
@@ -30,18 +47,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(p => p.Unit).IsRequired().HasMaxLength(16);
             b.Property(p => p.Price).HasColumnType("decimal(18,2)");
             b.HasIndex(p => p.Sku).IsUnique(false);
-            b.HasData(
-                new Product { Id = 1, Sku = "SKU-001", Name = "Coffee Beans 1kg", Unit = "kg", Price = 15.99m },
-                new Product { Id = 2, Sku = "SKU-002", Name = "Tea Leaves 500g", Unit = "pkg", Price = 8.49m },
-                new Product { Id = 3, Sku = "SKU-003", Name = "Sugar 1kg", Unit = "kg", Price = 2.29m },
-                new Product { Id = 4, Sku = "SKU-004", Name = "Milk 1L", Unit = "ltr", Price = 1.19m },
-                new Product { Id = 5, Sku = "SKU-005", Name = "Butter 200g", Unit = "pkg", Price = 3.79m },
-                new Product { Id = 6, Sku = "SKU-006", Name = "Bread Loaf", Unit = "pc", Price = 1.99m },
-                new Product { Id = 7, Sku = "SKU-007", Name = "Eggs (12)", Unit = "box", Price = 2.99m },
-                new Product { Id = 8, Sku = "SKU-008", Name = "Olive Oil 500ml", Unit = "btl", Price = 6.49m },
-                new Product { Id = 9, Sku = "SKU-009", Name = "Pasta 1kg", Unit = "kg", Price = 2.59m },
-                new Product { Id = 10, Sku = "SKU-010", Name = "Tomato Sauce 300g", Unit = "jar", Price = 2.39m }
-            );
+            b.HasData(seedProducts);
         });
 
         modelBuilder.Entity<Client>(b =>
@@ -105,10 +111,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.HasKey(s => new { s.ProductId, s.Register });
             b.Property(s => s.Qty).HasColumnType("decimal(18,3)");
             var stocks = new List<Stock>();
-            for (int pid = 1; pid <= 10; pid++)
+            foreach (var p in seedProducts)
             {
-                stocks.Add(new Stock { ProductId = pid, Register = StockRegister.IM40, Qty = 100m });
-                stocks.Add(new Stock { ProductId = pid, Register = StockRegister.ND40, Qty = 50m });
+                stocks.Add(new Stock { ProductId = p.Id, Register = StockRegister.IM40, Qty = 100m });
+                stocks.Add(new Stock { ProductId = p.Id, Register = StockRegister.ND40, Qty = 50m });
             }
             b.HasData(stocks);
         });
@@ -117,10 +123,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         var seedBatches = new List<Batch>();
         var seedDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         int bid = 1;
-        for (int pid = 1; pid <= 10; pid++)
+        foreach (var p in seedProducts)
         {
-            seedBatches.Add(new Batch { Id = bid++, ProductId = pid, Register = StockRegister.IM40, Qty = 100m, UnitCost = 0m, CreatedAt = seedDate, Note = "seed" });
-            seedBatches.Add(new Batch { Id = bid++, ProductId = pid, Register = StockRegister.ND40, Qty = 50m,  UnitCost = 0m, CreatedAt = seedDate, Note = "seed" });
+            seedBatches.Add(new Batch { Id = bid++, ProductId = p.Id, Register = StockRegister.IM40, Qty = 100m, UnitCost = 0m, CreatedAt = seedDate, Note = "seed" });
+            seedBatches.Add(new Batch { Id = bid++, ProductId = p.Id, Register = StockRegister.ND40, Qty = 50m,  UnitCost = 0m, CreatedAt = seedDate, Note = "seed" });
         }
         modelBuilder.Entity<Batch>().HasData(seedBatches);
 

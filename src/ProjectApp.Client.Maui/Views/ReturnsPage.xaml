@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.ReturnsPage"
+             x:Name="Root"
+             Title="Возврат">
+  <ScrollView>
+    <VerticalStackLayout Padding="12" Spacing="12">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+        <Label Text="Продажа #" VerticalTextAlignment="Center"/>
+        <Entry Grid.Column="1" Keyboard="Numeric" Text="{Binding RefSaleId}"/>
+      </Grid>
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+        <Label Text="КлиентId" VerticalTextAlignment="Center"/>
+        <Entry Grid.Column="1" Keyboard="Numeric" Text="{Binding ClientId}"/>
+      </Grid>
+      <Entry Placeholder="Причина (необязательно)" Text="{Binding Reason}"/>
+
+      <Label Text="Позиции (оставьте пусто для полного возврата)" FontAttributes="Bold"/>
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+        <Entry Placeholder="SaleItemId" Keyboard="Numeric" Text="{Binding NewSaleItemId}"/>
+        <Entry Grid.Column="1" Placeholder="Qty" Keyboard="Numeric" Text="{Binding NewQty}"/>
+        <Button Grid.Column="2" Text="Добавить" Command="{Binding AddItemCommand}"/>
+      </Grid>
+      <CollectionView ItemsSource="{Binding Items}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Padding="4">
+              <Label Text="{Binding SaleItemId}"/>
+              <Label Grid.Column="1" Text="{Binding Qty}"/>
+              <Button Grid.Column="2" Text="Удалить" Command="{Binding Source={x:Reference Root}, Path=BindingContext.RemoveItemCommand}" CommandParameter="{Binding .}"/>
+            </Grid>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+
+      <Button Text="Создать возврат" Command="{Binding CreateReturnCommand}"/>
+
+      <Label Text="{Binding StatusMessage}" TextColor="Red"/>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

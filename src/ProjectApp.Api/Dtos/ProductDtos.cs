@@ -7,6 +7,7 @@ public class ProductDto
     public string Name { get; set; } = string.Empty;
     public string Sku { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
+    public string Category { get; set; } = string.Empty;
 }
 
 public class PagedResult<T>
@@ -15,4 +16,13 @@ public class PagedResult<T>
     public int Total { get; set; }
     public int Page { get; set; }
     public int Size { get; set; }
+}
+
+public class ProductCreateDto
+{
+    public string Sku { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Unit { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public string Category { get; set; } = string.Empty;
 }

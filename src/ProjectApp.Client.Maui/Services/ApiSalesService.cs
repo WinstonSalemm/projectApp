@@ -21,6 +21,7 @@ public class ApiSalesService : ISalesService
     {
         public int ProductId { get; set; }
         public decimal Qty { get; set; }
+        public decimal UnitPrice { get; set; }
     }
 
     private class SaleCreateDto
@@ -32,7 +33,16 @@ public class ApiSalesService : ISalesService
         public List<string>? ReservationNotes { get; set; }
     }
 
-    public async Task<bool> SubmitSaleAsync(SaleDraft draft, CancellationToken ct = default)
+    private class ProblemDetails
+    {
+        public string? Type { get; set; }
+        public string? Title { get; set; }
+        public int? Status { get; set; }
+        public string? Detail { get; set; }
+        public string? Instance { get; set; }
+    }
+
+    public async Task<SalesResult> SubmitSaleAsync(SaleDraft draft, CancellationToken ct = default)
     {
         var client = _httpClientFactory.CreateClient();
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
@@ -45,13 +55,33 @@ public class ApiSalesService : ISalesService
             Items = draft.Items.Select(i => new SaleCreateItemDto
             {
                 ProductId = i.ProductId,
-                Qty = (decimal)i.Qty
+                Qty = (decimal)i.Qty,
+                UnitPrice = i.UnitPrice
             }).ToList(),
             PaymentType = draft.PaymentType.ToString(),
             ReservationNotes = draft.ReservationNotes
         };
 
         var response = await client.PostAsJsonAsync("/api/sales", dto, ct);
-        return (int)response.StatusCode == 201;
+        if ((int)response.StatusCode == 201) return SalesResult.Ok();
+
+        try
+        {
+            // Try read problem+json
+            var pd = await response.Content.ReadFromJsonAsync<ProblemDetails>(cancellationToken: ct);
+            var msg = pd?.Detail;
+            if (string.IsNullOrWhiteSpace(msg))
+            {
+                // fallback to raw text
+                msg = await response.Content.ReadAsStringAsync(ct);
+            }
+            return SalesResult.Fail(msg);
+        }
+        catch
+        {
+            string body = string.Empty;
+            try { body = await response.Content.ReadAsStringAsync(ct); } catch { }
+            return SalesResult.Fail(string.IsNullOrWhiteSpace(body) ? $"HTTP {(int)response.StatusCode} {response.StatusCode}" : body);
+        }
     }
 }

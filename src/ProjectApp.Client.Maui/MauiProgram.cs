@@ -52,11 +52,17 @@ public static class MauiProgram
         builder.Services.AddSingleton<AuthService>();
         builder.Services.AddSingleton<ApiCatalogService>();
         builder.Services.AddSingleton<ApiSalesService>();
+        builder.Services.AddSingleton<ApiSuppliesService>();
+        builder.Services.AddSingleton<ApiReturnsService>();
         builder.Services.AddSingleton<MockCatalogService>();
         builder.Services.AddSingleton<MockSalesService>();
         // Routed services decide at runtime based on current AppSettings
         builder.Services.AddSingleton<ICatalogService, RoutedCatalogService>();
         builder.Services.AddSingleton<ISalesService, RoutedSalesService>();
+        builder.Services.AddSingleton<ApiStocksService>();
+        builder.Services.AddSingleton<IStocksService>(sp => sp.GetRequiredService<ApiStocksService>());
+        builder.Services.AddSingleton<ISuppliesService>(sp => sp.GetRequiredService<ApiSuppliesService>());
+        builder.Services.AddSingleton<IReturnsService>(sp => sp.GetRequiredService<ApiReturnsService>());
 
         // VM and Views
         builder.Services.AddTransient<QuickSaleViewModel>();
@@ -69,6 +75,12 @@ public static class MauiProgram
         builder.Services.AddTransient<UserSelectPage>();
         builder.Services.AddTransient<SettingsViewModel>();
         builder.Services.AddTransient<SettingsPage>();
+        builder.Services.AddTransient<SuppliesViewModel>();
+        builder.Services.AddTransient<SuppliesPage>();
+        builder.Services.AddTransient<ReturnsViewModel>();
+        builder.Services.AddTransient<ReturnsPage>();
+        builder.Services.AddTransient<StocksViewModel>();
+        builder.Services.AddTransient<StocksPage>();
 
         return builder.Build();
     }

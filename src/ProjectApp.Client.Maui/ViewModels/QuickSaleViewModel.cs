@@ -26,6 +26,7 @@ public partial class QuickSaleViewModel : ObservableObject
 
     public ObservableCollection<ProductModel> SearchResults { get; } = new();
     public ObservableCollection<CartItemModel> Cart { get; } = new();
+    public ObservableCollection<string> Categories { get; } = new();
 
     public IReadOnlyList<PaymentType> PaymentTypes { get; } = new[]
     {
@@ -43,6 +44,9 @@ public partial class QuickSaleViewModel : ObservableObject
 
     [ObservableProperty]
     private string query = string.Empty;
+
+    [ObservableProperty]
+    private string? selectedCategory;
 
     [ObservableProperty]
     private PaymentType selectedPaymentType = PaymentType.CashWithReceipt;
@@ -74,6 +78,7 @@ public partial class QuickSaleViewModel : ObservableObject
 
         Cart.CollectionChanged += (_, __) => RecalculateTotalWithSubscriptions();
         IsReservation = SelectedPaymentType == PaymentType.Reservation;
+        _ = LoadCategoriesAsync();
     }
 
     partial void OnQueryChanged(string value)
@@ -94,7 +99,8 @@ public partial class QuickSaleViewModel : ObservableObject
                 if (token.IsCancellationRequested) return;
                 _lastAction = LastAction.Search;
                 _lastSearchQuery = searchText;
-                var results = await _catalog.SearchAsync(searchText, token);
+                var cat = string.IsNullOrWhiteSpace(SelectedCategory) ? null : SelectedCategory;
+                var results = await _catalog.SearchAsync(searchText, cat, token);
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
@@ -118,6 +124,27 @@ public partial class QuickSaleViewModel : ObservableObject
                 }
             }
         }, token);
+    }
+
+    partial void OnSelectedCategoryChanged(string? value)
+    {
+        DebouncedSearchAsync(Query);
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        try
+        {
+            var list = await _catalog.GetCategoriesAsync();
+            await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                Categories.Clear();
+                Categories.Add(string.Empty); // пустая категория = все
+                foreach (var c in list)
+                    Categories.Add(c);
+            });
+        }
+        catch { }
     }
 
     [RelayCommand]
@@ -187,7 +214,7 @@ public partial class QuickSaleViewModel : ObservableObject
         {
             ClientName = string.IsNullOrWhiteSpace(ClientName) ? "Quick Client" : ClientName,
             PaymentType = SelectedPaymentType,
-            Items = Cart.Select(c => new SaleDraftItem { ProductId = c.ProductId, Qty = c.Qty }).ToList()
+            Items = Cart.Select(c => new SaleDraftItem { ProductId = c.ProductId, Qty = c.Qty, UnitPrice = c.UnitPrice }).ToList()
         };
         if (SelectedPaymentType == PaymentType.Reservation && ReservationNotes.Any())
         {
@@ -195,16 +222,16 @@ public partial class QuickSaleViewModel : ObservableObject
         }
         _lastAction = LastAction.Submit;
         _lastDraft = draft;
-        bool ok = false;
+        SalesResult result;
         try
         {
-            ok = await _sales.SubmitSaleAsync(draft);
+            result = await _sales.SubmitSaleAsync(draft);
         }
         catch
         {
-            ok = false;
+            result = SalesResult.Fail("Сетевая ошибка");
         }
-        if (ok)
+        if (result.Success)
         {
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
@@ -218,13 +245,15 @@ public partial class QuickSaleViewModel : ObservableObject
             if (_settings.UseApi)
             {
                 IsOffline = true;
-                try { await Toast.Make("Нет связи с сервером", ToastDuration.Short).Show(); } catch { }
+                var msg = string.IsNullOrWhiteSpace(result.ErrorMessage) ? "Нет связи с сервером" : result.ErrorMessage;
+                try { await Toast.Make(msg, ToastDuration.Long).Show(); } catch { }
             }
             else
             {
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось провести продажу", "OK");
+                    var msg = string.IsNullOrWhiteSpace(result.ErrorMessage) ? "Не удалось провести продажу" : result.ErrorMessage;
+                    await Application.Current!.MainPage!.DisplayAlert("Ошибка", msg, "OK");
                 });
             }
         }
@@ -243,8 +272,8 @@ public partial class QuickSaleViewModel : ObservableObject
                 {
                     try
                     {
-                        var ok = await _sales.SubmitSaleAsync(_lastDraft);
-                        if (ok)
+                        var result = await _sales.SubmitSaleAsync(_lastDraft);
+                        if (result.Success)
                         {
                             await MainThread.InvokeOnMainThreadAsync(async () =>
                             {
@@ -253,6 +282,11 @@ public partial class QuickSaleViewModel : ObservableObject
                             Cart.Clear();
                             Total = 0m;
                             IsOffline = false;
+                        }
+                        else
+                        {
+                            var msg = string.IsNullOrWhiteSpace(result.ErrorMessage) ? "Не удалось провести продажу" : result.ErrorMessage;
+                            try { await Toast.Make(msg, ToastDuration.Long).Show(); } catch { }
                         }
                     }
                     catch { }

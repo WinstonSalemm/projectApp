@@ -61,10 +61,13 @@ public class EfSaleRepository : ISaleRepository
                         var stockIm = await _db.Stocks.FirstOrDefaultAsync(
                             s => s.ProductId == it.ProductId && s.Register == StockRegister.IM40, ct);
                         if (stockIm is null)
-                            throw new InvalidOperationException($"Stock record not found for ProductId={it.ProductId} Register={StockRegister.IM40}");
+                            throw new InvalidOperationException($"Запись остатка не найдена для товара ProductId={it.ProductId} в регистре {StockRegister.IM40}");
 
                         if (stockIm.Qty < remain)
-                            throw new InvalidOperationException($"Insufficient stock for ProductId={it.ProductId} in {StockRegister.IM40}. Available={stockIm.Qty}, Required={remain}");
+                        {
+                            var missingIm = remain - stockIm.Qty;
+                            throw new InvalidOperationException($"Недостаточно остатков для товара ProductId={it.ProductId} в {StockRegister.IM40}. Доступно={stockIm.Qty}, Требуется={remain}, Не хватает={missingIm}");
+                        }
 
                         costIm = await DeductFromBatchesAndComputeCostAsync(it.ProductId, StockRegister.IM40, remain, ct);
                         stockIm.Qty -= remain;
@@ -82,11 +85,14 @@ public class EfSaleRepository : ISaleRepository
                         s => s.ProductId == it.ProductId && s.Register == register, ct);
 
                     if (stock is null)
-                        throw new InvalidOperationException($"Stock record not found for ProductId={it.ProductId} Register={register}");
+                        throw new InvalidOperationException($"Запись остатка не найдена для товара ProductId={it.ProductId} в регистре {register}");
 
                     var newQty = stock.Qty - it.Qty;
                     if (newQty < 0)
-                        throw new InvalidOperationException($"Insufficient stock for ProductId={it.ProductId} in {register}. Available={stock.Qty}, Required={it.Qty}");
+                    {
+                        var missing = it.Qty - stock.Qty;
+                        throw new InvalidOperationException($"Недостаточно остатков для товара ProductId={it.ProductId} в {register}. Доступно={stock.Qty}, Требуется={it.Qty}, Не хватает={missing}");
+                    }
 
                     var avgUnitCost = await DeductFromBatchesAndComputeCostAsync(it.ProductId, register, it.Qty, ct);
                     it.Cost = avgUnitCost;

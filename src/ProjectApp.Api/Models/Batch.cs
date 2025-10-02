@@ -10,5 +10,6 @@ public class Batch
     public decimal Qty { get; set; }
     public decimal UnitCost { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? Code { get; set; }
     public string? Note { get; set; }
 }

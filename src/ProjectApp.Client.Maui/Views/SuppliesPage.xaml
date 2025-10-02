@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.SuppliesPage"
+             x:Name="Root"
+             Title="Поставки (ND-40)">
+  <ScrollView>
+    <VerticalStackLayout Padding="12" Spacing="12">
+      <Label Text="Новая поставка в ND-40" FontAttributes="Bold"/>
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto" RowDefinitions="Auto" ColumnSpacing="8">
+        <Entry Placeholder="ProductId" Keyboard="Numeric" Text="{Binding NewProductId}"/>
+        <Entry Grid.Column="1" Placeholder="Qty" Keyboard="Numeric" Text="{Binding NewQty}"/>
+        <Entry Grid.Column="2" Placeholder="UnitCost" Keyboard="Numeric" Text="{Binding NewUnitCost}"/>
+        <Entry Grid.Column="3" Placeholder="Code (партия)" Text="{Binding NewCode}"/>
+      </Grid>
+      <Entry Placeholder="Примечание" Text="{Binding NewNote}"/>
+      <HorizontalStackLayout Spacing="8">
+        <Button Text="Добавить позицию" Command="{Binding AddItemCommand}"/>
+        <Button Text="Создать поставку" Command="{Binding CreateSupplyCommand}"/>
+      </HorizontalStackLayout>
+      <CollectionView ItemsSource="{Binding Items}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8" Padding="4">
+              <Label Text="{Binding ProductId}"/>
+              <Label Grid.Column="1" Text="{Binding Code}"/>
+              <Label Grid.Column="2" Text="{Binding Qty}"/>
+              <Label Grid.Column="3" Text="{Binding UnitCost}"/>
+              <Button Grid.Column="4" Text="Удалить" Command="{Binding Source={x:Reference Root}, Path=BindingContext.RemoveItemCommand}" CommandParameter="{Binding .}"/>
+            </Grid>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+
+      <BoxView HeightRequest="1" BackgroundColor="#ddd"/>
+
+      <Label Text="Перевод в IM-40 по коду" FontAttributes="Bold"/>
+      <Entry Placeholder="Код партии" Text="{Binding TransferCode}"/>
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+        <Entry Placeholder="ProductId" Keyboard="Numeric" Text="{Binding TransferProductId}"/>
+        <Entry Grid.Column="1" Placeholder="Qty" Keyboard="Numeric" Text="{Binding TransferQty}"/>
+        <Button Grid.Column="2" Text="Добавить" Command="{Binding AddTransferItemCommand}"/>
+      </Grid>
+      <CollectionView ItemsSource="{Binding TransferItems}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Padding="4">
+              <Label Text="{Binding ProductId}"/>
+              <Label Grid.Column="1" Text="{Binding Qty}"/>
+              <Button Grid.Column="2" Text="Удалить" Command="{Binding Source={x:Reference Root}, Path=BindingContext.RemoveTransferItemCommand}" CommandParameter="{Binding .}"/>
+            </Grid>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+      <Button Text="Перевести в IM-40" Command="{Binding TransferCommand}"/>
+
+      <Label Text="{Binding StatusMessage}" TextColor="Red"/>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>
