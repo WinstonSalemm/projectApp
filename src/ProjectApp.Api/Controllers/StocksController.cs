@@ -69,24 +69,40 @@ public class StocksController : ControllerBase
             products = products.Where(p => EF.Functions.Like(p.Sku, $"%{q}%") || EF.Functions.Like(p.Name, $"%{q}%"));
         }
 
-        var q2 = from b in _db.Batches.AsNoTracking()
-                 join p in products on b.ProductId equals p.Id
-                 orderby p.Id, b.Register, b.CreatedAt
-                 select new BatchStockViewDto
-                 {
-                     ProductId = p.Id,
-                     Sku = p.Sku,
-                     Name = p.Name,
-                     Category = p.Category ?? string.Empty,
-                     Register = b.Register.ToString(),
-                     Code = b.Code,
-                     Qty = b.Qty,
-                     UnitCost = b.UnitCost,
-                     CreatedAt = b.CreatedAt,
-                     Note = b.Note
-                 };
+        var prodList = await products
+            .Select(p => new { p.Id, p.Sku, p.Name, p.Category })
+            .OrderBy(p => p.Id)
+            .ToListAsync(ct);
 
-        var list = await q2.ToListAsync(ct);
+        if (prodList.Count == 0)
+        {
+            return Ok(new List<BatchStockViewDto>());
+        }
+
+        var prodIds = prodList.Select(p => p.Id).ToArray();
+        var batchList = await _db.Batches
+            .AsNoTracking()
+            .Where(b => prodIds.Contains(b.ProductId))
+            .OrderBy(b => b.ProductId).ThenBy(b => b.Register).ThenBy(b => b.CreatedAt)
+            .ToListAsync(ct);
+
+        var list = (from b in batchList
+                    join p in prodList on b.ProductId equals p.Id
+                    select new BatchStockViewDto
+                    {
+                        ProductId = p.Id,
+                        Sku = p.Sku,
+                        Name = p.Name,
+                        Category = p.Category ?? string.Empty,
+                        Register = b.Register.ToString(),
+                        Code = b.Code,
+                        Qty = b.Qty,
+                        UnitCost = b.UnitCost,
+                        CreatedAt = b.CreatedAt,
+                        Note = b.Note
+                    })
+                   .ToList();
+
         return Ok(list);
     }
 }
