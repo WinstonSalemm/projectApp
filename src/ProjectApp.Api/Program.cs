@@ -379,6 +379,25 @@ await using (var scope = app.Services.CreateAsyncScope())
             {
                 await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Batches` ADD COLUMN `Code` VARCHAR(128) NULL;");
             }
+
+            // Ensure Products.Category exists
+            var prodCatExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Products' AND COLUMN_NAME = 'Category'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                if (scalar != null && scalar != DBNull.Value)
+                {
+                    var cnt = Convert.ToInt64(scalar);
+                    prodCatExists = cnt > 0;
+                }
+            }
+            if (!prodCatExists)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Products` ADD COLUMN `Category` VARCHAR(128) NOT NULL DEFAULT '';");
+            }
         }
         else if (provider2.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
@@ -418,6 +437,25 @@ await using (var scope = app.Services.CreateAsyncScope())
             if (!hasCode)
             {
                 await db.Database.ExecuteSqlRawAsync("ALTER TABLE Batches ADD COLUMN Code TEXT NULL;");
+            }
+
+            // Ensure Products.Category exists
+            var hasProdCat = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info('Products');";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "Category", StringComparison.OrdinalIgnoreCase)) { hasProdCat = true; break; }
+                }
+            }
+            if (!hasProdCat)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Products ADD COLUMN Category TEXT NOT NULL DEFAULT '';");
             }
         }
     }
