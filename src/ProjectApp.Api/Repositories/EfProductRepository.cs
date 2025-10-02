@@ -55,13 +55,16 @@ public class EfProductRepository : IProductRepository
 
     public async Task<IEnumerable<string>> GetCategoriesAsync(CancellationToken ct = default)
     {
-        return await _db.Products
+        var cats = await _db.Products
             .AsNoTracking()
             .Select(p => p.Category)
-            .Where(c => c != null && c != "")
-            .Distinct()
-            .OrderBy(c => c)
             .ToListAsync(ct);
+
+        return cats
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(c => c)
+            .ToList();
     }
 
     public async Task<Product> AddAsync(Product p, CancellationToken ct = default)
