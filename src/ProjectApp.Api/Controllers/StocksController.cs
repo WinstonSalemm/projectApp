@@ -31,24 +31,44 @@ public class StocksController : ControllerBase
             products = products.Where(p => EF.Functions.Like(p.Sku, $"%{q}%") || EF.Functions.Like(p.Name, $"%{q}%"));
         }
 
-        var stocks = await (
-            from p in products
-            join s in _db.Stocks.AsNoTracking() on p.Id equals s.ProductId into ps
-            from s in ps.DefaultIfEmpty()
-            group s by new { p.Id, p.Sku, p.Name, p.Category } into g
-            select new StockViewDto
-            {
-                ProductId = g.Key.Id,
-                Sku = g.Key.Sku,
-                Name = g.Key.Name,
-                Category = g.Key.Category ?? string.Empty,
-                Nd40Qty = g.Sum(x => x != null && x.Register == StockRegister.ND40 ? x.Qty : 0m),
-                Im40Qty = g.Sum(x => x != null && x.Register == StockRegister.IM40 ? x.Qty : 0m),
-                TotalQty = g.Sum(x => x != null ? x.Qty : 0m)
-            }
-        ).OrderBy(r => r.ProductId).ToListAsync(ct);
+        // Materialize products first
+        var prodList = await products
+            .Select(p => new { p.Id, p.Sku, p.Name, p.Category })
+            .OrderBy(p => p.Id)
+            .ToListAsync(ct);
 
-        return Ok(stocks);
+        if (prodList.Count == 0)
+        {
+            return Ok(Array.Empty<StockViewDto>());
+        }
+
+        var prodIds = prodList.Select(p => p.Id).ToArray();
+        var stockList = await _db.Stocks
+            .AsNoTracking()
+            .Where(s => prodIds.Contains(s.ProductId))
+            .ToListAsync(ct);
+
+        var grouped = stockList
+            .GroupBy(s => s.ProductId)
+            .ToDictionary(g => g.Key, g => new
+            {
+                Nd40 = g.Where(x => x.Register == StockRegister.ND40).Sum(x => x.Qty),
+                Im40 = g.Where(x => x.Register == StockRegister.IM40).Sum(x => x.Qty),
+                Total = g.Sum(x => x.Qty)
+            });
+
+        var result = prodList.Select(p => new StockViewDto
+        {
+            ProductId = p.Id,
+            Sku = p.Sku,
+            Name = p.Name,
+            Category = p.Category ?? string.Empty,
+            Nd40Qty = grouped.TryGetValue(p.Id, out var agg) ? agg.Nd40 : 0m,
+            Im40Qty = grouped.TryGetValue(p.Id, out var agg2) ? agg2.Im40 : 0m,
+            TotalQty = grouped.TryGetValue(p.Id, out var agg3) ? agg3.Total : 0m
+        }).ToList();
+
+        return Ok(result);
     }
 
     // GET /api/stocks/batches?query=&category=
