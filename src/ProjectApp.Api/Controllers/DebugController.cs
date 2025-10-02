@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Data;
+using ProjectApp.Api.Repositories;
 
 namespace ProjectApp.Api.Controllers;
 
@@ -10,7 +11,8 @@ namespace ProjectApp.Api.Controllers;
 public class DebugController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public DebugController(AppDbContext db) { _db = db; }
+    private readonly IProductRepository _productsRepo;
+    public DebugController(AppDbContext db, IProductRepository productsRepo) { _db = db; _productsRepo = productsRepo; }
 
     [HttpGet("db")]
     [AllowAnonymous]
@@ -31,5 +33,36 @@ public class DebugController : ControllerBase
         var users = await TryCountAsync(() => _db.Users.CountAsync(ct));
 
         return Ok(new { provider, canConnect, products, stocks, batches, users });
+    }
+
+    [HttpGet("products/categories")]
+    [AllowAnonymous]
+    public async Task<IActionResult> TestProductCategories(CancellationToken ct)
+    {
+        try
+        {
+            var cats = await _productsRepo.GetCategoriesAsync(ct);
+            return Ok(new { ok = true, categories = cats });
+        }
+        catch (Exception ex)
+        {
+            return Ok(new { ok = false, error = ex.Message, stack = ex.StackTrace });
+        }
+    }
+
+    [HttpGet("products/list")]
+    [AllowAnonymous]
+    public async Task<IActionResult> TestProducts([FromQuery] string? query, [FromQuery] int page = 1, [FromQuery] int size = 50, [FromQuery] string? category = null, CancellationToken ct = default)
+    {
+        try
+        {
+            var total = await _productsRepo.CountAsync(query, category, ct);
+            var items = await _productsRepo.SearchAsync(query, page, size, category, ct);
+            return Ok(new { ok = true, total, items = items.Select(p => new { p.Id, p.Sku, p.Name, p.Price, p.Category }) });
+        }
+        catch (Exception ex)
+        {
+            return Ok(new { ok = false, error = ex.Message, stack = ex.StackTrace });
+        }
     }
 }
