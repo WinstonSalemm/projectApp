@@ -25,6 +25,11 @@ public partial class ContractCreateViewModel : ObservableObject
     [ObservableProperty] private decimal newQty = 1m;
     [ObservableProperty] private decimal newUnitPrice = 0m;
 
+    // For UI display of stocks of currently selected product
+    [ObservableProperty] private decimal selectedNd40Qty;
+    [ObservableProperty] private decimal selectedIm40Qty;
+    [ObservableProperty] private decimal selectedTotalQty;
+
     public ObservableCollection<ContractItemDraft> Items { get; } = new();
 
     [ObservableProperty] private bool isBusy;
@@ -53,6 +58,7 @@ public partial class ContractCreateViewModel : ObservableObject
             UnitPrice = NewUnitPrice
         });
         NewProductId = null; NewName = string.Empty; NewUnit = "шт"; NewQty = 1m; NewUnitPrice = 0m;
+        SelectedNd40Qty = 0; SelectedIm40Qty = 0; SelectedTotalQty = 0;
         EditorMessage = string.Empty;
     }
 

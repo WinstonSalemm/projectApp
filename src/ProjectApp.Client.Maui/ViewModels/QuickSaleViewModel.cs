@@ -16,6 +16,7 @@ public partial class QuickSaleViewModel : ObservableObject
 {
     private readonly ICatalogService _catalog;
     private readonly ISalesService _sales;
+    private readonly IStocksService _stocks;
     private readonly AppSettings _settings;
 
     private CancellationTokenSource? _searchCts;
@@ -24,7 +25,19 @@ public partial class QuickSaleViewModel : ObservableObject
     private LastAction _lastAction = LastAction.None;
     private SaleDraft? _lastDraft;
 
-    public ObservableCollection<ProductModel> SearchResults { get; } = new();
+    public class QuickProductRow
+    {
+        public int Id { get; set; }
+        public string Sku { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Unit { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public decimal Nd40Qty { get; set; }
+        public decimal Im40Qty { get; set; }
+        public decimal TotalQty { get; set; }
+    }
+
+    public ObservableCollection<QuickProductRow> SearchResults { get; } = new();
     public ObservableCollection<CartItemModel> Cart { get; } = new();
     public ObservableCollection<string> Categories { get; } = new();
 
@@ -67,10 +80,11 @@ public partial class QuickSaleViewModel : ObservableObject
     [ObservableProperty]
     private string newReservationNote = string.Empty;
 
-    public QuickSaleViewModel(ICatalogService catalog, ISalesService sales, AppSettings settings)
+    public QuickSaleViewModel(ICatalogService catalog, ISalesService sales, IStocksService stocks, AppSettings settings)
     {
         _catalog = catalog;
         _sales = sales;
+        _stocks = stocks;
         _settings = settings;
 
         // Offline banner based on settings
@@ -101,12 +115,27 @@ public partial class QuickSaleViewModel : ObservableObject
                 _lastSearchQuery = searchText;
                 var cat = string.IsNullOrWhiteSpace(SelectedCategory) ? null : SelectedCategory;
                 var results = await _catalog.SearchAsync(searchText, cat, token);
+                var stockList = await _stocks.GetStocksAsync(searchText, cat, token);
+                var stockMap = stockList.ToDictionary(s => s.ProductId, s => s);
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     SearchResults.Clear();
                     foreach (var p in results)
-                        SearchResults.Add(p);
+                    {
+                        stockMap.TryGetValue(p.Id, out var stock);
+                        SearchResults.Add(new QuickProductRow
+                        {
+                            Id = p.Id,
+                            Sku = p.Sku,
+                            Name = p.Name,
+                            Unit = p.Unit,
+                            Price = p.Price,
+                            Nd40Qty = stock?.Nd40Qty ?? 0,
+                            Im40Qty = stock?.Im40Qty ?? 0,
+                            TotalQty = stock?.TotalQty ?? 0
+                        });
+                    }
                     if (_settings.UseApi)
                     {
                         IsOffline = false;
@@ -148,7 +177,7 @@ public partial class QuickSaleViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void AddToCart(ProductModel product)
+    private void AddToCart(QuickProductRow product)
     {
         if (product is null) return;
         var existing = Cart.FirstOrDefault(c => c.ProductId == product.Id);

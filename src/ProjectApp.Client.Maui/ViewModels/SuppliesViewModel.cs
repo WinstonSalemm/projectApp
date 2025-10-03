@@ -22,6 +22,11 @@ public partial class SuppliesViewModel : ObservableObject
     [ObservableProperty] private string newCode = string.Empty;
     [ObservableProperty] private string? newNote;
 
+    // Stocks for selected product (supply editor)
+    [ObservableProperty] private decimal selectedNd40Qty;
+    [ObservableProperty] private decimal selectedIm40Qty;
+    [ObservableProperty] private decimal selectedTotalQty;
+
     public ObservableCollection<SupplyDraftItem> Items { get; } = new();
 
     // Transfer section
@@ -29,6 +34,11 @@ public partial class SuppliesViewModel : ObservableObject
     [ObservableProperty] private int transferProductId;
     [ObservableProperty] private decimal transferQty = 1m;
     public ObservableCollection<SupplyTransferItem> TransferItems { get; } = new();
+
+    // Stocks for selected product (transfer editor)
+    [ObservableProperty] private decimal transferNd40Qty;
+    [ObservableProperty] private decimal transferIm40Qty;
+    [ObservableProperty] private decimal transferTotalQty;
 
     public SuppliesViewModel(ISuppliesService supplies)
     {

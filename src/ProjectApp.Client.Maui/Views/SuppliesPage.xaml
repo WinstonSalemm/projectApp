@@ -7,12 +7,17 @@
   <ScrollView>
     <VerticalStackLayout Padding="12" Spacing="12">
       <Label Text="Новая поставка в ND-40" FontAttributes="Bold"/>
-      <Grid ColumnDefinitions="*,Auto,Auto,Auto" RowDefinitions="Auto" ColumnSpacing="8">
-        <Entry Placeholder="ProductId" Keyboard="Numeric" Text="{Binding NewProductId}"/>
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" RowDefinitions="Auto" ColumnSpacing="8">
+        <Button Text="Выбрать товар" Clicked="OnPickProductForSupplyClicked"/>
         <Entry Grid.Column="1" Placeholder="Qty" Keyboard="Numeric" Text="{Binding NewQty}"/>
         <Entry Grid.Column="2" Placeholder="UnitCost" Keyboard="Numeric" Text="{Binding NewUnitCost}"/>
         <Entry Grid.Column="3" Placeholder="Code (партия)" Text="{Binding NewCode}"/>
       </Grid>
+      <HorizontalStackLayout Spacing="12">
+        <Label Text="{Binding SelectedNd40Qty, StringFormat='ND-40: {0}'}" FontSize="11"/>
+        <Label Text="{Binding SelectedIm40Qty, StringFormat='IM-40: {0}'}" FontSize="11"/>
+        <Label Text="{Binding SelectedTotalQty, StringFormat='Всего: {0}'}" FontSize="11"/>
+      </HorizontalStackLayout>
       <Entry Placeholder="Примечание" Text="{Binding NewNote}"/>
       <HorizontalStackLayout Spacing="8">
         <Button Text="Добавить позицию" Command="{Binding AddItemCommand}"/>
@@ -37,10 +42,15 @@
       <Label Text="Перевод в IM-40 по коду" FontAttributes="Bold"/>
       <Entry Placeholder="Код партии" Text="{Binding TransferCode}"/>
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-        <Entry Placeholder="ProductId" Keyboard="Numeric" Text="{Binding TransferProductId}"/>
+        <Button Text="Выбрать товар" Clicked="OnPickProductForTransferClicked"/>
         <Entry Grid.Column="1" Placeholder="Qty" Keyboard="Numeric" Text="{Binding TransferQty}"/>
         <Button Grid.Column="2" Text="Добавить" Command="{Binding AddTransferItemCommand}"/>
       </Grid>
+      <HorizontalStackLayout Spacing="12">
+        <Label Text="{Binding TransferNd40Qty, StringFormat='ND-40: {0}'}" FontSize="11"/>
+        <Label Text="{Binding TransferIm40Qty, StringFormat='IM-40: {0}'}" FontSize="11"/>
+        <Label Text="{Binding TransferTotalQty, StringFormat='Всего: {0}'}" FontSize="11"/>
+      </HorizontalStackLayout>
       <CollectionView ItemsSource="{Binding TransferItems}">
         <CollectionView.ItemTemplate>
           <DataTemplate>

@@ -23,6 +23,11 @@
         <Entry Grid.Column="3" Placeholder="Кол-во" Keyboard="Numeric" Text="{Binding NewQty}"/>
         <Entry Grid.Column="4" Placeholder="Цена" Keyboard="Numeric" Text="{Binding NewUnitPrice}"/>
       </Grid>
+      <HorizontalStackLayout Spacing="12">
+        <Label Text="{Binding SelectedNd40Qty, StringFormat='ND-40: {0}'}" FontSize="11"/>
+        <Label Text="{Binding SelectedIm40Qty, StringFormat='IM-40: {0}'}" FontSize="11"/>
+        <Label Text="{Binding SelectedTotalQty, StringFormat='Всего: {0}'}" FontSize="11"/>
+      </HorizontalStackLayout>
       <Button Text="Добавить позицию" Command="{Binding AddItemCommand}"/>
       <Label TextColor="Red" Text="{Binding EditorMessage}"/>
 

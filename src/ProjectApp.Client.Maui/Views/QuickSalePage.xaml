@@ -42,10 +42,15 @@
             <CollectionView.ItemTemplate>
               <DataTemplate>
                 <Grid ColumnDefinitions="*,Auto" Padding="4">
-                  <VerticalStackLayout>
+                  <VerticalStackLayout Spacing="2">
                     <Label Text="{Binding Name}" FontAttributes="Bold"/>
                     <Label Text="{Binding Sku}" FontSize="12" TextColor="Gray"/>
                     <Label Text="{Binding Price, StringFormat='Цена: {0:C}'}" FontSize="12"/>
+                    <HorizontalStackLayout Spacing="12">
+                      <Label Text="{Binding Nd40Qty, StringFormat='ND-40: {0}'}" FontSize="11"/>
+                      <Label Text="{Binding Im40Qty, StringFormat='IM-40: {0}'}" FontSize="11"/>
+                      <Label Text="{Binding TotalQty, StringFormat='Всего: {0}'}" FontSize="11"/>
+                    </HorizontalStackLayout>
                   </VerticalStackLayout>
                   <Button Grid.Column="1" Text="Добавить" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.AddToCartCommand}" CommandParameter="{Binding .}"/>
                 </Grid>

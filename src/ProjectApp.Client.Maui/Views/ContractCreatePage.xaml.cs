@@ -41,6 +41,10 @@ public partial class ContractCreatePage : ContentPage
             vm.NewUnit = string.IsNullOrWhiteSpace(picked.Unit) ? "шт" : picked.Unit;
             // Цена всегда вводится вручную
             vm.NewUnitPrice = 0m;
+            // Stocks for current product
+            vm.SelectedNd40Qty = picked.Nd40Qty;
+            vm.SelectedIm40Qty = picked.Im40Qty;
+            vm.SelectedTotalQty = picked.TotalQty;
         }
     }
 }

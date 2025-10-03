@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Models;
 using ProjectApp.Api.Repositories;
 using ProjectApp.Api.Dtos;
 using System.Linq;
+using ProjectApp.Api.Data;
 
 namespace ProjectApp.Api.Controllers;
 
@@ -11,10 +13,12 @@ namespace ProjectApp.Api.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly IProductRepository _repository;
+    private readonly AppDbContext _db;
 
-    public ProductsController(IProductRepository repository)
+    public ProductsController(IProductRepository repository, AppDbContext db)
     {
         _repository = repository;
+        _db = db;
     }
 
     [HttpGet]
