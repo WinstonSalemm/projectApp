@@ -6,7 +6,7 @@
   <ScrollView>
     <VerticalStackLayout Padding="24" Spacing="16">
       <Label Text="Выберите вид продажи" FontAttributes="Bold" FontSize="24"/>
-      <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="16">
+      <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="16">
         <!-- 1 ряд -->
         <Button Text="Наличными с чеком" Grid.Row="0" Grid.Column="0" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="CashWithReceipt"/>
         <Button Text="Наличными без чека" Grid.Row="0" Grid.Column="1" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="CashNoReceipt"/>
@@ -19,6 +19,8 @@
         <Button Text="Возврат" Grid.Row="2" Grid.Column="0" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="Return"/>
         <Button Text="Бронь" Grid.Row="2" Grid.Column="1" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="Reservation"/>
         <Button Text="Payme" Grid.Row="2" Grid.Column="2" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="Payme"/>
+        <!-- 4 ряд -->
+        <Button Text="Договор" Grid.Row="3" Grid.Column="0" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="Contract"/>
       </Grid>
     </VerticalStackLayout>
   </ScrollView>
