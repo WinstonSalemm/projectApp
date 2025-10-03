@@ -60,11 +60,19 @@ public class EfProductRepository : IProductRepository
             .Select(p => p.Category)
             .ToListAsync(ct);
 
-        return cats
+        var nonEmpty = cats
             .Where(c => !string.IsNullOrWhiteSpace(c))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(c => c)
             .ToList();
+
+        var hasEmpty = cats.Any(c => string.IsNullOrWhiteSpace(c));
+        if (hasEmpty)
+        {
+            // Show a friendly placeholder for empty categories
+            nonEmpty.Insert(0, "(Без категории)");
+        }
+        return nonEmpty;
     }
 
     public async Task<Product> AddAsync(Product p, CancellationToken ct = default)

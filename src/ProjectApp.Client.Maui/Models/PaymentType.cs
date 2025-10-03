@@ -11,5 +11,6 @@ public enum PaymentType
     Reservation = 6,
     Payme = 7,
     ClickWithReceipt = 8,
-    ClickNoReceipt = 9
+    ClickNoReceipt = 9,
+    Contract = 10
 }

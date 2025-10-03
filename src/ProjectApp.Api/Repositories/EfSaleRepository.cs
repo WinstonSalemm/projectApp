@@ -137,7 +137,7 @@ public class EfSaleRepository : ISaleRepository
     {
         return payment switch
         {
-            PaymentType.CashWithReceipt or PaymentType.CardWithReceipt or PaymentType.ClickWithReceipt or PaymentType.Site or PaymentType.Return => StockRegister.IM40,
+            PaymentType.CashWithReceipt or PaymentType.CardWithReceipt or PaymentType.ClickWithReceipt or PaymentType.Site or PaymentType.Return or PaymentType.Contract => StockRegister.IM40,
             PaymentType.CashNoReceipt or PaymentType.ClickNoReceipt or PaymentType.Click or PaymentType.Payme or PaymentType.Reservation => StockRegister.ND40,
             _ => StockRegister.IM40
         };

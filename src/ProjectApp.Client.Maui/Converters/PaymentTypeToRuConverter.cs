@@ -23,6 +23,7 @@ public class PaymentTypeToRuConverter : IValueConverter
                 PaymentType.Return => "Возврат",
                 PaymentType.Reservation => "Бронь",
                 PaymentType.Payme => "Payme",
+                PaymentType.Contract => "Договор",
                 _ => pt.ToString()
             };
         }

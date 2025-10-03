@@ -33,14 +33,18 @@ public partial class StocksViewModel : ObservableObject
             IsBusy = true; StatusMessage = string.Empty;
             Items.Clear();
             BatchItems.Clear();
+            // Map UI selection to API filter
+            string? catFilter = null;
+            if (!string.IsNullOrWhiteSpace(SelectedCategory) && SelectedCategory != "(Все)")
+                catFilter = SelectedCategory == "(Без категории)" ? string.Empty : SelectedCategory;
             if (ShowBatches)
             {
-                var blist = await _stocks.GetBatchesAsync(string.IsNullOrWhiteSpace(Query) ? null : Query, string.IsNullOrWhiteSpace(SelectedCategory) ? null : SelectedCategory);
+                var blist = await _stocks.GetBatchesAsync(string.IsNullOrWhiteSpace(Query) ? null : Query, string.IsNullOrWhiteSpace(catFilter) ? null : catFilter);
                 foreach (var it in blist) BatchItems.Add(it);
             }
             else
             {
-                var list = await _stocks.GetStocksAsync(string.IsNullOrWhiteSpace(Query) ? null : Query, string.IsNullOrWhiteSpace(SelectedCategory) ? null : SelectedCategory);
+                var list = await _stocks.GetStocksAsync(string.IsNullOrWhiteSpace(Query) ? null : Query, string.IsNullOrWhiteSpace(catFilter) ? null : catFilter);
                 foreach (var it in list) Items.Add(it);
             }
         }
@@ -57,8 +61,9 @@ public partial class StocksViewModel : ObservableObject
         {
             var cats = await catalog.GetCategoriesAsync();
             Categories.Clear();
-            Categories.Add(string.Empty);
+            Categories.Add("(Все)");
             foreach (var c in cats) Categories.Add(c);
+            if (string.IsNullOrWhiteSpace(SelectedCategory)) SelectedCategory = "(Все)";
         }
         catch { }
     }

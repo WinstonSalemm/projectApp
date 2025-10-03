@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:converters="clr-namespace:ProjectApp.Client.Maui.Converters"
              x:Class="ProjectApp.Client.Maui.Views.QuickSalePage"
              x:Name="RootPage"
              Title="Быстрая продажа">
+  <ContentPage.Resources>
+    <ResourceDictionary>
+      <converters:PaymentTypeToRuConverter x:Key="PaymentTypeToRuConverter"/>
+    </ResourceDictionary>
+  </ContentPage.Resources>
   <ContentPage.ToolbarItems>
     <ToolbarItem Text="Настройки" Clicked="OnSettingsClicked" />
   </ContentPage.ToolbarItems>
@@ -76,7 +82,11 @@
       <!-- Payment type -->
       <HorizontalStackLayout Grid.Row="3" Spacing="12" Margin="0,12,0,0">
         <Label Text="Оплата:" VerticalOptions="Center"/>
-        <Picker ItemsSource="{Binding PaymentTypes}" SelectedItem="{Binding SelectedPaymentType}"/>
+        <Picker ItemsSource="{Binding PaymentTypes}" SelectedItem="{Binding SelectedPaymentType}">
+          <Picker.ItemDisplayBinding>
+            <Binding Path="." Converter="{StaticResource PaymentTypeToRuConverter}"/>
+          </Picker.ItemDisplayBinding>
+        </Picker>
         <Entry Placeholder="Имя клиента (необязательно)" Text="{Binding ClientName}" HorizontalOptions="FillAndExpand"/>
       </HorizontalStackLayout>
 

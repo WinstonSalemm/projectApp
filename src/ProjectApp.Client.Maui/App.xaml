@@ -3,5 +3,37 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ProjectApp.Client.Maui.App">
     <Application.Resources>
+      <ResourceDictionary>
+        <!-- Base Styles with AppThemeBinding -->
+        <Style TargetType="ContentPage">
+          <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#FFFFFF, Dark=#000000}" />
+        </Style>
+        <Style TargetType="NavigationPage">
+          <Setter Property="BarBackgroundColor" Value="{AppThemeBinding Light=#660000, Dark=#40E0D0}" />
+          <Setter Property="BarTextColor" Value="{AppThemeBinding Light=#FFFFFF, Dark=#000000}" />
+        </Style>
+        <Style TargetType="Label">
+          <Setter Property="TextColor" Value="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+        </Style>
+        <Style TargetType="Entry">
+          <Setter Property="TextColor" Value="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+          <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light=#808080, Dark=#FFFFFF}" />
+          <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F6F6F6, Dark=#111111}" />
+        </Style>
+        <Style TargetType="Picker">
+          <Setter Property="TextColor" Value="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+          <Setter Property="TitleColor" Value="{AppThemeBinding Light=#808080, Dark=#FFFFFF}" />
+          <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F6F6F6, Dark=#111111}" />
+        </Style>
+        <Style TargetType="Switch">
+          <Setter Property="OnColor" Value="{AppThemeBinding Light=#660000, Dark=#40E0D0}" />
+          <Setter Property="ThumbColor" Value="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+        </Style>
+        <Style TargetType="Button">
+          <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#660000, Dark=#40E0D0}" />
+          <Setter Property="TextColor" Value="{AppThemeBinding Light=#FFFFFF, Dark=#000000}" />
+          <Setter Property="CornerRadius" Value="8" />
+        </Style>
+      </ResourceDictionary>
     </Application.Resources>
 </Application>
