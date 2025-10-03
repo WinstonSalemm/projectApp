@@ -29,7 +29,7 @@ docker compose up -d
 ```
 dwdw
 Readiness: проверьте `http://localhost:5028/ready` — 200 если миграции применены и БД доступна. Liveness: `http://localhost:5028/health` — всегда 200 при живом процессе.
-
+dwdwd
 ## CORS конфигурация (CORS Configuration)
 
 В API CORS управляется через секцию `Cors` в конфигурации.
