@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.ProductSelectPage"
+             x:Name="Root"
+             Title="Выбор товара">
+  <ContentPage.Content>
+    <VerticalStackLayout Padding="12" Spacing="12">
+      <Grid ColumnDefinitions="*,Auto,200,Auto" ColumnSpacing="8">
+        <Entry Grid.Column="0" Placeholder="Поиск (SKU или название)" Text="{Binding Query}"/>
+        <Label Grid.Column="1" Text="Категория:" VerticalTextAlignment="Center"/>
+        <Picker Grid.Column="2" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}"/>
+        <Button Grid.Column="3" Text="Искать" Command="{Binding SearchAsyncCommand}"/>
+      </Grid>
+
+      <CollectionView ItemsSource="{Binding Results}" SelectionMode="Single" SelectionChanged="OnSelectionChanged">
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" Padding="8" ColumnSpacing="12">
+              <VerticalStackLayout>
+                <Label Text="{Binding Name}" FontAttributes="Bold"/>
+                <Label Text="{Binding Sku}" FontSize="12" TextColor="Gray"/>
+                <Label Text="{Binding Price, StringFormat='Рекоменд.: {0:C}'}" FontSize="12"/>
+              </VerticalStackLayout>
+              <Label Grid.Column="1" Text="{Binding Nd40Qty, StringFormat='ND-40: {0}'}" VerticalTextAlignment="Center"/>
+              <Label Grid.Column="2" Text="{Binding Im40Qty, StringFormat='IM-40: {0}'}" VerticalTextAlignment="Center"/>
+              <Label Grid.Column="3" Text="{Binding TotalQty, StringFormat='Всего: {0}'}" VerticalTextAlignment="Center"/>
+              <Button Grid.Column="4" Text="Выбрать" CommandParameter="{Binding .}" Clicked="OnPickClicked"/>
+            </Grid>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+    </VerticalStackLayout>
+  </ContentPage.Content>
+</ContentPage>

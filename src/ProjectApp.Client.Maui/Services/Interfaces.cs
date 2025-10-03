@@ -10,6 +10,57 @@ public class SalesResult
     public static SalesResult Fail(string? message) => new SalesResult { Success = false, ErrorMessage = message };
 }
 
+public class ContractListItem
+{
+    public int Id { get; set; }
+    public string OrgName { get; set; } = string.Empty;
+    public string? Inn { get; set; }
+    public string? Phone { get; set; }
+    public string Status { get; set; } = "Signed";
+    public DateTime CreatedAt { get; set; }
+    public string? Note { get; set; }
+}
+
+public class ContractItemDraft
+{
+    public int? ProductId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Unit { get; set; } = "шт";
+    public decimal Qty { get; set; }
+    public decimal UnitPrice { get; set; }
+}
+
+public class ContractCreateDraft
+{
+    public string OrgName { get; set; } = string.Empty;
+    public string? Inn { get; set; }
+    public string? Phone { get; set; }
+    public string Status { get; set; } = "Signed"; // Signed | Paid | Closed
+    public string? Note { get; set; }
+    public List<ContractItemDraft> Items { get; set; } = new();
+}
+
+public class ContractDetail
+{
+    public int Id { get; set; }
+    public string OrgName { get; set; } = string.Empty;
+    public string? Inn { get; set; }
+    public string? Phone { get; set; }
+    public string Status { get; set; } = "Signed";
+    public DateTime CreatedAt { get; set; }
+    public string? Note { get; set; }
+    public List<ContractItemDraft> Items { get; set; } = new();
+}
+
+public interface IContractsService
+{
+    Task<IEnumerable<ContractListItem>> ListAsync(string? status = null, CancellationToken ct = default);
+    Task<bool> CreateAsync(ContractCreateDraft draft, CancellationToken ct = default);
+    Task<bool> UpdateStatusAsync(int id, string status, CancellationToken ct = default);
+    Task<ContractDetail?> GetAsync(int id, CancellationToken ct = default);
+    Task<bool> UpdateAsync(int id, ContractCreateDraft draft, CancellationToken ct = default);
+}
+
 public interface ICatalogService
 {
     Task<IEnumerable<ProductModel>> SearchAsync(string? query, string? category = null, CancellationToken ct = default);

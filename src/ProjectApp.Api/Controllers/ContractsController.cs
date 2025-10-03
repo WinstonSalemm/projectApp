@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Dtos;
 using ProjectApp.Api.Models;
+using ProjectApp.Api.Repositories;
+using ProjectApp.Api.Services;
 
 namespace ProjectApp.Api.Controllers;
 
@@ -13,7 +15,14 @@ namespace ProjectApp.Api.Controllers;
 public class ContractsController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public ContractsController(AppDbContext db) { _db = db; }
+    private readonly ISaleRepository _sales;
+    private readonly ISaleCalculator _calculator;
+    public ContractsController(AppDbContext db, ISaleRepository sales, ISaleCalculator calculator)
+    {
+        _db = db;
+        _sales = sales;
+        _calculator = calculator;
+    }
 
     // Self-healing: ensure Contracts schema exists in prod if migrations/patchers didn't run
     private async Task EnsureSchemaAsync(CancellationToken ct)
@@ -147,6 +156,42 @@ public class ContractsController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.OrgName))
             return ValidationProblem(detail: "OrgName is required");
 
+        // Validate items for stock deduction (ProductId required)
+        if (dto.Items == null || dto.Items.Count == 0)
+            return ValidationProblem(detail: "At least one item is required");
+        if (dto.Items.Any(i => !i.ProductId.HasValue || i.ProductId.Value <= 0))
+            return ValidationProblem(detail: "Each item must have a valid ProductId to deduct stock");
+        if (dto.Items.Any(i => i.Qty <= 0 || i.UnitPrice < 0))
+            return ValidationProblem(detail: "Invalid item: Qty must be > 0 and UnitPrice >= 0");
+
+        // 1) Deduct stocks immediately from IM-40 by creating a Sale with PaymentType.Contract
+        try
+        {
+            var saleDto = new SaleCreateDto
+            {
+                ClientId = null,
+                ClientName = dto.OrgName?.Trim() ?? string.Empty,
+                PaymentType = PaymentType.Contract,
+                Items = dto.Items.Select(i => new SaleCreateItemDto
+                {
+                    ProductId = i.ProductId!.Value,
+                    Qty = i.Qty,
+                    UnitPrice = i.UnitPrice
+                }).ToList()
+            };
+            var sale = await _calculator.BuildAndCalculateAsync(saleDto, ct);
+            sale.CreatedBy = User?.Identity?.Name;
+            await _sales.AddAsync(sale, ct);
+        }
+        catch (ArgumentException ex)
+        {
+            return ValidationProblem(detail: ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ValidationProblem(detail: ex.Message);
+        }
+
         var status = Enum.TryParse<ContractStatus>(dto.Status, true, out var st) ? st : ContractStatus.Signed;
         var c = new Contract
         {
@@ -169,6 +214,37 @@ public class ContractsController : ControllerBase
         await _db.SaveChangesAsync(ct);
 
         return Created($"/api/contracts/{c.Id}", new { id = c.Id });
+    }
+
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update([FromRoute] int id, [FromBody] ContractCreateDto dto, CancellationToken ct)
+    {
+        await EnsureSchemaAsync(ct);
+        var c = await _db.Contracts.Include(x => x.Items).FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (c is null) return NotFound();
+
+        c.OrgName = string.IsNullOrWhiteSpace(dto.OrgName) ? c.OrgName : dto.OrgName.Trim();
+        c.Inn = string.IsNullOrWhiteSpace(dto.Inn) ? null : dto.Inn.Trim();
+        c.Phone = string.IsNullOrWhiteSpace(dto.Phone) ? null : dto.Phone.Trim();
+        c.Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim();
+        if (Enum.TryParse<ContractStatus>(dto.Status, true, out var newStatus))
+            c.Status = newStatus;
+
+        // Replace items
+        _db.ContractItems.RemoveRange(c.Items);
+        c.Items = dto.Items.Select(i => new ContractItem
+        {
+            ProductId = i.ProductId,
+            Name = string.IsNullOrWhiteSpace(i.Name) ? string.Empty : i.Name.Trim(),
+            Unit = string.IsNullOrWhiteSpace(i.Unit) ? "шт" : i.Unit.Trim(),
+            Qty = i.Qty,
+            UnitPrice = i.UnitPrice
+        }).ToList();
+
+        await _db.SaveChangesAsync(ct);
+        return NoContent();
     }
 
     [HttpPut("{id:int}/status")]

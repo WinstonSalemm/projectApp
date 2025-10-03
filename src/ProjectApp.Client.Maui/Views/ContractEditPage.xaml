@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.ContractEditPage"
+             x:Name="Root"
+             Title="Изменить договор">
+  <ScrollView>
+    <VerticalStackLayout Padding="12" Spacing="12">
+      <Entry Placeholder="Организация" Text="{Binding OrgName}"/>
+      <Entry Placeholder="ИНН" Text="{Binding Inn}"/>
+      <Entry Placeholder="Телефон" Text="{Binding Phone}"/>
+      <HorizontalStackLayout Spacing="12">
+        <Label Text="Статус:" VerticalTextAlignment="Center"/>
+        <Picker ItemsSource="{Binding Statuses}" SelectedItem="{Binding Status}" WidthRequest="180"/>
+      </HorizontalStackLayout>
+      <Editor Placeholder="Заметка" Text="{Binding Note}" HeightRequest="80"/>
+
+      <Label Text="Позиции" FontAttributes="Bold"/>
+      <Grid ColumnDefinitions="Auto,*,80,100,auto" ColumnSpacing="8">
+        <Button Grid.Column="0" Text="Выбрать товар" Clicked="OnPickProductClicked"/>
+        <Entry Grid.Column="1" Placeholder="Название" Text="{Binding NewName}"/>
+        <Entry Grid.Column="2" Placeholder="Ед." Text="{Binding NewUnit}"/>
+        <Entry Grid.Column="3" Placeholder="Кол-во" Keyboard="Numeric" Text="{Binding NewQty}"/>
+        <Entry Grid.Column="4" Placeholder="Цена" Keyboard="Numeric" Text="{Binding NewUnitPrice}"/>
+      </Grid>
+      <Button Text="Добавить позицию" Command="{Binding AddItemCommand}"/>
+      <Label TextColor="Red" Text="{Binding EditorMessage}"/>
+
+      <CollectionView ItemsSource="{Binding Items}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Grid ColumnDefinitions="*,80,100,100,auto" Padding="4" ColumnSpacing="8">
+              <Label Text="{Binding Name}"/>
+              <Label Grid.Column="1" Text="{Binding Unit}"/>
+              <Label Grid.Column="2" Text="{Binding Qty}"/>
+              <Label Grid.Column="3" Text="{Binding UnitPrice}"/>
+              <Button Grid.Column="4" Text="Удалить" Command="{Binding Source={x:Reference Name=Root}, Path=BindingContext.RemoveItemCommand}" CommandParameter="{Binding .}"/>
+            </Grid>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+
+      <Button Text="Сохранить" Command="{Binding SaveAsyncCommand}"/>
+      <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"/>
+      <Label TextColor="Red" Text="{Binding StatusMessage}"/>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

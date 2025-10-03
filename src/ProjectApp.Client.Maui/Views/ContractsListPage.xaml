@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.ContractsListPage"
+             x:Name="Root"
+             Title="Договоры">
+  <ContentPage.Content>
+    <VerticalStackLayout Padding="12" Spacing="12">
+      <HorizontalStackLayout Spacing="12">
+        <Label Text="Статус:" VerticalTextAlignment="Center"/>
+        <Picker ItemsSource="{Binding Statuses}" SelectedItem="{Binding SelectedStatus}" WidthRequest="180"/>
+        <Button Text="Обновить" Command="{Binding RefreshAsyncCommand}"/>
+        <Button Text="Создать" Clicked="OnCreateClicked"/>
+      </HorizontalStackLayout>
+
+      <CollectionView ItemsSource="{Binding Items}">
+        <CollectionView.Header>
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto" Padding="4"/>
+        </CollectionView.Header>
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" Padding="8" ColumnSpacing="8">
+              <VerticalStackLayout>
+                <Label Text="{Binding OrgName}" FontAttributes="Bold"/>
+                <Label Text="{Binding Inn}" FontSize="12"/>
+                <Label Text="{Binding Phone}" FontSize="12"/>
+                <Label Text="{Binding CreatedAt, StringFormat='Создан: {0:yyyy-MM-dd HH:mm}'}" FontSize="12"/>
+                <Label Text="{Binding Note}" FontSize="12"/>
+              </VerticalStackLayout>
+              <Label Grid.Column="1" Text="{Binding Status}" VerticalTextAlignment="Center"/>
+              <Button Grid.Column="2" Text="Оплачен" Command="{Binding Source={x:Reference Name=Root}, Path=BindingContext.MarkPaidAsyncCommand}" CommandParameter="{Binding .}"/>
+              <Button Grid.Column="3" Text="Закрыт" Command="{Binding Source={x:Reference Name=Root}, Path=BindingContext.MarkClosedAsyncCommand}" CommandParameter="{Binding .}"/>
+              <Button Grid.Column="4" Text="Изменить" Clicked="OnEditClicked" CommandParameter="{Binding Id}"/>
+            </Grid>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+    </VerticalStackLayout>
+  </ContentPage.Content>
+</ContentPage>

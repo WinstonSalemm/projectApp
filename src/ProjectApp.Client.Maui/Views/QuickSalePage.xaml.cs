@@ -33,6 +33,10 @@ public partial class QuickSalePage : ContentPage
             var stocksItem = new ToolbarItem { Text = "Склад" };
             stocksItem.Clicked += OnStocksClicked;
             ToolbarItems.Add(stocksItem);
+
+            var contractsItem = new ToolbarItem { Text = "Договоры" };
+            contractsItem.Clicked += OnContractsClicked;
+            ToolbarItems.Add(contractsItem);
         }
     }
 
@@ -66,6 +70,15 @@ public partial class QuickSalePage : ContentPage
     private async void OnStocksClicked(object? sender, EventArgs e)
     {
         var page = _services.GetService<StocksPage>();
+        if (page != null)
+        {
+            await Navigation.PushAsync(page);
+        }
+    }
+
+    private async void OnContractsClicked(object? sender, EventArgs e)
+    {
+        var page = _services.GetService<ContractsListPage>();
         if (page != null)
         {
             await Navigation.PushAsync(page);
