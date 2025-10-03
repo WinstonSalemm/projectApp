@@ -4,11 +4,11 @@ using ProjectApp.Client.Maui.ViewModels;
 
 namespace ProjectApp.Client.Maui.Views;
 
-public partial class ContractCreatePage : ContentPage
+public partial class ContractEditPage : ContentPage
 {
     private readonly IServiceProvider _services;
 
-    public ContractCreatePage(ContractCreateViewModel vm, IServiceProvider services)
+    public ContractEditPage(ContractEditViewModel vm, IServiceProvider services)
     {
         InitializeComponent();
         BindingContext = vm;
@@ -17,17 +17,12 @@ public partial class ContractCreatePage : ContentPage
 
     private async void OnPickProductClicked(object? sender, EventArgs e)
     {
-        var vm = BindingContext as ContractCreateViewModel;
-        if (vm == null) return;
-
+        if (BindingContext is not ContractEditViewModel vm) return;
         var page = _services.GetService<ProductSelectPage>();
         if (page == null) return;
 
         var tcs = new TaskCompletionSource<ProductSelectViewModel.ProductRow?>();
-        void Handler(object? s, ProductSelectViewModel.ProductRow p)
-        {
-            tcs.TrySetResult(p);
-        }
+        void Handler(object? s, ProductSelectViewModel.ProductRow p) => tcs.TrySetResult(p);
         page.ProductPicked += Handler;
         await Navigation.PushAsync(page);
         var picked = await tcs.Task;

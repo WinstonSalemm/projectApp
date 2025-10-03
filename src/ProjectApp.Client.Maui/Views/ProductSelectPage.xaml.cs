@@ -1,12 +1,11 @@
 using Microsoft.Maui.Controls;
 using ProjectApp.Client.Maui.ViewModels;
-using ProjectApp.Client.Maui.Models;
 
 namespace ProjectApp.Client.Maui.Views;
 
 public partial class ProductSelectPage : ContentPage
 {
-    public event EventHandler<ProductModel>? ProductPicked;
+    public event EventHandler<ProductSelectViewModel.ProductRow>? ProductPicked;
 
     public ProductSelectPage(ProductSelectViewModel vm)
     {
@@ -21,7 +20,7 @@ public partial class ProductSelectPage : ContentPage
 
     private void OnPickClicked(object? sender, EventArgs e)
     {
-        if ((sender as Button)?.CommandParameter is ProductModel p)
+        if ((sender as Button)?.CommandParameter is ProductSelectViewModel.ProductRow p)
         {
             ProductPicked?.Invoke(this, p);
         }
