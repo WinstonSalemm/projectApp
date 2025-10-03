@@ -15,10 +15,125 @@ public class ContractsController : ControllerBase
     private readonly AppDbContext _db;
     public ContractsController(AppDbContext db) { _db = db; }
 
+    // Self-healing: ensure Contracts schema exists in prod if migrations/patchers didn't run
+    private async Task EnsureSchemaAsync(CancellationToken ct)
+    {
+        try
+        {
+            var provider = _db.Database.ProviderName ?? string.Empty;
+            if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+            {
+                var hasContracts = false;
+                await using (var conn = _db.Database.GetDbConnection())
+                {
+                    await conn.OpenAsync(ct);
+                    await using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Contracts'";
+                    var scalar = await cmd.ExecuteScalarAsync(ct);
+                    hasContracts = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+                }
+                if (!hasContracts)
+                {
+                    var sqlC = @"CREATE TABLE `Contracts` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `OrgName` VARCHAR(256) NOT NULL,
+  `Inn` VARCHAR(32) NULL,
+  `Phone` VARCHAR(32) NULL,
+  `Status` INT NOT NULL,
+  `CreatedAt` DATETIME(6) NOT NULL,
+  `Note` VARCHAR(1024) NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                    await _db.Database.ExecuteSqlRawAsync(sqlC);
+                }
+
+                var hasItems = false;
+                await using (var conn = _db.Database.GetDbConnection())
+                {
+                    await conn.OpenAsync(ct);
+                    await using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ContractItems'";
+                    var scalar = await cmd.ExecuteScalarAsync(ct);
+                    hasItems = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+                }
+                if (!hasItems)
+                {
+                    var sqlI = @"CREATE TABLE `ContractItems` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `ContractId` INT NOT NULL,
+  `ProductId` INT NULL,
+  `Name` VARCHAR(256) NOT NULL,
+  `Unit` VARCHAR(16) NOT NULL,
+  `Qty` DECIMAL(18,3) NOT NULL,
+  `UnitPrice` DECIMAL(18,2) NOT NULL,
+  PRIMARY KEY (`Id`),
+  INDEX `IX_ContractItems_ContractId` (`ContractId` ASC),
+  CONSTRAINT `FK_ContractItems_Contracts_ContractId` FOREIGN KEY (`ContractId`) REFERENCES `Contracts` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                    await _db.Database.ExecuteSqlRawAsync(sqlI);
+                }
+            }
+            else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+            {
+                var hasContracts = false;
+                await using (var conn = _db.Database.GetDbConnection())
+                {
+                    await conn.OpenAsync(ct);
+                    await using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Contracts'";
+                    var scalar = await cmd.ExecuteScalarAsync(ct);
+                    hasContracts = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+                }
+                if (!hasContracts)
+                {
+                    var sqlC = @"CREATE TABLE Contracts (
+  Id INTEGER NOT NULL CONSTRAINT PK_Contracts PRIMARY KEY AUTOINCREMENT,
+  OrgName TEXT NOT NULL,
+  Inn TEXT NULL,
+  Phone TEXT NULL,
+  Status INTEGER NOT NULL,
+  CreatedAt TEXT NOT NULL,
+  Note TEXT NULL
+);";
+                    await _db.Database.ExecuteSqlRawAsync(sqlC);
+                }
+
+                var hasItems = false;
+                await using (var conn = _db.Database.GetDbConnection())
+                {
+                    await conn.OpenAsync(ct);
+                    await using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ContractItems'";
+                    var scalar = await cmd.ExecuteScalarAsync(ct);
+                    hasItems = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+                }
+                if (!hasItems)
+                {
+                    var sqlI = @"CREATE TABLE ContractItems (
+  Id INTEGER NOT NULL CONSTRAINT PK_ContractItems PRIMARY KEY AUTOINCREMENT,
+  ContractId INTEGER NOT NULL,
+  ProductId INTEGER NULL,
+  Name TEXT NOT NULL,
+  Unit TEXT NOT NULL,
+  Qty DECIMAL(18,3) NOT NULL,
+  UnitPrice DECIMAL(18,2) NOT NULL,
+  CONSTRAINT FK_ContractItems_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES Contracts (Id) ON DELETE CASCADE
+);";
+                    await _db.Database.ExecuteSqlRawAsync(sqlI);
+                }
+            }
+        }
+        catch
+        {
+            // swallow: controller actions will still try/catch as needed
+        }
+    }
+
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<ContractDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List([FromQuery] string? status, CancellationToken ct)
     {
+        await EnsureSchemaAsync(ct);
         var q = _db.Contracts.AsNoTracking().Include(c => c.Items).AsQueryable();
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ContractStatus>(status, true, out var st))
             q = q.Where(c => c.Status == st);
@@ -50,6 +165,7 @@ public class ContractsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById([FromRoute] int id, CancellationToken ct)
     {
+        await EnsureSchemaAsync(ct);
         var c = await _db.Contracts.AsNoTracking().Include(x => x.Items).FirstOrDefaultAsync(x => x.Id == id, ct);
         if (c is null) return NotFound();
         var dto = new ContractDto
@@ -77,6 +193,7 @@ public class ContractsController : ControllerBase
     [ProducesResponseType(typeof(ContractDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] ContractCreateDto dto, CancellationToken ct)
     {
+        await EnsureSchemaAsync(ct);
         if (string.IsNullOrWhiteSpace(dto.OrgName))
             return ValidationProblem(detail: "OrgName is required");
 
@@ -109,6 +226,7 @@ public class ContractsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateStatus([FromRoute] int id, [FromBody] ContractUpdateStatusDto dto, CancellationToken ct)
     {
+        await EnsureSchemaAsync(ct);
         var c = await _db.Contracts.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (c is null) return NotFound();
         if (!Enum.TryParse<ContractStatus>(dto.Status, true, out var st))
@@ -116,5 +234,120 @@ public class ContractsController : ControllerBase
         c.Status = st;
         await _db.SaveChangesAsync(ct);
         return NoContent();
+    }
+
+    [HttpPost("ensure-schema")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> EnsureSchema(CancellationToken ct)
+    {
+        try
+        {
+            var provider = _db.Database.ProviderName ?? string.Empty;
+            bool beforeContracts = false, beforeItems = false, createdContracts = false, createdItems = false;
+
+            if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+            {
+                await using (var conn = _db.Database.GetDbConnection())
+                {
+                    await conn.OpenAsync(ct);
+                    await using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Contracts'";
+                    var s = await cmd.ExecuteScalarAsync(ct);
+                    beforeContracts = s != null && s != DBNull.Value && Convert.ToInt64(s) > 0;
+                }
+                if (!beforeContracts)
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE `Contracts` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `OrgName` VARCHAR(256) NOT NULL,
+  `Inn` VARCHAR(32) NULL,
+  `Phone` VARCHAR(32) NULL,
+  `Status` INT NOT NULL,
+  `CreatedAt` DATETIME(6) NOT NULL,
+  `Note` VARCHAR(1024) NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+                    createdContracts = true;
+                }
+
+                await using (var conn2 = _db.Database.GetDbConnection())
+                {
+                    await conn2.OpenAsync(ct);
+                    await using var cmd2 = conn2.CreateCommand();
+                    cmd2.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ContractItems'";
+                    var s2 = await cmd2.ExecuteScalarAsync(ct);
+                    beforeItems = s2 != null && s2 != DBNull.Value && Convert.ToInt64(s2) > 0;
+                }
+                if (!beforeItems)
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE `ContractItems` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `ContractId` INT NOT NULL,
+  `ProductId` INT NULL,
+  `Name` VARCHAR(256) NOT NULL,
+  `Unit` VARCHAR(16) NOT NULL,
+  `Qty` DECIMAL(18,3) NOT NULL,
+  `UnitPrice` DECIMAL(18,2) NOT NULL,
+  PRIMARY KEY (`Id`),
+  INDEX `IX_ContractItems_ContractId` (`ContractId` ASC),
+  CONSTRAINT `FK_ContractItems_Contracts_ContractId` FOREIGN KEY (`ContractId`) REFERENCES `Contracts` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+                    createdItems = true;
+                }
+            }
+            else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+            {
+                await using (var conn = _db.Database.GetDbConnection())
+                {
+                    await conn.OpenAsync(ct);
+                    await using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Contracts'";
+                    var s = await cmd.ExecuteScalarAsync(ct);
+                    beforeContracts = s != null && s != DBNull.Value && Convert.ToInt64(s) > 0;
+                }
+                if (!beforeContracts)
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE Contracts (
+  Id INTEGER NOT NULL CONSTRAINT PK_Contracts PRIMARY KEY AUTOINCREMENT,
+  OrgName TEXT NOT NULL,
+  Inn TEXT NULL,
+  Phone TEXT NULL,
+  Status INTEGER NOT NULL,
+  CreatedAt TEXT NOT NULL,
+  Note TEXT NULL
+);");
+                    createdContracts = true;
+                }
+
+                await using (var conn2 = _db.Database.GetDbConnection())
+                {
+                    await conn2.OpenAsync(ct);
+                    await using var cmd2 = conn2.CreateCommand();
+                    cmd2.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ContractItems'";
+                    var s2 = await cmd2.ExecuteScalarAsync(ct);
+                    beforeItems = s2 != null && s2 != DBNull.Value && Convert.ToInt64(s2) > 0;
+                }
+                if (!beforeItems)
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE ContractItems (
+  Id INTEGER NOT NULL CONSTRAINT PK_ContractItems PRIMARY KEY AUTOINCREMENT,
+  ContractId INTEGER NOT NULL,
+  ProductId INTEGER NULL,
+  Name TEXT NOT NULL,
+  Unit TEXT NOT NULL,
+  Qty DECIMAL(18,3) NOT NULL,
+  UnitPrice DECIMAL(18,2) NOT NULL,
+  CONSTRAINT FK_ContractItems_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES Contracts (Id) ON DELETE CASCADE
+);");
+                    createdItems = true;
+                }
+            }
+
+            return Ok(new { provider, beforeContracts, beforeItems, createdContracts, createdItems });
+        }
+        catch (Exception ex)
+        {
+            return Problem(detail: ex.Message);
+        }
     }
 }
