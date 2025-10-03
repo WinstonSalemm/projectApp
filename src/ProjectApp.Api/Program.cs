@@ -380,6 +380,51 @@ await using (var scope = app.Services.CreateAsyncScope())
                 await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Batches` ADD COLUMN `Code` VARCHAR(128) NULL;");
             }
 
+            // Ensure Batches.UnitCost exists
+            var bUnitCostExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Batches' AND COLUMN_NAME = 'UnitCost'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                bUnitCostExists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!bUnitCostExists)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Batches` ADD COLUMN `UnitCost` DECIMAL(18,2) NOT NULL DEFAULT 0;");
+            }
+
+            // Ensure Batches.CreatedAt exists
+            var bCreatedAtExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Batches' AND COLUMN_NAME = 'CreatedAt'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                bCreatedAtExists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!bCreatedAtExists)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Batches` ADD COLUMN `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP;");
+            }
+
+            // Ensure Batches.Note exists
+            var bNoteExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Batches' AND COLUMN_NAME = 'Note'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                bNoteExists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!bNoteExists)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Batches` ADD COLUMN `Note` TEXT NULL;");
+            }
+
             // Ensure Products.Category exists
             var prodCatExists = false;
             using (var conn = db.Database.GetDbConnection())
@@ -437,6 +482,63 @@ await using (var scope = app.Services.CreateAsyncScope())
             if (!hasCode)
             {
                 await db.Database.ExecuteSqlRawAsync("ALTER TABLE Batches ADD COLUMN Code TEXT NULL;");
+            }
+
+            // Ensure Batches.UnitCost exists
+            var hasBUnitCost = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info('Batches');";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "UnitCost", StringComparison.OrdinalIgnoreCase)) { hasBUnitCost = true; break; }
+                }
+            }
+            if (!hasBUnitCost)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Batches ADD COLUMN UnitCost DECIMAL(18,2) NOT NULL DEFAULT 0;");
+            }
+
+            // Ensure Batches.CreatedAt exists
+            var hasBCreatedAt = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info('Batches');";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "CreatedAt", StringComparison.OrdinalIgnoreCase)) { hasBCreatedAt = true; break; }
+                }
+            }
+            if (!hasBCreatedAt)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Batches ADD COLUMN CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP;");
+            }
+
+            // Ensure Batches.Note exists
+            var hasBNote = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info('Batches');";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "Note", StringComparison.OrdinalIgnoreCase)) { hasBNote = true; break; }
+                }
+            }
+            if (!hasBNote)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Batches ADD COLUMN Note TEXT NULL;");
             }
 
             // Ensure Products.Category exists
