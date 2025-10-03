@@ -79,4 +79,59 @@ public class ProductsController : ControllerBase
         var result = new ProductDto { Id = p.Id, Name = p.Name, Sku = p.Sku, UnitPrice = p.Price, Category = p.Category };
         return Created($"/api/products/{p.Id}", result);
     }
+
+    [HttpPost("seed-standard")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> SeedStandard(CancellationToken ct)
+    {
+        var items = new (string Category, string Sku, string Name)[]
+        {
+            ("Огнетушители ПОРОШКОВЫЕ", "ОП-2", "ОП-2"),
+            ("Огнетушители ПОРОШКОВЫЕ", "ОП-3", "ОП-3"),
+            ("Огнетушители ПОРОШКОВЫЕ", "ОП-4", "ОП-4"),
+
+            ("Огнетушители УГЛЕКИСЛОТНЫЕ", "ОУ-2", "ОУ-2"),
+            ("Огнетушители УГЛЕКИСЛОТНЫЕ", "ОУ-3", "ОУ-3"),
+            ("Огнетушители УГЛЕКИСЛОТНЫЕ", "ОУ-4", "ОУ-4"),
+
+            ("рукава", "РУКАВ 51-8", "РУКАВ 51-8"),
+            ("рукава", "РУКАВ 51-10", "РУКАВ 51-10"),
+            ("рукава", "РУКАВ 65-8", "РУКАВ 65-8"),
+            ("рукава", "РУКАВ 65-10", "РУКАВ 65-10"),
+            ("рукава", "РУКАВ 80-8бар", "РУКАВ 80-8бар"),
+
+            ("кронштейны", "кронштейн МИГ", "кронштейн МИГ"),
+            ("кронштейны", "кронштейн универсальный", "кронштейн универсальный"),
+
+            ("подставки", "подставка п-15", "подставка п-15"),
+            ("подставки", "подставка п-20", "подставка п-20"),
+            ("подставки", "подставка п-25", "подставка п-25"),
+
+            ("датчики", "ипр-513", "ипр-513"),
+            ("датчики", "ипр-503", "ипр-503"),
+            ("датчики", "glasstreck", "glasstreck"),
+
+            ("шкафы", "шпк-15", "шпк-15"),
+            ("шкафы", "шпк-20", "шпк-20"),
+            ("шкафы", "шпк-25", "шпк-25"),
+        };
+
+        var existingSkus = await _db.Products.AsNoTracking().Select(p => p.Sku).ToListAsync(ct);
+        var toAdd = items.Where(i => !existingSkus.Contains(i.Sku)).ToList();
+        foreach (var i in toAdd)
+        {
+            _db.Products.Add(new Product
+            {
+                Sku = i.Sku,
+                Name = i.Name,
+                Unit = "шт",
+                Price = 0m,
+                Category = i.Category
+            });
+        }
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new { added = toAdd.Count, total = items.Length });
+    }
 }
