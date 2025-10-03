@@ -443,6 +443,57 @@ await using (var scope = app.Services.CreateAsyncScope())
             {
                 await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Products` ADD COLUMN `Category` VARCHAR(128) NOT NULL DEFAULT '';");
             }
+
+            // Ensure Contracts table exists (MySQL)
+            var contractsExists = false;
+            using (var conn5 = db.Database.GetDbConnection())
+            {
+                await conn5.OpenAsync();
+                await using var cmd5 = conn5.CreateCommand();
+                cmd5.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Contracts'";
+                var scalar5 = await cmd5.ExecuteScalarAsync();
+                contractsExists = scalar5 != null && scalar5 != DBNull.Value && Convert.ToInt64(scalar5) > 0;
+            }
+            if (!contractsExists)
+            {
+                var sql5 = @"CREATE TABLE `Contracts` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `OrgName` VARCHAR(256) NOT NULL,
+  `Inn` VARCHAR(32) NULL,
+  `Phone` VARCHAR(32) NULL,
+  `Status` INT NOT NULL,
+  `CreatedAt` DATETIME(6) NOT NULL,
+  `Note` VARCHAR(1024) NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                await db.Database.ExecuteSqlRawAsync(sql5);
+            }
+
+            var contractItemsExists = false;
+            using (var conn6 = db.Database.GetDbConnection())
+            {
+                await conn6.OpenAsync();
+                await using var cmd6 = conn6.CreateCommand();
+                cmd6.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ContractItems'";
+                var scalar6 = await cmd6.ExecuteScalarAsync();
+                contractItemsExists = scalar6 != null && scalar6 != DBNull.Value && Convert.ToInt64(scalar6) > 0;
+            }
+            if (!contractItemsExists)
+            {
+                var sql6 = @"CREATE TABLE `ContractItems` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `ContractId` INT NOT NULL,
+  `ProductId` INT NULL,
+  `Name` VARCHAR(256) NOT NULL,
+  `Unit` VARCHAR(16) NOT NULL,
+  `Qty` DECIMAL(18,3) NOT NULL,
+  `UnitPrice` DECIMAL(18,2) NOT NULL,
+  PRIMARY KEY (`Id`),
+  INDEX `IX_ContractItems_ContractId` (`ContractId` ASC),
+  CONSTRAINT `FK_ContractItems_Contracts_ContractId` FOREIGN KEY (`ContractId`) REFERENCES `Contracts` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                await db.Database.ExecuteSqlRawAsync(sql6);
+            }
         }
         else if (provider2.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
@@ -558,6 +609,54 @@ await using (var scope = app.Services.CreateAsyncScope())
             if (!hasProdCat)
             {
                 await db.Database.ExecuteSqlRawAsync("ALTER TABLE Products ADD COLUMN Category TEXT NOT NULL DEFAULT '';");
+            }
+
+            // Ensure Contracts table exists (SQLite)
+            var hasContracts = false;
+            using (var conn7 = db.Database.GetDbConnection())
+            {
+                await conn7.OpenAsync();
+                await using var cmd7 = conn7.CreateCommand();
+                cmd7.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Contracts'";
+                var scalar7 = await cmd7.ExecuteScalarAsync();
+                hasContracts = scalar7 != null && scalar7 != DBNull.Value && Convert.ToInt64(scalar7) > 0;
+            }
+            if (!hasContracts)
+            {
+                var sql7 = @"CREATE TABLE Contracts (
+  Id INTEGER NOT NULL CONSTRAINT PK_Contracts PRIMARY KEY AUTOINCREMENT,
+  OrgName TEXT NOT NULL,
+  Inn TEXT NULL,
+  Phone TEXT NULL,
+  Status INTEGER NOT NULL,
+  CreatedAt TEXT NOT NULL,
+  Note TEXT NULL
+);";
+                await db.Database.ExecuteSqlRawAsync(sql7);
+            }
+
+            var hasContractItems = false;
+            using (var conn8 = db.Database.GetDbConnection())
+            {
+                await conn8.OpenAsync();
+                await using var cmd8 = conn8.CreateCommand();
+                cmd8.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ContractItems'";
+                var scalar8 = await cmd8.ExecuteScalarAsync();
+                hasContractItems = scalar8 != null && scalar8 != DBNull.Value && Convert.ToInt64(scalar8) > 0;
+            }
+            if (!hasContractItems)
+            {
+                var sql8 = @"CREATE TABLE ContractItems (
+  Id INTEGER NOT NULL CONSTRAINT PK_ContractItems PRIMARY KEY AUTOINCREMENT,
+  ContractId INTEGER NOT NULL,
+  ProductId INTEGER NULL,
+  Name TEXT NOT NULL,
+  Unit TEXT NOT NULL,
+  Qty DECIMAL(18,3) NOT NULL,
+  UnitPrice DECIMAL(18,2) NOT NULL,
+  CONSTRAINT FK_ContractItems_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES Contracts (Id) ON DELETE CASCADE
+);";
+                await db.Database.ExecuteSqlRawAsync(sql8);
             }
         }
     }

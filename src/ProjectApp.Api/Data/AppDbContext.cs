@@ -17,6 +17,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Batch> Batches => Set<Batch>();
     public DbSet<User> Users => Set<User>();
     public DbSet<ManagerStat> ManagerStats => Set<ManagerStat>();
+    public DbSet<Contract> Contracts => Set<Contract>();
+    public DbSet<ContractItem> ContractItems => Set<ContractItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -172,6 +174,30 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(m => m.UserName).HasMaxLength(64);
             b.Property(m => m.SalesCount);
             b.Property(m => m.Turnover).HasColumnType("decimal(18,2)");
+        });
+
+        // Contracts
+        modelBuilder.Entity<Contract>(b =>
+        {
+            b.HasKey(c => c.Id);
+            b.Property(c => c.OrgName).IsRequired().HasMaxLength(256);
+            b.Property(c => c.Inn).HasMaxLength(32);
+            b.Property(c => c.Phone).HasMaxLength(32);
+            b.Property(c => c.Status).IsRequired();
+            b.Property(c => c.CreatedAt).IsRequired();
+            b.Property(c => c.Note).HasMaxLength(1024);
+        });
+        modelBuilder.Entity<ContractItem>(b =>
+        {
+            b.HasKey(i => i.Id);
+            b.Property(i => i.Name).HasMaxLength(256);
+            b.Property(i => i.Unit).HasMaxLength(16);
+            b.Property(i => i.Qty).HasColumnType("decimal(18,3)");
+            b.Property(i => i.UnitPrice).HasColumnType("decimal(18,2)");
+            b.HasOne<Contract>()
+             .WithMany(c => c.Items)
+             .HasForeignKey(i => i.ContractId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
