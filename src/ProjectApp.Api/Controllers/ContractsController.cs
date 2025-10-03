@@ -21,20 +21,11 @@ public class ContractsController : ControllerBase
         try
         {
             var provider = _db.Database.ProviderName ?? string.Empty;
+
             if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
             {
-                var hasContracts = false;
-                await using (var conn = _db.Database.GetDbConnection())
-                {
-                    await conn.OpenAsync(ct);
-                    await using var cmd = conn.CreateCommand();
-                    cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Contracts'";
-                    var scalar = await cmd.ExecuteScalarAsync(ct);
-                    hasContracts = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
-                }
-                if (!hasContracts)
-                {
-                    var sqlC = @"CREATE TABLE `Contracts` (
+                // MySQL: create tables idempotently
+                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS `Contracts` (
   `Id` INT NOT NULL AUTO_INCREMENT,
   `OrgName` VARCHAR(256) NOT NULL,
   `Inn` VARCHAR(32) NULL,
@@ -43,22 +34,9 @@ public class ContractsController : ControllerBase
   `CreatedAt` DATETIME(6) NOT NULL,
   `Note` VARCHAR(1024) NULL,
   PRIMARY KEY (`Id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-                    await _db.Database.ExecuteSqlRawAsync(sqlC);
-                }
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", ct);
 
-                var hasItems = false;
-                await using (var conn = _db.Database.GetDbConnection())
-                {
-                    await conn.OpenAsync(ct);
-                    await using var cmd = conn.CreateCommand();
-                    cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ContractItems'";
-                    var scalar = await cmd.ExecuteScalarAsync(ct);
-                    hasItems = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
-                }
-                if (!hasItems)
-                {
-                    var sqlI = @"CREATE TABLE `ContractItems` (
+                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS `ContractItems` (
   `Id` INT NOT NULL AUTO_INCREMENT,
   `ContractId` INT NOT NULL,
   `ProductId` INT NULL,
@@ -69,24 +47,11 @@ public class ContractsController : ControllerBase
   PRIMARY KEY (`Id`),
   INDEX `IX_ContractItems_ContractId` (`ContractId` ASC),
   CONSTRAINT `FK_ContractItems_Contracts_ContractId` FOREIGN KEY (`ContractId`) REFERENCES `Contracts` (`Id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-                    await _db.Database.ExecuteSqlRawAsync(sqlI);
-                }
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", ct);
             }
             else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
             {
-                var hasContracts = false;
-                await using (var conn = _db.Database.GetDbConnection())
-                {
-                    await conn.OpenAsync(ct);
-                    await using var cmd = conn.CreateCommand();
-                    cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Contracts'";
-                    var scalar = await cmd.ExecuteScalarAsync(ct);
-                    hasContracts = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
-                }
-                if (!hasContracts)
-                {
-                    var sqlC = @"CREATE TABLE Contracts (
+                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS Contracts (
   Id INTEGER NOT NULL CONSTRAINT PK_Contracts PRIMARY KEY AUTOINCREMENT,
   OrgName TEXT NOT NULL,
   Inn TEXT NULL,
@@ -94,22 +59,9 @@ public class ContractsController : ControllerBase
   Status INTEGER NOT NULL,
   CreatedAt TEXT NOT NULL,
   Note TEXT NULL
-);";
-                    await _db.Database.ExecuteSqlRawAsync(sqlC);
-                }
+);", ct);
 
-                var hasItems = false;
-                await using (var conn = _db.Database.GetDbConnection())
-                {
-                    await conn.OpenAsync(ct);
-                    await using var cmd = conn.CreateCommand();
-                    cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ContractItems'";
-                    var scalar = await cmd.ExecuteScalarAsync(ct);
-                    hasItems = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
-                }
-                if (!hasItems)
-                {
-                    var sqlI = @"CREATE TABLE ContractItems (
+                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS ContractItems (
   Id INTEGER NOT NULL CONSTRAINT PK_ContractItems PRIMARY KEY AUTOINCREMENT,
   ContractId INTEGER NOT NULL,
   ProductId INTEGER NULL,
@@ -118,9 +70,7 @@ public class ContractsController : ControllerBase
   Qty DECIMAL(18,3) NOT NULL,
   UnitPrice DECIMAL(18,2) NOT NULL,
   CONSTRAINT FK_ContractItems_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES Contracts (Id) ON DELETE CASCADE
-);";
-                    await _db.Database.ExecuteSqlRawAsync(sqlI);
-                }
+);", ct);
             }
         }
         catch
@@ -243,107 +193,8 @@ public class ContractsController : ControllerBase
         try
         {
             var provider = _db.Database.ProviderName ?? string.Empty;
-            bool beforeContracts = false, beforeItems = false, createdContracts = false, createdItems = false;
-
-            if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
-            {
-                await using (var conn = _db.Database.GetDbConnection())
-                {
-                    await conn.OpenAsync(ct);
-                    await using var cmd = conn.CreateCommand();
-                    cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Contracts'";
-                    var s = await cmd.ExecuteScalarAsync(ct);
-                    beforeContracts = s != null && s != DBNull.Value && Convert.ToInt64(s) > 0;
-                }
-                if (!beforeContracts)
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE `Contracts` (
-  `Id` INT NOT NULL AUTO_INCREMENT,
-  `OrgName` VARCHAR(256) NOT NULL,
-  `Inn` VARCHAR(32) NULL,
-  `Phone` VARCHAR(32) NULL,
-  `Status` INT NOT NULL,
-  `CreatedAt` DATETIME(6) NOT NULL,
-  `Note` VARCHAR(1024) NULL,
-  PRIMARY KEY (`Id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
-                    createdContracts = true;
-                }
-
-                await using (var conn2 = _db.Database.GetDbConnection())
-                {
-                    await conn2.OpenAsync(ct);
-                    await using var cmd2 = conn2.CreateCommand();
-                    cmd2.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ContractItems'";
-                    var s2 = await cmd2.ExecuteScalarAsync(ct);
-                    beforeItems = s2 != null && s2 != DBNull.Value && Convert.ToInt64(s2) > 0;
-                }
-                if (!beforeItems)
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE `ContractItems` (
-  `Id` INT NOT NULL AUTO_INCREMENT,
-  `ContractId` INT NOT NULL,
-  `ProductId` INT NULL,
-  `Name` VARCHAR(256) NOT NULL,
-  `Unit` VARCHAR(16) NOT NULL,
-  `Qty` DECIMAL(18,3) NOT NULL,
-  `UnitPrice` DECIMAL(18,2) NOT NULL,
-  PRIMARY KEY (`Id`),
-  INDEX `IX_ContractItems_ContractId` (`ContractId` ASC),
-  CONSTRAINT `FK_ContractItems_Contracts_ContractId` FOREIGN KEY (`ContractId`) REFERENCES `Contracts` (`Id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
-                    createdItems = true;
-                }
-            }
-            else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
-            {
-                await using (var conn = _db.Database.GetDbConnection())
-                {
-                    await conn.OpenAsync(ct);
-                    await using var cmd = conn.CreateCommand();
-                    cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Contracts'";
-                    var s = await cmd.ExecuteScalarAsync(ct);
-                    beforeContracts = s != null && s != DBNull.Value && Convert.ToInt64(s) > 0;
-                }
-                if (!beforeContracts)
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE Contracts (
-  Id INTEGER NOT NULL CONSTRAINT PK_Contracts PRIMARY KEY AUTOINCREMENT,
-  OrgName TEXT NOT NULL,
-  Inn TEXT NULL,
-  Phone TEXT NULL,
-  Status INTEGER NOT NULL,
-  CreatedAt TEXT NOT NULL,
-  Note TEXT NULL
-);");
-                    createdContracts = true;
-                }
-
-                await using (var conn2 = _db.Database.GetDbConnection())
-                {
-                    await conn2.OpenAsync(ct);
-                    await using var cmd2 = conn2.CreateCommand();
-                    cmd2.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ContractItems'";
-                    var s2 = await cmd2.ExecuteScalarAsync(ct);
-                    beforeItems = s2 != null && s2 != DBNull.Value && Convert.ToInt64(s2) > 0;
-                }
-                if (!beforeItems)
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE ContractItems (
-  Id INTEGER NOT NULL CONSTRAINT PK_ContractItems PRIMARY KEY AUTOINCREMENT,
-  ContractId INTEGER NOT NULL,
-  ProductId INTEGER NULL,
-  Name TEXT NOT NULL,
-  Unit TEXT NOT NULL,
-  Qty DECIMAL(18,3) NOT NULL,
-  UnitPrice DECIMAL(18,2) NOT NULL,
-  CONSTRAINT FK_ContractItems_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES Contracts (Id) ON DELETE CASCADE
-);");
-                    createdItems = true;
-                }
-            }
-
-            return Ok(new { provider, beforeContracts, beforeItems, createdContracts, createdItems });
+            await EnsureSchemaAsync(ct);
+            return Ok(new { provider, ensured = true });
         }
         catch (Exception ex)
         {
