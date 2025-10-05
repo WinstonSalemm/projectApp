@@ -50,7 +50,7 @@ public class ApiSalesService : ISalesService
         _auth.ConfigureClient(client);
         var dto = new SaleCreateDto
         {
-            ClientId = null,
+            ClientId = draft.ClientId,
             ClientName = string.IsNullOrWhiteSpace(draft.ClientName) ? "Quick Sale" : draft.ClientName,
             Items = draft.Items.Select(i => new SaleCreateItemDto
             {
@@ -83,5 +83,66 @@ public class ApiSalesService : ISalesService
             try { body = await response.Content.ReadAsStringAsync(ct); } catch { }
             return SalesResult.Fail(string.IsNullOrWhiteSpace(body) ? $"HTTP {(int)response.StatusCode} {response.StatusCode}" : body);
         }
+    }
+
+    // ---- History listing ----
+    public class SaleDto
+    {
+        public int Id { get; set; }
+        public int? ClientId { get; set; }
+        public string ClientName { get; set; } = string.Empty;
+        public string PaymentType { get; set; } = string.Empty;
+        public decimal Total { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string? CreatedBy { get; set; }
+    }
+
+    public async Task<IEnumerable<SaleDto>> GetSalesAsync(DateTime? from = null, DateTime? to = null, string? createdBy = null, string? paymentType = null, int? clientId = null, bool all = false, CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient();
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+
+        var qs = new List<string>();
+        if (from.HasValue) qs.Add($"dateFrom={Uri.EscapeDataString(from.Value.ToString("o"))}");
+        if (to.HasValue) qs.Add($"dateTo={Uri.EscapeDataString(to.Value.ToString("o"))}");
+        if (!string.IsNullOrWhiteSpace(createdBy)) qs.Add($"createdBy={Uri.EscapeDataString(createdBy)}");
+        if (!string.IsNullOrWhiteSpace(paymentType)) qs.Add($"paymentType={Uri.EscapeDataString(paymentType)}");
+        if (clientId.HasValue) qs.Add($"clientId={clientId.Value}");
+        if (all) qs.Add("all=true");
+        var url = "/api/sales" + (qs.Count > 0 ? ("?" + string.Join("&", qs)) : string.Empty);
+        var resp = await client.GetFromJsonAsync<List<SaleDto>>(url, ct);
+        return resp ?? Enumerable.Empty<SaleDto>();
+    }
+
+    // ---- Sale details ----
+    public class SaleItemDetailsDto
+    {
+        public int Id { get; set; }
+        public int ProductId { get; set; }
+        public decimal Qty { get; set; }
+        public decimal UnitPrice { get; set; }
+    }
+    public class SaleDetailsDto
+    {
+        public int Id { get; set; }
+        public int? ClientId { get; set; }
+        public string ClientName { get; set; } = string.Empty;
+        public string PaymentType { get; set; } = string.Empty;
+        public decimal Total { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string? CreatedBy { get; set; }
+        public List<SaleItemDetailsDto> Items { get; set; } = new();
+    }
+
+    public async Task<SaleDetailsDto?> GetSaleByIdAsync(int id, CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient();
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+        var url = $"/api/sales/{id}";
+        return await client.GetFromJsonAsync<SaleDetailsDto>(url, ct);
     }
 }

@@ -1,38 +1,76 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:beh="clr-namespace:ProjectApp.Client.Maui.Behaviors"
              x:Class="ProjectApp.Client.Maui.App">
     <Application.Resources>
       <ResourceDictionary>
-        <!-- Base Styles with AppThemeBinding -->
+        <!-- Pure black background across the app -->
         <Style TargetType="ContentPage">
-          <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#FFFFFF, Dark=#000000}" />
+          <Setter Property="BackgroundColor" Value="#000000" />
         </Style>
+        <!-- Turquoise top bar with black text -->
         <Style TargetType="NavigationPage">
-          <Setter Property="BarBackgroundColor" Value="{AppThemeBinding Light=#660000, Dark=#40E0D0}" />
-          <Setter Property="BarTextColor" Value="{AppThemeBinding Light=#FFFFFF, Dark=#000000}" />
+          <Setter Property="BarBackgroundColor" Value="#40E0D0" />
+          <Setter Property="BarTextColor" Value="#000000" />
         </Style>
+        <!-- Text: white on black -->
         <Style TargetType="Label">
-          <Setter Property="TextColor" Value="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+          <Setter Property="TextColor" Value="#FFFFFF" />
         </Style>
+        <!-- Inputs: dark grey background, white text -->
         <Style TargetType="Entry">
-          <Setter Property="TextColor" Value="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
-          <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light=#808080, Dark=#FFFFFF}" />
-          <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F6F6F6, Dark=#111111}" />
+          <Setter Property="TextColor" Value="#FFFFFF" />
+          <Setter Property="PlaceholderColor" Value="#BBBBBB" />
+          <Setter Property="BackgroundColor" Value="#111111" />
         </Style>
         <Style TargetType="Picker">
-          <Setter Property="TextColor" Value="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
-          <Setter Property="TitleColor" Value="{AppThemeBinding Light=#808080, Dark=#FFFFFF}" />
-          <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F6F6F6, Dark=#111111}" />
+          <Setter Property="TextColor" Value="#FFFFFF" />
+          <Setter Property="TitleColor" Value="#BBBBBB" />
+          <Setter Property="BackgroundColor" Value="#111111" />
         </Style>
         <Style TargetType="Switch">
-          <Setter Property="OnColor" Value="{AppThemeBinding Light=#660000, Dark=#40E0D0}" />
-          <Setter Property="ThumbColor" Value="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+          <Setter Property="OnColor" Value="#40E0D0" />
+          <Setter Property="ThumbColor" Value="#FFFFFF" />
         </Style>
+        <!-- Buttons: outline (black bg, turquoise border/text) -->
         <Style TargetType="Button">
-          <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#660000, Dark=#40E0D0}" />
-          <Setter Property="TextColor" Value="{AppThemeBinding Light=#FFFFFF, Dark=#000000}" />
-          <Setter Property="CornerRadius" Value="8" />
+          <Setter Property="BackgroundColor" Value="#000000" />
+          <Setter Property="TextColor" Value="#40E0D0" />
+          <Setter Property="BorderColor" Value="#40E0D0" />
+          <Setter Property="BorderWidth" Value="2" />
+          <Setter Property="CornerRadius" Value="12" />
+          <Setter Property="Padding" Value="16,10" />
+          <Setter Property="beh:PointerCursor.IsEnabled" Value="True" />
+        </Style>
+        <!-- Cards/frames: dark grey with subtle border -->
+        <Style TargetType="Frame">
+          <Setter Property="BackgroundColor" Value="#111111" />
+          <Setter Property="BorderColor" Value="#2A2A2A" />
+          <Setter Property="HasShadow" Value="False" />
+          <Setter Property="CornerRadius" Value="10" />
+        </Style>
+        <!-- Containers: force black background -->
+        <Style TargetType="ScrollView">
+          <Setter Property="BackgroundColor" Value="#000000" />
+        </Style>
+        <Style TargetType="Grid">
+          <Setter Property="BackgroundColor" Value="#000000" />
+        </Style>
+        <Style TargetType="StackLayout">
+          <Setter Property="BackgroundColor" Value="#000000" />
+        </Style>
+        <Style TargetType="VerticalStackLayout">
+          <Setter Property="BackgroundColor" Value="#000000" />
+        </Style>
+        <Style TargetType="HorizontalStackLayout">
+          <Setter Property="BackgroundColor" Value="#000000" />
+        </Style>
+        <Style TargetType="CollectionView">
+          <Setter Property="BackgroundColor" Value="#000000" />
+        </Style>
+        <Style TargetType="ContentView">
+          <Setter Property="BackgroundColor" Value="#000000" />
         </Style>
       </ResourceDictionary>
     </Application.Resources>

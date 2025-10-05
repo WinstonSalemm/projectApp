@@ -12,32 +12,26 @@
 
       <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="16">
         <!-- 6 менеджеров -->
-        <Button Text="Лилия" Grid.Row="0" Grid.Column="0" StyleClass="BigUserButton" Command="{Binding LoginManagerCommand}" CommandParameter="liliya" />
-        <Button Text="Тимур"  Grid.Row="0" Grid.Column="1" StyleClass="BigUserButton" Command="{Binding LoginManagerCommand}" CommandParameter="timur" />
+        <Button Text="Лилия" Grid.Row="0" Grid.Column="0" Command="{Binding LoginManagerCommand}" CommandParameter="liliya" HeightRequest="64" FontSize="18" />
+        <Button Text="Тимур"  Grid.Row="0" Grid.Column="1" Command="{Binding LoginManagerCommand}" CommandParameter="timur" HeightRequest="64" FontSize="18" />
 
-        <Button Text="Валерий" Grid.Row="1" Grid.Column="0" StyleClass="BigUserButton" Command="{Binding LoginManagerCommand}" CommandParameter="valeriy" />
-        <Button Text="Альберт" Grid.Row="1" Grid.Column="1" StyleClass="BigUserButton" Command="{Binding LoginManagerCommand}" CommandParameter="albert" />
+        <Button Text="Валерий" Grid.Row="1" Grid.Column="0" Command="{Binding LoginManagerCommand}" CommandParameter="valeriy" HeightRequest="64" FontSize="18" />
+        <Button Text="Альберт" Grid.Row="1" Grid.Column="1" Command="{Binding LoginManagerCommand}" CommandParameter="albert" HeightRequest="64" FontSize="18" />
 
-        <Button Text="Расим" Grid.Row="2" Grid.Column="0" StyleClass="BigUserButton" Command="{Binding LoginManagerCommand}" CommandParameter="rasim" />
-        <Button Text="Алишер" Grid.Row="2" Grid.Column="1" StyleClass="BigUserButton" Command="{Binding LoginManagerCommand}" CommandParameter="alisher" />
+        <Button Text="Расим" Grid.Row="2" Grid.Column="0" Command="{Binding LoginManagerCommand}" CommandParameter="rasim" HeightRequest="64" FontSize="18" />
+        <Button Text="Алишер" Grid.Row="2" Grid.Column="1" Command="{Binding LoginManagerCommand}" CommandParameter="alisher" HeightRequest="64" FontSize="18" />
 
         <!-- Магазин и Админ (увеличенные кнопки) -->
         <Button Text="МАГАЗИН"
                 Grid.Row="3" Grid.Column="0"
                 Command="{Binding LoginShopCommand}"
-                HeightRequest="72"
-                FontSize="20"
-                BackgroundColor="#2E7D32"
-                TextColor="White"
-                CornerRadius="10"/>
+                HeightRequest="84"
+                FontSize="22" />
         <Button Text="АДМИН"
                 Grid.Row="3" Grid.Column="1"
                 Command="{Binding LoginAdminCommand}"
-                HeightRequest="72"
-                FontSize="20"
-                BackgroundColor="#1565C0"
-                TextColor="White"
-                CornerRadius="10"/>
+                HeightRequest="84"
+                FontSize="22" />
       </Grid>
     </VerticalStackLayout>
   </ScrollView>

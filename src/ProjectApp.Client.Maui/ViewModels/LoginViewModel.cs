@@ -37,12 +37,16 @@ public partial class LoginViewModel : ObservableObject
             await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось войти", "OK");
             return;
         }
-        // После логина — на главную страницу
-        var qs = _services.GetRequiredService<ProjectApp.Client.Maui.Views.QuickSalePage>();
-        await Application.Current!.MainPage!.Navigation.PushAsync(qs);
-        // Уберём страницу логина из стека
-        var nav = Application.Current!.MainPage!.Navigation;
-        if (nav.NavigationStack.Count > 1)
-            nav.RemovePage(nav.NavigationStack[nav.NavigationStack.Count - 2]);
+        // Роутинг по роли
+        if (string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            var admin = _services.GetRequiredService<ProjectApp.Client.Maui.Views.AdminDashboardPage>();
+            Application.Current!.MainPage = new NavigationPage(admin);
+        }
+        else
+        {
+            var pay = _services.GetRequiredService<ProjectApp.Client.Maui.Views.PaymentSelectPage>();
+            Application.Current!.MainPage = new NavigationPage(pay);
+        }
     }
 }

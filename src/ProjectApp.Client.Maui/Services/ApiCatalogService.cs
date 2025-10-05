@@ -23,15 +23,23 @@ public class ApiCatalogService : ICatalogService
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
 
+        // Treat placeholder as no filter
+        var categoryRaw = string.Equals(category, "(Без категории)", StringComparison.Ordinal) ? null : category;
         var q = string.IsNullOrWhiteSpace(query) ? null : Uri.EscapeDataString(query);
-        var cat = string.IsNullOrWhiteSpace(category) ? null : Uri.EscapeDataString(category);
+        var cat = string.IsNullOrWhiteSpace(categoryRaw) ? null : Uri.EscapeDataString(categoryRaw);
         var parts = new List<string> { "page=1", "size=50" };
         if (!string.IsNullOrEmpty(q)) parts.Add($"query={q}");
         if (!string.IsNullOrEmpty(cat)) parts.Add($"category={cat}");
         var url = "/api/products?" + string.Join("&", parts);
 
         var result = await client.GetFromJsonAsync<PagedResultDto<ProductDto>>(url, ct);
-        var items = result?.Items?.Select(p => new ProductModel
+        var list = result?.Items ?? new List<ProductDto>();
+        // Fallback client-side filter if server ignored category
+        if (!string.IsNullOrWhiteSpace(categoryRaw))
+        {
+            list = list.Where(p => string.Equals(p.Category ?? string.Empty, categoryRaw, StringComparison.Ordinal)).ToList();
+        }
+        var items = list.Select(p => new ProductModel
         {
             Id = p.Id,
             Name = p.Name,
@@ -39,7 +47,7 @@ public class ApiCatalogService : ICatalogService
             Unit = string.Empty,
             Price = p.UnitPrice,
             Category = p.Category ?? string.Empty
-        }) ?? Enumerable.Empty<ProductModel>();
+        });
         return items;
     }
 
@@ -51,6 +59,27 @@ public class ApiCatalogService : ICatalogService
         _auth.ConfigureClient(client);
         var list = await client.GetFromJsonAsync<List<string>>("/api/products/categories", ct);
         return list ?? Enumerable.Empty<string>();
+    }
+
+    private class ProductBrief
+    {
+        public int Id { get; set; }
+        public string Sku { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public async Task<Dictionary<int, (string Sku, string Name)>> LookupAsync(IEnumerable<int> ids, CancellationToken ct = default)
+    {
+        var listIds = ids.Distinct().ToList();
+        if (listIds.Count == 0) return new Dictionary<int, (string, string)>();
+        var client = _httpClientFactory.CreateClient();
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+        var qs = string.Join(',', listIds);
+        var url = $"/api/products/lookup?ids={Uri.EscapeDataString(qs)}";
+        var list = await client.GetFromJsonAsync<List<ProductBrief>>(url, ct) ?? new List<ProductBrief>();
+        return list.ToDictionary(p => p.Id, p => (p.Sku, p.Name));
     }
 
     private class PagedResultDto<T>

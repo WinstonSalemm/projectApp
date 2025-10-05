@@ -35,6 +35,8 @@ public class EfSaleRepository : ISaleRepository
         }
         else
         {
+            // Will collect per-item consumption to persist after items get IDs
+            var consumptionMap = new Dictionary<SaleItem, List<(int batchId, StockRegister reg, decimal qty)>>();
             // Check and deduct stocks and FIFO batches; compute COGS per item
             foreach (var it in sale.Items)
             {
@@ -49,7 +51,10 @@ public class EfSaleRepository : ISaleRepository
                     decimal costNd = 0m;
                     if (takeNd > 0)
                     {
-                        costNd = await DeductFromBatchesAndComputeCostAsync(it.ProductId, StockRegister.ND40, takeNd, ct);
+                        var (avg, cons) = await DeductFromBatchesAndComputeCostWithConsumptionAsync(it.ProductId, StockRegister.ND40, takeNd, ct);
+                        costNd = avg;
+                        if (!consumptionMap.ContainsKey(it)) consumptionMap[it] = new();
+                        consumptionMap[it].AddRange(cons.Select(c => (c.batchId, StockRegister.ND40, c.qty)));
                         stockNd!.Qty -= takeNd;
                     }
 
@@ -69,7 +74,10 @@ public class EfSaleRepository : ISaleRepository
                             throw new InvalidOperationException($"Недостаточно остатков для товара ProductId={it.ProductId} в {StockRegister.IM40}. Доступно={stockIm.Qty}, Требуется={remain}, Не хватает={missingIm}");
                         }
 
-                        costIm = await DeductFromBatchesAndComputeCostAsync(it.ProductId, StockRegister.IM40, remain, ct);
+                        var (avg, cons) = await DeductFromBatchesAndComputeCostWithConsumptionAsync(it.ProductId, StockRegister.IM40, remain, ct);
+                        costIm = avg;
+                        if (!consumptionMap.ContainsKey(it)) consumptionMap[it] = new();
+                        consumptionMap[it].AddRange(cons.Select(c => (c.batchId, StockRegister.IM40, c.qty)));
                         stockIm.Qty -= remain;
                     }
 
@@ -94,15 +102,41 @@ public class EfSaleRepository : ISaleRepository
                         throw new InvalidOperationException($"Недостаточно остатков для товара ProductId={it.ProductId} в {register}. Доступно={stock.Qty}, Требуется={it.Qty}, Не хватает={missing}");
                     }
 
-                    var avgUnitCost = await DeductFromBatchesAndComputeCostAsync(it.ProductId, register, it.Qty, ct);
+                    var (avgUnitCost, cons) = await DeductFromBatchesAndComputeCostWithConsumptionAsync(it.ProductId, register, it.Qty, ct);
+                    if (!consumptionMap.ContainsKey(it)) consumptionMap[it] = new();
+                    consumptionMap[it].AddRange(cons.Select(c => (c.batchId, register, c.qty)));
                     it.Cost = avgUnitCost;
                     stock.Qty = newQty;
                 }
             }
+            // Keep local consumption map to persist after items get IDs
+            // We'll persist right after the first SaveChanges when SaleItems have IDs
+            _pendingConsumptionMap = consumptionMap;
         }
 
         _db.Sales.Add(sale);
         await _db.SaveChangesAsync(ct);
+
+        // Persist per-batch consumption after items have IDs
+        if (sale.PaymentType != PaymentType.Reservation && _pendingConsumptionMap is not null)
+        {
+            foreach (var si in sale.Items)
+            {
+                if (!_pendingConsumptionMap.TryGetValue(si, out var list)) continue;
+                foreach (var e in list)
+                {
+                    _db.SaleItemConsumptions.Add(new SaleItemConsumption
+                    {
+                        SaleItemId = si.Id,
+                        BatchId = e.batchId,
+                        RegisterAtSale = e.reg,
+                        Qty = e.qty
+                    });
+                }
+            }
+            _pendingConsumptionMap = null;
+            await _db.SaveChangesAsync(ct);
+        }
 
         // Update per-manager stats (CreatedBy is username from JWT)
         var managerKey = string.IsNullOrWhiteSpace(sale.CreatedBy) ? "unknown" : sale.CreatedBy!;
@@ -116,6 +150,17 @@ public class EfSaleRepository : ISaleRepository
         {
             stat.SalesCount += 1;
             stat.Turnover += sale.Total;
+        }
+        // Commissionable stats: only if client's OwnerUserName matches sale.CreatedBy
+        if (sale.ClientId.HasValue)
+        {
+            var cli = await _db.Clients.AsNoTracking().FirstOrDefaultAsync(c => c.Id == sale.ClientId.Value, ct);
+            if (cli != null && !string.IsNullOrWhiteSpace(cli.OwnerUserName)
+                && string.Equals(cli.OwnerUserName, managerKey, StringComparison.OrdinalIgnoreCase))
+            {
+                stat.OwnedSalesCount += 1;
+                stat.OwnedTurnover += sale.Total;
+            }
         }
         await _db.SaveChangesAsync(ct);
 
@@ -133,6 +178,22 @@ public class EfSaleRepository : ISaleRepository
             .FirstOrDefaultAsync(s => s.Id == id, ct);
     }
 
+    public async Task<IReadOnlyList<Sale>> QueryAsync(DateTime? dateFrom = null, DateTime? dateTo = null, string? createdBy = null, string? paymentType = null, int? clientId = null, CancellationToken ct = default)
+    {
+        var q = _db.Sales.AsNoTracking().AsQueryable();
+        if (dateFrom.HasValue) q = q.Where(s => s.CreatedAt >= dateFrom.Value);
+        if (dateTo.HasValue) q = q.Where(s => s.CreatedAt < dateTo.Value);
+        if (!string.IsNullOrWhiteSpace(createdBy)) q = q.Where(s => s.CreatedBy == createdBy);
+        if (clientId.HasValue) q = q.Where(s => s.ClientId == clientId.Value);
+        if (!string.IsNullOrWhiteSpace(paymentType))
+        {
+            if (Enum.TryParse<PaymentType>(paymentType, true, out var pt))
+                q = q.Where(s => s.PaymentType == pt);
+        }
+        var list = await q.OrderByDescending(s => s.Id).ToListAsync(ct);
+        return list;
+    }
+
     private static StockRegister MapPaymentToRegister(PaymentType payment)
     {
         return payment switch
@@ -143,10 +204,14 @@ public class EfSaleRepository : ISaleRepository
         };
     }
 
-    private async Task<decimal> DeductFromBatchesAndComputeCostAsync(int productId, StockRegister register, decimal qty, CancellationToken ct)
+    // Local field to keep pending consumption until items get IDs
+    private Dictionary<SaleItem, List<(int batchId, StockRegister reg, decimal qty)>>? _pendingConsumptionMap;
+
+    private async Task<(decimal avgUnitCost, List<(int batchId, decimal qty)> consumption)> DeductFromBatchesAndComputeCostWithConsumptionAsync(int productId, StockRegister register, decimal qty, CancellationToken ct)
     {
         var remain = qty;
         var totalCost = 0m;
+        var consumption = new List<(int batchId, decimal qty)>();
         var batches = await _db.Batches
             .Where(b => b.ProductId == productId && b.Register == register && b.Qty > 0)
             .OrderBy(b => b.CreatedAt).ThenBy(b => b.Id)
@@ -161,6 +226,7 @@ public class EfSaleRepository : ISaleRepository
                 totalCost += take * b.UnitCost;
                 b.Qty -= take;
                 remain -= take;
+                consumption.Add((b.Id, take));
             }
         }
 
@@ -168,6 +234,6 @@ public class EfSaleRepository : ISaleRepository
             throw new InvalidOperationException($"FIFO batches are insufficient for ProductId={productId} in {register}. Missing={remain}");
 
         var avgUnitCost = qty == 0 ? 0 : decimal.Round(totalCost / qty, 2, MidpointRounding.AwayFromZero);
-        return avgUnitCost;
+        return (avgUnitCost, consumption);
     }
 }

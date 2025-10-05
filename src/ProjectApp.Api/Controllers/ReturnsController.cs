@@ -54,48 +54,32 @@ public class ReturnsController : ControllerBase
             if (sale is null)
                 return ValidationProblem(detail: $"Sale not found: {dto.RefSaleId}");
 
-            // Full return (backward compatible behavior)
+            // Full return (restock by original batches)
             if (dto.Items is null || dto.Items.Count == 0)
             {
-                var register = MapPaymentToRegister(sale.PaymentType);
-
-                // Increase stock back for full sale quantities
-                foreach (var it in sale.Items)
-                {
-                    var stock = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == it.ProductId && s.Register == register, ct);
-                    if (stock is null)
-                    {
-                        stock = new Stock { ProductId = it.ProductId, Register = register, Qty = 0m };
-                        _db.Stocks.Add(stock);
-                    }
-                    stock.Qty += it.Qty;
-
-                    // Add batch entry for returned goods (UnitCost=0 by default)
-                    _db.Batches.Add(new Batch
-                    {
-                        ProductId = it.ProductId,
-                        Register = register,
-                        Qty = it.Qty,
-                        UnitCost = 0m,
-                        CreatedAt = DateTime.UtcNow,
-                        Note = $"return full sale #{sale.Id}"
-                    });
-                }
-
+                // Build return with items matching sale items to have ReturnItemIds for audit
                 var retFull = new Return
                 {
                     RefSaleId = sale.Id,
                     ClientId = dto.ClientId ?? sale.ClientId,
                     Sum = sale.Total,
                     CreatedAt = DateTime.UtcNow,
-                    Reason = dto.Reason
+                    Reason = dto.Reason,
+                    Items = sale.Items.Select(si => new ReturnItem
+                    {
+                        SaleItemId = si.Id,
+                        Qty = si.Qty,
+                        UnitPrice = si.UnitPrice
+                    }).ToList()
                 };
-
                 _db.Returns.Add(retFull);
+                await _db.SaveChangesAsync(ct); // need ReturnItemIds
+
+                await RestockFullReturnByBatchesAsync(sale, retFull, ct);
                 await _db.SaveChangesAsync(ct);
 
-                _logger.LogInformation("Return created {ReturnId} for sale {SaleId} client {ClientId} sum {Sum} payment {PaymentType} register {Register}",
-                    retFull.Id, sale.Id, retFull.ClientId, retFull.Sum, sale.PaymentType, register);
+                _logger.LogInformation("Return created {ReturnId} for sale {SaleId} client {ClientId} sum {Sum} payment {PaymentType}",
+                    retFull.Id, sale.Id, retFull.ClientId, retFull.Sum, sale.PaymentType);
                 // notify
                 await _retNotifier.NotifyReturnAsync(retFull, sale, ct);
                 return CreatedAtAction(nameof(GetById), new { id = retFull.Id }, retFull);
@@ -155,23 +139,8 @@ public class ReturnsController : ControllerBase
             };
 
             _db.Returns.Add(retPartial);
-            foreach (var ri in returnItems)
-            {
-                var si = saleItemsMap[ri.SaleItemId];
-                await AdjustStockAsync(si.ProductId, StockRegister.ND40, +ri.Qty, ct);
-
-                // Also add batch for returned qty in ND40
-                _db.Batches.Add(new Batch
-                {
-                    ProductId = si.ProductId,
-                    Register = StockRegister.ND40,
-                    Qty = ri.Qty,
-                    UnitCost = 0m,
-                    CreatedAt = DateTime.UtcNow,
-                    Note = $"partial return saleItem #{si.Id}"
-                });
-            }
-
+            await _db.SaveChangesAsync(ct); // ensure ReturnItemIds
+            await RestockPartialReturnByBatchesAsync(sale, retPartial.Items, ct);
             await _db.SaveChangesAsync(ct);
             // notify
             await _retNotifier.NotifyReturnAsync(retPartial, sale, ct);
@@ -205,6 +174,106 @@ public class ReturnsController : ControllerBase
             _db.Stocks.Add(stock);
         }
         stock.Qty += deltaQty;
+    }
+
+    // Restock for full return: use recorded consumption; fallback to payment register if consumption missing
+    private async Task RestockFullReturnByBatchesAsync(Sale sale, Return ret, CancellationToken ct)
+    {
+        foreach (var ri in ret.Items)
+        {
+            var si = sale.Items.First(s => s.Id == ri.SaleItemId);
+            var consList = await _db.SaleItemConsumptions
+                .Where(c => c.SaleItemId == si.Id)
+                .OrderBy(c => c.Id)
+                .ToListAsync(ct);
+
+            if (consList.Count == 0)
+            {
+                // Fallback: as before
+                var register = MapPaymentToRegister(sale.PaymentType);
+                await AdjustStockAsync(si.ProductId, register, +ri.Qty, ct);
+                var newBatch = new Batch
+                {
+                    ProductId = si.ProductId,
+                    Register = register,
+                    Qty = ri.Qty,
+                    UnitCost = 0m,
+                    CreatedAt = DateTime.UtcNow,
+                    Note = $"return full sale #{sale.Id}"
+                };
+                _db.Batches.Add(newBatch);
+                await _db.SaveChangesAsync(ct);
+                _db.ReturnItemRestocks.Add(new ReturnItemRestock { ReturnItemId = ri.Id, SaleItemId = si.Id, BatchId = newBatch.Id, Qty = ri.Qty });
+                continue;
+            }
+
+            foreach (var c in consList)
+            {
+                // how much already restocked for this saleItem+batch
+                var already = await _db.ReturnItemRestocks
+                    .Where(r => r.SaleItemId == si.Id && r.BatchId == c.BatchId)
+                    .SumAsync(r => (decimal?)r.Qty, ct) ?? 0m;
+                var avail = c.Qty - already;
+                if (avail <= 0) continue;
+                var batch = await _db.Batches.FirstOrDefaultAsync(b => b.Id == c.BatchId, ct);
+                if (batch is null) continue; // batch deleted? skip
+
+                // restore entire avail for full return
+                batch.Qty += avail;
+                await AdjustStockAsync(si.ProductId, batch.Register, +avail, ct);
+                _db.ReturnItemRestocks.Add(new ReturnItemRestock { ReturnItemId = ri.Id, SaleItemId = si.Id, BatchId = batch.Id, Qty = avail });
+            }
+        }
+    }
+
+    // Restock for partial return: distribute across original batches FIFO, fallback if no consumption
+    private async Task RestockPartialReturnByBatchesAsync(Sale sale, List<ReturnItem> items, CancellationToken ct)
+    {
+        foreach (var ri in items)
+        {
+            var si = sale.Items.First(s => s.Id == ri.SaleItemId);
+            var toReturn = ri.Qty;
+            var consList = await _db.SaleItemConsumptions
+                .Where(c => c.SaleItemId == si.Id)
+                .OrderBy(c => c.Id)
+                .ToListAsync(ct);
+
+            foreach (var c in consList)
+            {
+                if (toReturn <= 0) break;
+                var already = await _db.ReturnItemRestocks
+                    .Where(r => r.SaleItemId == si.Id && r.BatchId == c.BatchId)
+                    .SumAsync(r => (decimal?)r.Qty, ct) ?? 0m;
+                var avail = c.Qty - already;
+                if (avail <= 0) continue;
+                var take = Math.Min(avail, toReturn);
+                var batch = await _db.Batches.FirstOrDefaultAsync(b => b.Id == c.BatchId, ct);
+                if (batch is null) continue;
+                batch.Qty += take;
+                await AdjustStockAsync(si.ProductId, batch.Register, +take, ct);
+                _db.ReturnItemRestocks.Add(new ReturnItemRestock { ReturnItemId = ri.Id, SaleItemId = si.Id, BatchId = batch.Id, Qty = take });
+                toReturn -= take;
+            }
+
+            if (toReturn > 0)
+            {
+                // Fallback for remaining: payment register
+                var register = MapPaymentToRegister(sale.PaymentType);
+                await AdjustStockAsync(si.ProductId, register, +toReturn, ct);
+                var newBatch = new Batch
+                {
+                    ProductId = si.ProductId,
+                    Register = register,
+                    Qty = toReturn,
+                    UnitCost = 0m,
+                    CreatedAt = DateTime.UtcNow,
+                    Note = $"partial return saleItem #{si.Id}"
+                };
+                _db.Batches.Add(newBatch);
+                await _db.SaveChangesAsync(ct);
+                _db.ReturnItemRestocks.Add(new ReturnItemRestock { ReturnItemId = ri.Id, SaleItemId = si.Id, BatchId = newBatch.Id, Qty = toReturn });
+            }
+        }
     }
 
     [HttpGet]

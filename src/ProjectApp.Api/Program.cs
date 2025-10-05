@@ -494,6 +494,56 @@ await using (var scope = app.Services.CreateAsyncScope())
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 await db.Database.ExecuteSqlRawAsync(sql6);
             }
+
+            // Ensure SaleItemConsumptions table exists (MySQL)
+            var sicExists = false;
+            using (var conn9 = db.Database.GetDbConnection())
+            {
+                await conn9.OpenAsync();
+                await using var cmd9 = conn9.CreateCommand();
+                cmd9.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'SaleItemConsumptions'";
+                var scalar9 = await cmd9.ExecuteScalarAsync();
+                sicExists = scalar9 != null && scalar9 != DBNull.Value && Convert.ToInt64(scalar9) > 0;
+            }
+            if (!sicExists)
+            {
+                var sql9 = @"CREATE TABLE `SaleItemConsumptions` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `SaleItemId` INT NOT NULL,
+  `BatchId` INT NOT NULL,
+  `RegisterAtSale` INT NOT NULL,
+  `Qty` DECIMAL(18,3) NOT NULL,
+  PRIMARY KEY (`Id`),
+  INDEX `IX_SaleItemConsumptions_SaleItemId` (`SaleItemId` ASC),
+  INDEX `IX_SaleItemConsumptions_BatchId` (`BatchId` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                await db.Database.ExecuteSqlRawAsync(sql9);
+            }
+
+            // Ensure ReturnItemRestocks table exists (MySQL)
+            var rirExists = false;
+            using (var conn10 = db.Database.GetDbConnection())
+            {
+                await conn10.OpenAsync();
+                await using var cmd10 = conn10.CreateCommand();
+                cmd10.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ReturnItemRestocks'";
+                var scalar10 = await cmd10.ExecuteScalarAsync();
+                rirExists = scalar10 != null && scalar10 != DBNull.Value && Convert.ToInt64(scalar10) > 0;
+            }
+            if (!rirExists)
+            {
+                var sql10 = @"CREATE TABLE `ReturnItemRestocks` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `ReturnItemId` INT NOT NULL,
+  `SaleItemId` INT NOT NULL,
+  `BatchId` INT NOT NULL,
+  `Qty` DECIMAL(18,3) NOT NULL,
+  PRIMARY KEY (`Id`),
+  INDEX `IX_ReturnItemRestocks_ReturnItemId` (`ReturnItemId` ASC),
+  INDEX `IX_ReturnItemRestocks_SaleItemId_BatchId` (`SaleItemId` ASC, `BatchId` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                await db.Database.ExecuteSqlRawAsync(sql10);
+            }
         }
         else if (provider2.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
@@ -658,6 +708,50 @@ await using (var scope = app.Services.CreateAsyncScope())
 );";
                 await db.Database.ExecuteSqlRawAsync(sql8);
             }
+
+            // Ensure SaleItemConsumptions table exists (SQLite)
+            var hasSic = false;
+            using (var conn9 = db.Database.GetDbConnection())
+            {
+                await conn9.OpenAsync();
+                await using var cmd9 = conn9.CreateCommand();
+                cmd9.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='SaleItemConsumptions'";
+                var scalar9 = await cmd9.ExecuteScalarAsync();
+                hasSic = scalar9 != null && scalar9 != DBNull.Value && Convert.ToInt64(scalar9) > 0;
+            }
+            if (!hasSic)
+            {
+                var sql9 = @"CREATE TABLE SaleItemConsumptions (
+  Id INTEGER NOT NULL CONSTRAINT PK_SaleItemConsumptions PRIMARY KEY AUTOINCREMENT,
+  SaleItemId INTEGER NOT NULL,
+  BatchId INTEGER NOT NULL,
+  RegisterAtSale INTEGER NOT NULL,
+  Qty DECIMAL(18,3) NOT NULL
+);";
+                await db.Database.ExecuteSqlRawAsync(sql9);
+            }
+
+            // Ensure ReturnItemRestocks table exists (SQLite)
+            var hasRir = false;
+            using (var conn10 = db.Database.GetDbConnection())
+            {
+                await conn10.OpenAsync();
+                await using var cmd10 = conn10.CreateCommand();
+                cmd10.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ReturnItemRestocks'";
+                var scalar10 = await cmd10.ExecuteScalarAsync();
+                hasRir = scalar10 != null && scalar10 != DBNull.Value && Convert.ToInt64(scalar10) > 0;
+            }
+            if (!hasRir)
+            {
+                var sql10 = @"CREATE TABLE ReturnItemRestocks (
+  Id INTEGER NOT NULL CONSTRAINT PK_ReturnItemRestocks PRIMARY KEY AUTOINCREMENT,
+  ReturnItemId INTEGER NOT NULL,
+  SaleItemId INTEGER NOT NULL,
+  BatchId INTEGER NOT NULL,
+  Qty DECIMAL(18,3) NOT NULL
+);";
+                await db.Database.ExecuteSqlRawAsync(sql10);
+            }
         }
     }
     catch
@@ -786,9 +880,31 @@ CREATE UNIQUE INDEX IX_Users_UserName ON Users(UserName);";
   `UserName` VARCHAR(64) NOT NULL,
   `SalesCount` INT NOT NULL,
   `Turnover` DECIMAL(18,2) NOT NULL,
+  `OwnedSalesCount` INT NOT NULL,
+  `OwnedTurnover` DECIMAL(18,2) NOT NULL,
   PRIMARY KEY (`UserName`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;";
                 await db.Database.ExecuteSqlRawAsync(sql);
+            }
+            else
+            {
+                // Patch: add owned columns if missing
+                bool hasOwnedSales = false, hasOwnedTurnover = false;
+                using (var conn = db.Database.GetDbConnection())
+                {
+                    await conn.OpenAsync();
+                    await using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ManagerStats'";
+                    var cols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    await using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync()) cols.Add(reader.GetString(0));
+                    hasOwnedSales = cols.Contains("OwnedSalesCount");
+                    hasOwnedTurnover = cols.Contains("OwnedTurnover");
+                }
+                if (!hasOwnedSales)
+                    await db.Database.ExecuteSqlRawAsync("ALTER TABLE `ManagerStats` ADD COLUMN `OwnedSalesCount` INT NOT NULL DEFAULT 0;");
+                if (!hasOwnedTurnover)
+                    await db.Database.ExecuteSqlRawAsync("ALTER TABLE `ManagerStats` ADD COLUMN `OwnedTurnover` DECIMAL(18,2) NOT NULL DEFAULT 0;");
             }
         }
         else if (provider4.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
@@ -807,10 +923,87 @@ CREATE UNIQUE INDEX IX_Users_UserName ON Users(UserName);";
                 var sql = @"CREATE TABLE ManagerStats (
   UserName TEXT NOT NULL CONSTRAINT PK_ManagerStats PRIMARY KEY,
   SalesCount INTEGER NOT NULL,
-  Turnover DECIMAL(18,2) NOT NULL
+  Turnover DECIMAL(18,2) NOT NULL,
+  OwnedSalesCount INTEGER NOT NULL,
+  OwnedTurnover DECIMAL(18,2) NOT NULL
 );";
                 await db.Database.ExecuteSqlRawAsync(sql);
             }
+            else
+            {
+                // Patch: add owned columns if missing
+                bool hasOwnedSales = false, hasOwnedTurnover = false;
+                using (var conn = db.Database.GetDbConnection())
+                {
+                    await conn.OpenAsync();
+                    await using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "PRAGMA table_info('ManagerStats');";
+                    await using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        var name = reader.GetString(1);
+                        if (string.Equals(name, "OwnedSalesCount", StringComparison.OrdinalIgnoreCase)) hasOwnedSales = true;
+                        if (string.Equals(name, "OwnedTurnover", StringComparison.OrdinalIgnoreCase)) hasOwnedTurnover = true;
+                    }
+                }
+                if (!hasOwnedSales)
+                    await db.Database.ExecuteSqlRawAsync("ALTER TABLE ManagerStats ADD COLUMN OwnedSalesCount INTEGER NOT NULL DEFAULT 0;");
+                if (!hasOwnedTurnover)
+                    await db.Database.ExecuteSqlRawAsync("ALTER TABLE ManagerStats ADD COLUMN OwnedTurnover DECIMAL(18,2) NOT NULL DEFAULT 0;");
+            }
+        }
+    }
+    catch { }
+
+    // 1.2.2) Ensure Clients table has Type, OwnerUserName, CreatedAt
+    try
+    {
+        var provider5 = db.Database.ProviderName ?? string.Empty;
+        if (provider5.Contains("MySql", StringComparison.OrdinalIgnoreCase))
+        {
+            bool hasType = false, hasOwner = false, hasCreatedAt = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Clients'";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                var cols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                while (await reader.ReadAsync()) cols.Add(reader.GetString(0));
+                hasType = cols.Contains("Type");
+                hasOwner = cols.Contains("OwnerUserName");
+                hasCreatedAt = cols.Contains("CreatedAt");
+            }
+            if (!hasType)
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Clients` ADD COLUMN `Type` INT NOT NULL DEFAULT 1;");
+            if (!hasOwner)
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Clients` ADD COLUMN `OwnerUserName` VARCHAR(64) NULL;");
+            if (!hasCreatedAt)
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Clients` ADD COLUMN `CreatedAt` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP;");
+        }
+        else if (provider5.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            bool hasType = false, hasOwner = false, hasCreatedAt = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info('Clients');";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "Type", StringComparison.OrdinalIgnoreCase)) hasType = true;
+                    if (string.Equals(name, "OwnerUserName", StringComparison.OrdinalIgnoreCase)) hasOwner = true;
+                    if (string.Equals(name, "CreatedAt", StringComparison.OrdinalIgnoreCase)) hasCreatedAt = true;
+                }
+            }
+            if (!hasType)
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Clients ADD COLUMN Type INTEGER NOT NULL DEFAULT 1;");
+            if (!hasOwner)
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Clients ADD COLUMN OwnerUserName TEXT NULL;");
+            if (!hasCreatedAt)
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Clients ADD COLUMN CreatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP;");
         }
     }
     catch { }

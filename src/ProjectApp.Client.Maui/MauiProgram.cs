@@ -25,6 +25,19 @@ public static class MauiProgram
                 // Add fonts if needed
             });
 
+#if WINDOWS
+        // Hand cursor on hover for ALL buttons
+        Microsoft.Maui.Handlers.ButtonHandler.Mapper.AppendToMapping("HoverCursor", (handler, view) =>
+        {
+            if (handler.PlatformView is Microsoft.UI.Xaml.FrameworkElement fe)
+            {
+                fe.PointerEntered += (s, e) => ApplyHandCursor();
+                fe.PointerMoved  += (s, e) => ApplyHandCursor();
+                fe.PointerExited  += (s, e) => ApplyArrowCursor();
+            }
+        });
+#endif
+
 #if DEBUG
         builder.Logging.AddDebug();
 #endif
@@ -63,12 +76,15 @@ public static class MauiProgram
         builder.Services.AddSingleton<IStocksService>(sp => sp.GetRequiredService<ApiStocksService>());
         builder.Services.AddSingleton<ApiContractsService>();
         builder.Services.AddSingleton<IContractsService>(sp => sp.GetRequiredService<ApiContractsService>());
+        builder.Services.AddSingleton<ApiClientsService>();
         builder.Services.AddSingleton<ISuppliesService>(sp => sp.GetRequiredService<ApiSuppliesService>());
         builder.Services.AddSingleton<IReturnsService>(sp => sp.GetRequiredService<ApiReturnsService>());
 
         // VM and Views
         builder.Services.AddTransient<QuickSaleViewModel>();
         builder.Services.AddTransient<QuickSalePage>();
+        builder.Services.AddTransient<SaleStartViewModel>();
+        builder.Services.AddTransient<SaleStartPage>();
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<PaymentSelectViewModel>();
@@ -91,7 +107,43 @@ public static class MauiProgram
         builder.Services.AddTransient<ContractEditPage>();
         builder.Services.AddTransient<ProductSelectViewModel>();
         builder.Services.AddTransient<ProductSelectPage>();
+        builder.Services.AddTransient<AdminDashboardViewModel>();
+        builder.Services.AddTransient<AdminDashboardPage>();
+        builder.Services.AddTransient<SalesHistoryViewModel>();
+        builder.Services.AddTransient<SalesHistoryPage>();
+        builder.Services.AddTransient<ReturnForSaleViewModel>();
+        builder.Services.AddTransient<ReturnForSalePage>();
+        builder.Services.AddTransient<ReturnsHistoryViewModel>();
+        builder.Services.AddTransient<ReturnsHistoryPage>();
+        builder.Services.AddTransient<SuppliesHistoryViewModel>();
+        builder.Services.AddTransient<SuppliesHistoryPage>();
+        builder.Services.AddTransient<ContractsHistoryViewModel>();
+        builder.Services.AddTransient<ContractsHistoryPage>();
+        builder.Services.AddTransient<HistoryTabsPage>();
+        builder.Services.AddTransient<ClientsListViewModel>();
+        builder.Services.AddTransient<ClientsListPage>();
+        builder.Services.AddTransient<ClientCreateViewModel>();
+        builder.Services.AddTransient<ClientCreatePage>();
+        builder.Services.AddTransient<ClientDetailViewModel>();
+        builder.Services.AddTransient<ClientDetailPage>();
+        builder.Services.AddTransient<ClientPickerViewModel>();
+        builder.Services.AddTransient<ClientPickerPage>();
+        builder.Services.AddTransient<ClientEditViewModel>();
+        builder.Services.AddTransient<ClientEditPage>();
+        builder.Services.AddTransient<UnregisteredClientViewModel>();
+        builder.Services.AddTransient<UnregisteredClientPage>();
 
         return builder.Build();
     }
+
+#if WINDOWS
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = false)]
+    private static extern IntPtr LoadCursor(IntPtr hInstance, int lpCursorName);
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = false)]
+    private static extern IntPtr SetCursor(IntPtr hCursor);
+    private const int IDC_ARROW = 32512;
+    private const int IDC_HAND  = 32649;
+    private static void ApplyHandCursor() { try { SetCursor(LoadCursor(IntPtr.Zero, IDC_HAND)); } catch { } }
+    private static void ApplyArrowCursor() { try { SetCursor(LoadCursor(IntPtr.Zero, IDC_ARROW)); } catch { } }
+#endif
 }

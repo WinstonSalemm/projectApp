@@ -35,25 +35,30 @@
 
       <!-- Results & Cart side by side -->
       <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
-        <!-- Search results -->
+        <!-- Search results as cards grid -->
         <VerticalStackLayout Grid.Column="0">
           <Label Text="Результаты" FontAttributes="Bold"/>
           <CollectionView ItemsSource="{Binding SearchResults}" Margin="0,8,0,0">
+            <CollectionView.ItemsLayout>
+              <GridItemsLayout Orientation="Vertical" Span="4" />
+            </CollectionView.ItemsLayout>
             <CollectionView.ItemTemplate>
               <DataTemplate>
-                <Grid ColumnDefinitions="*,Auto" Padding="4">
-                  <VerticalStackLayout Spacing="2">
-                    <Label Text="{Binding Name}" FontAttributes="Bold"/>
-                    <Label Text="{Binding Sku}" FontSize="12" TextColor="Gray"/>
-                    <Label Text="{Binding Price, StringFormat='Цена: {0:C}'}" FontSize="12"/>
-                    <HorizontalStackLayout Spacing="12">
-                      <Label Text="{Binding Nd40Qty, StringFormat='ND-40: {0}'}" FontSize="11"/>
-                      <Label Text="{Binding Im40Qty, StringFormat='IM-40: {0}'}" FontSize="11"/>
-                      <Label Text="{Binding TotalQty, StringFormat='Всего: {0}'}" FontSize="11"/>
-                    </HorizontalStackLayout>
-                  </VerticalStackLayout>
-                  <Button Grid.Column="1" Text="Добавить" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.AddToCartCommand}" CommandParameter="{Binding .}"/>
-                </Grid>
+                <Frame Padding="8" HasShadow="False" CornerRadius="10" HeightRequest="140">
+                  <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*">
+                    <Label Grid.Row="0" Text="{Binding Name}" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
+                    <VerticalStackLayout Grid.Row="1" Spacing="4">
+                      <Label Text="{Binding Sku}" FontSize="12" TextColor="Gray"/>
+                      <Label Text="{Binding Price, StringFormat='{0:C}'}" FontSize="14"/>
+                      <HorizontalStackLayout Spacing="10">
+                        <Label Text="{Binding Nd40Qty, StringFormat='ND-40 {0}'}" FontSize="11"/>
+                        <Label Text="{Binding Im40Qty, StringFormat='IM-40 {0}'}" FontSize="11"/>
+                        <Label Text="{Binding TotalQty, StringFormat='Всего {0}'}" FontSize="11"/>
+                      </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                    <Button Grid.Row="2" Text="Добавить" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.AddToCartCommand}" CommandParameter="{Binding .}"/>
+                  </Grid>
+                </Frame>
               </DataTemplate>
             </CollectionView.ItemTemplate>
           </CollectionView>
@@ -84,15 +89,14 @@
         </VerticalStackLayout>
       </Grid>
 
-      <!-- Payment type -->
+      <!-- Payment type (locked; change by going back) -->
       <HorizontalStackLayout Grid.Row="3" Spacing="12" Margin="0,12,0,0">
-        <Label Text="Оплата:" VerticalOptions="Center"/>
-        <Picker ItemsSource="{Binding PaymentTypes}" SelectedItem="{Binding SelectedPaymentType}">
-          <Picker.ItemDisplayBinding>
-            <Binding Path="." Converter="{StaticResource PaymentTypeToRuConverter}"/>
-          </Picker.ItemDisplayBinding>
-        </Picker>
+        <Label Text="Тип продажи:" VerticalOptions="Center"/>
+        <Label VerticalOptions="Center"
+               Text="{Binding SelectedPaymentType, Converter={StaticResource PaymentTypeToRuConverter}}"/>
+        <Button Text="Изменить" Command="{Binding ChangePaymentTypeCommand}"/>
         <Entry Placeholder="Имя клиента (необязательно)" Text="{Binding ClientName}" HorizontalOptions="FillAndExpand"/>
+        <Button Text="Клиент" Clicked="OnPickClientClicked"/>
       </HorizontalStackLayout>
 
       <!-- Totals -->

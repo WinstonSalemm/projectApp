@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:ProjectApp.Client.Maui.Models"
+             x:Class="ProjectApp.Client.Maui.Views.ClientsListPage"
+             x:Name="Page"
+             Title="Клиенты">
+  <ScrollView>
+    <VerticalStackLayout Padding="16" Spacing="12">
+      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto" ColumnSpacing="8">
+        <Entry Grid.Column="0" Placeholder="Поиск по имени/телефону" Text="{Binding Query}"/>
+        <Button Grid.Column="1" Text="Найти" Command="{Binding LoadCommand}"/>
+      </Grid>
+
+      <Grid ColumnDefinitions="*,*,Auto,Auto" ColumnSpacing="8">
+        <HorizontalStackLayout Grid.Column="0" Spacing="8">
+          <Label Text="Тип:" VerticalTextAlignment="Center"/>
+          <Picker Title="Все" SelectedItem="{Binding SelectedType}">
+            <Picker.ItemsSource>
+              <x:Array Type="{x:Type models:ClientType}">
+                <x:Static Member="models:ClientType.Individual" />
+                <x:Static Member="models:ClientType.Company" />
+              </x:Array>
+            </Picker.ItemsSource>
+          </Picker>
+        </HorizontalStackLayout>
+        <HorizontalStackLayout Grid.Column="1" Spacing="8">
+          <Label Text="Только мои" VerticalTextAlignment="Center"/>
+          <Switch IsToggled="{Binding ShowOnlyMine}"/>
+        </HorizontalStackLayout>
+        <Button Grid.Column="2" Text="Добавить" Command="{Binding OpenCreateCommand}"/>
+        <Button Grid.Column="3" Text="Незаписанные" Command="{Binding OpenUnregisteredCommand}"/>
+      </Grid>
+
+      <CollectionView ItemsSource="{Binding Items}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Frame Padding="10" HasShadow="False" CornerRadius="10">
+              <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
+                <Label Grid.Row="0" Grid.ColumnSpan="2" Text="{Binding Name}" FontAttributes="Bold"/>
+                <Label Grid.Row="1" Grid.Column="0" Text="{Binding Phone}"/>
+                <Label Grid.Row="1" Grid.Column="1" Text="{Binding Type}" HorizontalTextAlignment="End"/>
+                <Label Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding OwnerUserName, StringFormat='Владелец: {0}'}" FontSize="12" TextColor="Gray"/>
+                <Grid.GestureRecognizers>
+                  <TapGestureRecognizer Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenDetailCommand}"
+                                         CommandParameter="{Binding .}"/>
+                </Grid.GestureRecognizers>
+              </Grid>
+            </Frame>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

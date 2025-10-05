@@ -19,6 +19,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ManagerStat> ManagerStats => Set<ManagerStat>();
     public DbSet<Contract> Contracts => Set<Contract>();
     public DbSet<ContractItem> ContractItems => Set<ContractItem>();
+    public DbSet<SaleItemConsumption> SaleItemConsumptions => Set<SaleItemConsumption>();
+    public DbSet<ReturnItemRestock> ReturnItemRestocks => Set<ReturnItemRestock>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -58,10 +60,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(c => c.Name).IsRequired().HasMaxLength(200);
             b.Property(c => c.Phone).HasMaxLength(32);
             b.Property(c => c.Inn).HasMaxLength(32);
+            b.Property(c => c.OwnerUserName).HasMaxLength(64);
+            b.Property(c => c.CreatedAt).IsRequired();
             b.HasData(
-                new Client { Id = 1, Name = "Acme LLC", Phone = "+998 90 000 00 01", Inn = "123456789" },
-                new Client { Id = 2, Name = "Globex Ltd", Phone = "+998 90 000 00 02", Inn = "223456789" },
-                new Client { Id = 3, Name = "John Doe", Phone = "+998 90 000 00 03", Inn = null }
+                new Client { Id = 1, Name = "Acme LLC", Phone = "+998 90 000 00 01", Inn = "123456789", Type = ClientType.Company, OwnerUserName = null, CreatedAt = new DateTime(2024,1,1,0,0,0,DateTimeKind.Utc) },
+                new Client { Id = 2, Name = "Globex Ltd", Phone = "+998 90 000 00 02", Inn = "223456789", Type = ClientType.Company, OwnerUserName = null, CreatedAt = new DateTime(2024,1,1,0,0,0,DateTimeKind.Utc) },
+                new Client { Id = 3, Name = "John Doe", Phone = "+998 90 000 00 03", Inn = null, Type = ClientType.Individual, OwnerUserName = null, CreatedAt = new DateTime(2024,1,1,0,0,0,DateTimeKind.Utc) }
             );
         });
 
@@ -146,6 +150,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(p => p.PaidAt).IsRequired();
         });
 
+        // Track from which batches each sale item consumed
+        modelBuilder.Entity<SaleItemConsumption>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Qty).HasColumnType("decimal(18,3)");
+            b.Property(x => x.RegisterAtSale).IsRequired();
+            b.HasIndex(x => x.SaleItemId);
+            b.HasIndex(x => x.BatchId);
+        });
+
+        // Track restock per return item back into batches
+        modelBuilder.Entity<ReturnItemRestock>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Qty).HasColumnType("decimal(18,3)");
+            b.HasIndex(x => x.ReturnItemId);
+            b.HasIndex(x => new { x.SaleItemId, x.BatchId });
+        });
+
         modelBuilder.Entity<Batch>(b =>
         {
             b.HasKey(x => x.Id);
@@ -174,6 +197,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(m => m.UserName).HasMaxLength(64);
             b.Property(m => m.SalesCount);
             b.Property(m => m.Turnover).HasColumnType("decimal(18,2)");
+            b.Property(m => m.OwnedSalesCount);
+            b.Property(m => m.OwnedTurnover).HasColumnType("decimal(18,2)");
         });
 
         // Contracts

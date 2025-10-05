@@ -12,8 +12,9 @@ public partial class App : Application
         InitializeComponent();
         if (auth.IsAuthenticated)
         {
-            var qs = services.GetRequiredService<QuickSalePage>();
-            MainPage = new NavigationPage(qs);
+            // After auth, force user to choose sale type and category first
+            var start = services.GetRequiredService<SaleStartPage>();
+            MainPage = new NavigationPage(start);
         }
         else
         {

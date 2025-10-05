@@ -58,6 +58,24 @@ public class ProductsController : ControllerBase
         return Ok(cats);
     }
 
+    [HttpGet("lookup")]
+    [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Lookup([FromQuery] string ids, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(ids)) return Ok(Array.Empty<object>());
+        var parts = ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                       .Select(p => int.TryParse(p, out var x) ? x : (int?)null)
+                       .Where(x => x.HasValue)
+                       .Select(x => x!.Value)
+                       .Distinct()
+                       .ToList();
+        if (parts.Count == 0) return Ok(Array.Empty<object>());
+        var list = await _db.Products.AsNoTracking().Where(p => parts.Contains(p.Id))
+            .Select(p => new { p.Id, p.Sku, p.Name })
+            .ToListAsync(ct);
+        return Ok(list);
+    }
+
     [HttpPost]
     [Microsoft.AspNetCore.Authorization.Authorize(Policy = "AdminOnly")]
     [ProducesResponseType(typeof(ProductDto), StatusCodes.Status201Created)]

@@ -92,6 +92,7 @@ public interface IStocksService
 // Draft models for submitting sales from the client
 public class SaleDraft
 {
+    public int? ClientId { get; set; }
     public string ClientName { get; set; } = string.Empty;
     public PaymentType PaymentType { get; set; } = PaymentType.CashWithReceipt;
     public List<SaleDraftItem> Items { get; set; } = new();

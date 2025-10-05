@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.ClientPickerPage"
+             x:Name="Page"
+             Title="Выбор клиента">
+  <ContentPage.ToolbarItems>
+    <ToolbarItem Text="Создать" Clicked="OnCreateClicked"/>
+  </ContentPage.ToolbarItems>
+  <ScrollView>
+    <VerticalStackLayout Padding="16" Spacing="12">
+      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto" ColumnSpacing="8">
+        <Entry Grid.Column="0" Placeholder="Поиск по имени/телефону" Text="{Binding Query}"/>
+        <Button Grid.Column="1" Text="Найти" Command="{Binding LoadCommand}"/>
+      </Grid>
+
+      <CollectionView ItemsSource="{Binding Items}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Frame Padding="10" HasShadow="False" CornerRadius="10">
+              <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8">
+                <Label Grid.Row="0" Grid.ColumnSpan="2" Text="{Binding Name}" FontAttributes="Bold"/>
+                <Label Grid.Row="1" Grid.Column="0" Text="{Binding Phone}"/>
+                <Button Grid.Row="1" Grid.Column="1" Text="Выбрать" Command="{Binding Source={x:Reference Page}, Path=BindingContext.PickCommand}" CommandParameter="{Binding .}"/>
+              </Grid>
+            </Frame>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

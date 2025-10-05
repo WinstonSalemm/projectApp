@@ -9,6 +9,8 @@ using ProjectApp.Client.Maui.Models;
 using ProjectApp.Client.Maui.Services;
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Core;
+using CommunityToolkit.Mvvm.Messaging;
+using ProjectApp.Client.Maui.Messages;
 
 namespace ProjectApp.Client.Maui.ViewModels;
 
@@ -18,12 +20,14 @@ public partial class QuickSaleViewModel : ObservableObject
     private readonly ISalesService _sales;
     private readonly IStocksService _stocks;
     private readonly AppSettings _settings;
+    private readonly AuthService _auth;
 
     private CancellationTokenSource? _searchCts;
     private string _lastSearchQuery = string.Empty;
     private enum LastAction { None, Search, Submit }
     private LastAction _lastAction = LastAction.None;
     private SaleDraft? _lastDraft;
+    private string? _presetCategory; // category chosen on previous screen
 
     public class QuickProductRow
     {
@@ -35,6 +39,12 @@ public partial class QuickSaleViewModel : ObservableObject
         public decimal Nd40Qty { get; set; }
         public decimal Im40Qty { get; set; }
         public decimal TotalQty { get; set; }
+    }
+
+    // Public method for View to trigger search on appearing
+    public void Refresh()
+    {
+        DebouncedSearchAsync(Query);
     }
 
     public ObservableCollection<QuickProductRow> SearchResults { get; } = new();
@@ -76,23 +86,47 @@ public partial class QuickSaleViewModel : ObservableObject
     [ObservableProperty]
     private string clientName = string.Empty;
 
+    [ObservableProperty]
+    private int? selectedClientId;
+
+    // Admin restriction
+    [ObservableProperty]
+    private bool isSaleAllowed = true;
+
     public ObservableCollection<string> ReservationNotes { get; } = new();
     [ObservableProperty]
     private string newReservationNote = string.Empty;
 
-    public QuickSaleViewModel(ICatalogService catalog, ISalesService sales, IStocksService stocks, AppSettings settings)
+    public QuickSaleViewModel(ICatalogService catalog, ISalesService sales, IStocksService stocks, AppSettings settings, AuthService auth)
     {
         _catalog = catalog;
         _sales = sales;
         _stocks = stocks;
         _settings = settings;
+        _auth = auth;
 
-        // Offline banner based on settings
-        IsOffline = !settings.UseApi;
+        // Start without banner; show only if API mode fails
+        IsOffline = false;
 
         Cart.CollectionChanged += (_, __) => RecalculateTotalWithSubscriptions();
         IsReservation = SelectedPaymentType == PaymentType.Reservation;
         _ = LoadCategoriesAsync();
+        // Admin cannot conduct sales
+        IsSaleAllowed = !string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+
+        // Listen for client picker selection
+        WeakReferenceMessenger.Default.Register<ClientPickedMessage>(this, (r, m) =>
+        {
+            SelectedClientId = m.ClientId;
+            ClientName = m.Name;
+        });
+    }
+
+    // Called from previous screen to fix the initial category before UI binds
+    public void SetPresetCategory(string? category)
+    {
+        _presetCategory = category;
+        SelectedCategory = category;
     }
 
     partial void OnQueryChanged(string value)
@@ -113,9 +147,19 @@ public partial class QuickSaleViewModel : ObservableObject
                 if (token.IsCancellationRequested) return;
                 _lastAction = LastAction.Search;
                 _lastSearchQuery = searchText;
-                var cat = string.IsNullOrWhiteSpace(SelectedCategory) ? null : SelectedCategory;
+                var cat = string.IsNullOrWhiteSpace(SelectedCategory) ? _presetCategory : SelectedCategory;
+                // 1) Catalog is mandatory
                 var results = await _catalog.SearchAsync(searchText, cat, token);
-                var stockList = await _stocks.GetStocksAsync(searchText, cat, token);
+                // 2) Stocks are optional
+                IEnumerable<StockViewModel> stockList;
+                try
+                {
+                    stockList = await _stocks.GetStocksAsync(searchText, cat, token);
+                }
+                catch
+                {
+                    stockList = Enumerable.Empty<StockViewModel>();
+                }
                 var stockMap = stockList.ToDictionary(s => s.ProductId, s => s);
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
@@ -140,6 +184,8 @@ public partial class QuickSaleViewModel : ObservableObject
                     {
                         IsOffline = false;
                     }
+                    // Clear preset after first successful application
+                    _presetCategory = null;
                 });
             }
             catch (OperationCanceledException) { }
@@ -171,6 +217,17 @@ public partial class QuickSaleViewModel : ObservableObject
                 Categories.Add(string.Empty); // пустая категория = все
                 foreach (var c in list)
                     Categories.Add(c);
+                // Apply preset category even if Picker reset SelectedCategory during binding
+                var keep = _presetCategory ?? SelectedCategory;
+                if (!string.IsNullOrWhiteSpace(keep))
+                {
+                    if (!Categories.Contains(keep))
+                        Categories.Add(keep);
+                    SelectedCategory = null; // force change notification
+                    SelectedCategory = keep;
+                    DebouncedSearchAsync(Query);
+                    _presetCategory = null;
+                }
             });
         }
         catch { }
@@ -179,6 +236,7 @@ public partial class QuickSaleViewModel : ObservableObject
     [RelayCommand]
     private void AddToCart(QuickProductRow product)
     {
+        if (!IsSaleAllowed) return;
         if (product is null) return;
         var existing = Cart.FirstOrDefault(c => c.ProductId == product.Id);
         if (existing is null)
@@ -238,9 +296,18 @@ public partial class QuickSaleViewModel : ObservableObject
     [RelayCommand]
     private async Task SubmitAsync()
     {
+        if (!IsSaleAllowed)
+        {
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await Application.Current!.MainPage!.DisplayAlert("Действие недоступно", "Роль Админ не проводит продажи.", "OK");
+            });
+            return;
+        }
         if (Cart.Count == 0) return;
         var draft = new SaleDraft
         {
+            ClientId = SelectedClientId,
             ClientName = string.IsNullOrWhiteSpace(ClientName) ? "Quick Client" : ClientName,
             PaymentType = SelectedPaymentType,
             Items = Cart.Select(c => new SaleDraftItem { ProductId = c.ProductId, Qty = c.Qty, UnitPrice = c.UnitPrice }).ToList()
@@ -286,6 +353,19 @@ public partial class QuickSaleViewModel : ObservableObject
                 });
             }
         }
+    }
+
+    [RelayCommand]
+    private async Task ChangePaymentTypeAsync()
+    {
+        try
+        {
+            // Go back to category page then to payment type selection
+            var nav = Application.Current!.MainPage!.Navigation;
+            await nav.PopAsync();
+            await nav.PopAsync();
+        }
+        catch { }
     }
 
     [RelayCommand]

@@ -4,7 +4,6 @@ using ProjectApp.Api.Dtos;
 using ProjectApp.Api.Models;
 using ProjectApp.Api.Repositories;
 using ProjectApp.Api.Services;
-using ProjectApp.Api.Integrations.Telegram;
 
 namespace ProjectApp.Api.Controllers;
 
@@ -23,6 +22,18 @@ public class SalesController : ControllerBase
         _calculator = calculator;
         _logger = logger;
         _notifier = notifier;
+    }
+
+    [HttpGet]
+    [Authorize(Policy = "ManagerOnly")] // Admin or Manager
+    [ProducesResponseType(typeof(IEnumerable<Sale>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> List([FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo, [FromQuery] string? createdBy, [FromQuery] string? paymentType, [FromQuery] int? clientId, [FromQuery] bool all = false, CancellationToken ct)
+    {
+        var isAdmin = User.IsInRole("Admin");
+        var allowAll = isAdmin || all;
+        var effectiveCreatedBy = allowAll ? createdBy : (User?.Identity?.Name ?? createdBy);
+        var list = await _sales.QueryAsync(dateFrom, dateTo, effectiveCreatedBy, paymentType, clientId, ct);
+        return Ok(list);
     }
 
     [HttpPost]

@@ -84,4 +84,13 @@ public partial class QuickSalePage : ContentPage
             await Navigation.PushAsync(page);
         }
     }
+
+    private async void OnPickClientClicked(object? sender, EventArgs e)
+    {
+        var page = _services.GetService<ClientPickerPage>();
+        if (page != null)
+        {
+            await Navigation.PushAsync(page);
+        }
+    }
 }

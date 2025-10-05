@@ -25,11 +25,12 @@ public partial class PaymentSelectViewModel : ObservableObject
         if (!System.Enum.TryParse<PaymentType>(paymentType, out var pt))
             pt = PaymentType.CashWithReceipt;
         Selected = pt;
-        var qs = _services.GetRequiredService<ProjectApp.Client.Maui.Views.QuickSalePage>();
-        if (qs.BindingContext is ProjectApp.Client.Maui.ViewModels.QuickSaleViewModel vm)
+        // Go to category selection page next
+        var start = _services.GetRequiredService<ProjectApp.Client.Maui.Views.SaleStartPage>();
+        if (start.BindingContext is ProjectApp.Client.Maui.ViewModels.SaleStartViewModel svm)
         {
-            vm.SelectedPaymentType = pt;
+            svm.SelectedPaymentType = pt;
         }
-        await Application.Current!.MainPage!.Navigation.PushAsync(qs);
+        await Application.Current!.MainPage!.Navigation.PushAsync(start);
     }
 }

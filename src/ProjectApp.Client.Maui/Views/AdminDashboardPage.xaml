@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.AdminDashboardPage"
+             Title="Панель администратора">
+  <ScrollView>
+    <VerticalStackLayout Padding="24" Spacing="16">
+      <Label Text="Администратор" FontAttributes="Bold" FontSize="26"/>
+      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="16">
+        <Button Text="История" Grid.Row="0" Grid.Column="0" Command="{Binding OpenHistoryCommand}" HeightRequest="84" FontSize="22"/>
+        <Button Text="Клиенты" Grid.Row="0" Grid.Column="1" Command="{Binding OpenClientsCommand}" HeightRequest="84" FontSize="22"/>
+        <Button Text="Возвраты" Grid.Row="1" Grid.Column="0" Command="{Binding OpenReturnsCommand}" HeightRequest="84" FontSize="22"/>
+        <Button Text="Поставки" Grid.Row="1" Grid.Column="1" Command="{Binding OpenSuppliesCommand}" HeightRequest="84" FontSize="22"/>
+        <Button Text="Склад" Grid.Row="2" Grid.Column="0" Command="{Binding OpenStocksCommand}" HeightRequest="84" FontSize="22"/>
+        <Button Text="Договоры" Grid.Row="2" Grid.Column="1" Command="{Binding OpenContractsCommand}" HeightRequest="84" FontSize="22"/>
+      </Grid>
+      <Button Text="Выйти" Command="{Binding LogoutCommand}"/>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

@@ -107,4 +107,33 @@ public class ApiSuppliesService : ISuppliesService
             throw new InvalidOperationException(ex.Message);
         }
     }
+
+    // ---- History listing ----
+    public class SupplyBatchDto
+    {
+        public int Id { get; set; }
+        public int ProductId { get; set; }
+        public string Register { get; set; } = string.Empty;
+        public decimal Qty { get; set; }
+        public decimal UnitCost { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string? Code { get; set; }
+        public string? Note { get; set; }
+    }
+
+    public async Task<IEnumerable<SupplyBatchDto>> QueryAsync(string? code = null, int? productId = null, string? register = null, CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient();
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+
+        var qs = new List<string>();
+        if (!string.IsNullOrWhiteSpace(code)) qs.Add($"code={Uri.EscapeDataString(code)}");
+        if (productId.HasValue) qs.Add($"productId={productId.Value}");
+        if (!string.IsNullOrWhiteSpace(register)) qs.Add($"register={Uri.EscapeDataString(register)}");
+        var url = "/api/supplies" + (qs.Count > 0 ? ("?" + string.Join("&", qs)) : string.Empty);
+        var list = await client.GetFromJsonAsync<List<SupplyBatchDto>>(url, ct);
+        return list ?? Enumerable.Empty<SupplyBatchDto>();
+    }
 }

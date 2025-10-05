@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TabbedPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            x:Class="ProjectApp.Client.Maui.Views.ClientDetailPage"
+            Title="{Binding Name}">
+  <TabbedPage.ToolbarItems>
+    <ToolbarItem Text="Обновить" Command="{Binding RefreshAllCommand}"/>
+    <ToolbarItem Text="Редактировать" Command="{Binding EditCommand}"/>
+  </TabbedPage.ToolbarItems>
+
+  <ContentPage Title="Карточка">
+    <ScrollView>
+      <VerticalStackLayout Padding="16" Spacing="10">
+        <Label Text="Основная информация" FontAttributes="Bold" FontSize="18"/>
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="6">
+          <Label Text="Имя/Компания:" Grid.Row="0"/>
+          <Label Text="{Binding Name}" Grid.Row="0" Grid.Column="1"/>
+          <Label Text="Телефон:" Grid.Row="1"/>
+          <Label Text="{Binding Phone}" Grid.Row="1" Grid.Column="1"/>
+          <Label Text="ИНН:" Grid.Row="2"/>
+          <Label Text="{Binding Inn}" Grid.Row="2" Grid.Column="1"/>
+          <Label Text="Тип:" Grid.Row="3"/>
+          <Label Text="{Binding Type}" Grid.Row="3" Grid.Column="1"/>
+          <Label Text="Владелец:" Grid.Row="4"/>
+          <Label Text="{Binding OwnerUserName}" Grid.Row="4" Grid.Column="1"/>
+        </Grid>
+        <Label Text="Создан:"/>
+        <Label Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"/>
+      </VerticalStackLayout>
+    </ScrollView>
+  </ContentPage>
+
+  <ContentPage Title="Продажи">
+    <ScrollView>
+      <VerticalStackLayout Padding="16" Spacing="10">
+        <HorizontalStackLayout Spacing="8">
+          <Label Text="От:" VerticalTextAlignment="Center"/>
+          <DatePicker Date="{Binding DateFrom}"/>
+          <Label Text="До:" VerticalTextAlignment="Center"/>
+          <DatePicker Date="{Binding DateTo}"/>
+          <Button Text="Обновить" Command="{Binding RefreshSalesCommand}"/>
+        </HorizontalStackLayout>
+        <CollectionView ItemsSource="{Binding Sales}">
+          <CollectionView.ItemTemplate>
+            <DataTemplate>
+              <Frame Padding="10" HasShadow="False" CornerRadius="10">
+                <VerticalStackLayout Spacing="6">
+                  <Label Text="{Binding Id, StringFormat='Продажа #{0}'}" FontAttributes="Bold"/>
+                  <Label Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}" FontSize="12" TextColor="Gray"/>
+                  <Label Text="{Binding PaymentType, StringFormat='Оплата: {0}'}"/>
+                  <Label Text="{Binding Total, StringFormat='Сумма: {0:C}'}"/>
+                </VerticalStackLayout>
+              </Frame>
+            </DataTemplate>
+          </CollectionView.ItemTemplate>
+        </CollectionView>
+      </VerticalStackLayout>
+    </ScrollView>
+  </ContentPage>
+
+  <ContentPage Title="Возвраты">
+    <ScrollView>
+      <VerticalStackLayout Padding="16" Spacing="10">
+        <HorizontalStackLayout Spacing="8">
+          <Label Text="От:" VerticalTextAlignment="Center"/>
+          <DatePicker Date="{Binding DateFrom}"/>
+          <Label Text="До:" VerticalTextAlignment="Center"/>
+          <DatePicker Date="{Binding DateTo}"/>
+          <Button Text="Обновить" Command="{Binding RefreshReturnsCommand}"/>
+        </HorizontalStackLayout>
+        <CollectionView ItemsSource="{Binding Returns}">
+          <CollectionView.ItemTemplate>
+            <DataTemplate>
+              <Frame Padding="10" HasShadow="False" CornerRadius="10">
+                <VerticalStackLayout Spacing="6">
+                  <Label Text="{Binding Id, StringFormat='Возврат #{0}'}" FontAttributes="Bold"/>
+                  <Label Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}" FontSize="12" TextColor="Gray"/>
+                  <Label Text="{Binding Sum, StringFormat='Сумма: {0:C}'}"/>
+                  <Label Text="{Binding Reason, StringFormat='Причина: {0}'}"/>
+                </VerticalStackLayout>
+              </Frame>
+            </DataTemplate>
+          </CollectionView.ItemTemplate>
+        </CollectionView>
+      </VerticalStackLayout>
+    </ScrollView>
+  </ContentPage>
+
+  <ContentPage Title="Долги">
+    <ScrollView>
+      <VerticalStackLayout Padding="16" Spacing="10">
+        <CollectionView ItemsSource="{Binding Debts}">
+          <CollectionView.ItemTemplate>
+            <DataTemplate>
+              <Frame Padding="10" HasShadow="False" CornerRadius="10">
+                <VerticalStackLayout Spacing="6">
+                  <Label Text="{Binding Id, StringFormat='Долг #{0}'}" FontAttributes="Bold"/>
+                  <Label Text="{Binding DueDate, StringFormat='{0:yyyy-MM-dd}'}" FontSize="12" TextColor="Gray"/>
+                  <Label Text="{Binding Amount, StringFormat='Сумма: {0:C}'}"/>
+                  <Label Text="{Binding Status, StringFormat='Статус: {0}'}"/>
+                </VerticalStackLayout>
+              </Frame>
+            </DataTemplate>
+          </CollectionView.ItemTemplate>
+        </CollectionView>
+      </VerticalStackLayout>
+    </ScrollView>
+  </ContentPage>
+</TabbedPage>

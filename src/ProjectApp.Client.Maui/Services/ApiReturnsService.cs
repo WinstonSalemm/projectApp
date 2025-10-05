@@ -47,4 +47,50 @@ public class ApiReturnsService : IReturnsService
         var resp = await client.PostAsJsonAsync("/api/returns", dto, ct);
         return resp.IsSuccessStatusCode;
     }
+
+    // ---- History listing ----
+    public class ReturnItemDto
+    {
+        public int SaleItemId { get; set; }
+        public decimal Qty { get; set; }
+        public decimal UnitPrice { get; set; }
+    }
+    public class ReturnDto
+    {
+        public int Id { get; set; }
+        public int RefSaleId { get; set; }
+        public int? ClientId { get; set; }
+        public decimal Sum { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string? Reason { get; set; }
+        public List<ReturnItemDto> Items { get; set; } = new();
+    }
+
+    public async Task<IEnumerable<ReturnDto>> QueryAsync(int? refSaleId = null, int? clientId = null, DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient();
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+
+        var qs = new List<string>();
+        if (refSaleId.HasValue) qs.Add($"refSaleId={refSaleId.Value}");
+        if (clientId.HasValue) qs.Add($"clientId={clientId.Value}");
+        if (from.HasValue) qs.Add($"dateFrom={Uri.EscapeDataString(from.Value.ToString("o"))}");
+        if (to.HasValue) qs.Add($"dateTo={Uri.EscapeDataString(to.Value.ToString("o"))}");
+        var url = "/api/returns" + (qs.Count > 0 ? ("?" + string.Join("&", qs)) : string.Empty);
+        var list = await client.GetFromJsonAsync<List<ReturnDto>>(url, ct);
+        return list ?? Enumerable.Empty<ReturnDto>();
+    }
+
+    public async Task<IEnumerable<ReturnDto>> GetBySaleAsync(int saleId, CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient();
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+        var url = $"/api/sales/{saleId}/returns";
+        var list = await client.GetFromJsonAsync<List<ReturnDto>>(url, ct);
+        return list ?? Enumerable.Empty<ReturnDto>();
+    }
 }
