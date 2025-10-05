@@ -51,10 +51,10 @@ public class EfSaleRepository : ISaleRepository
                     decimal costNd = 0m;
                     if (takeNd > 0)
                     {
-                        var (avg, cons) = await DeductFromBatchesAndComputeCostWithConsumptionAsync(it.ProductId, StockRegister.ND40, takeNd, ct);
-                        costNd = avg;
+                        var (avgNd, consNd) = await DeductFromBatchesAndComputeCostWithConsumptionAsync(it.ProductId, StockRegister.ND40, takeNd, ct);
+                        costNd = avgNd;
                         if (!consumptionMap.ContainsKey(it)) consumptionMap[it] = new();
-                        consumptionMap[it].AddRange(cons.Select(c => (c.batchId, StockRegister.ND40, c.qty)));
+                        consumptionMap[it].AddRange(consNd.Select(c => (c.batchId, StockRegister.ND40, c.qty)));
                         stockNd!.Qty -= takeNd;
                     }
 
@@ -74,17 +74,17 @@ public class EfSaleRepository : ISaleRepository
                             throw new InvalidOperationException($"Недостаточно остатков для товара ProductId={it.ProductId} в {StockRegister.IM40}. Доступно={stockIm.Qty}, Требуется={remain}, Не хватает={missingIm}");
                         }
 
-                        var (avg, cons) = await DeductFromBatchesAndComputeCostWithConsumptionAsync(it.ProductId, StockRegister.IM40, remain, ct);
-                        costIm = avg;
+                        var (avgIm, consIm) = await DeductFromBatchesAndComputeCostWithConsumptionAsync(it.ProductId, StockRegister.IM40, remain, ct);
+                        costIm = avgIm;
                         if (!consumptionMap.ContainsKey(it)) consumptionMap[it] = new();
-                        consumptionMap[it].AddRange(cons.Select(c => (c.batchId, StockRegister.IM40, c.qty)));
+                        consumptionMap[it].AddRange(consIm.Select(c => (c.batchId, StockRegister.IM40, c.qty)));
                         stockIm.Qty -= remain;
                     }
 
                     // 3) Средневзвешенная себестоимость по всем списанным регистрам
                     var totalCost = costNd * takeNd + costIm * (it.Qty - takeNd);
-                    var avg = it.Qty == 0 ? 0 : decimal.Round(totalCost / it.Qty, 2, MidpointRounding.AwayFromZero);
-                    it.Cost = avg;
+                    var avgCost = it.Qty == 0 ? 0 : decimal.Round(totalCost / it.Qty, 2, MidpointRounding.AwayFromZero);
+                    it.Cost = avgCost;
                 }
                 else
                 {
