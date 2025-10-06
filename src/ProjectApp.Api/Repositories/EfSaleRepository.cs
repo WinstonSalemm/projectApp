@@ -27,14 +27,6 @@ public class EfSaleRepository : ISaleRepository
 
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-        // Reservation: не списываем остатки (фиксируем бронь), себестоимость = 0
-        if (sale.PaymentType == PaymentType.Reservation)
-        {
-            foreach (var it in sale.Items)
-                it.Cost = 0m;
-        }
-        else
-        {
             // Will collect per-item consumption to persist after items get IDs
             var consumptionMap = new Dictionary<SaleItem, List<(int batchId, StockRegister reg, decimal qty)>>();
             // Check and deduct stocks and FIFO batches; compute COGS per item
@@ -112,13 +104,12 @@ public class EfSaleRepository : ISaleRepository
             // Keep local consumption map to persist after items get IDs
             // We'll persist right after the first SaveChanges when SaleItems have IDs
             _pendingConsumptionMap = consumptionMap;
-        }
 
         _db.Sales.Add(sale);
         await _db.SaveChangesAsync(ct);
 
         // Persist per-batch consumption after items have IDs
-        if (sale.PaymentType != PaymentType.Reservation && _pendingConsumptionMap is not null)
+        if (_pendingConsumptionMap is not null)
         {
             foreach (var si in sale.Items)
             {
@@ -199,8 +190,8 @@ public class EfSaleRepository : ISaleRepository
     {
         return payment switch
         {
-            PaymentType.CashWithReceipt or PaymentType.CardWithReceipt or PaymentType.ClickWithReceipt or PaymentType.Site or PaymentType.Return or PaymentType.Contract => StockRegister.IM40,
-            PaymentType.CashNoReceipt or PaymentType.ClickNoReceipt or PaymentType.Click or PaymentType.Payme or PaymentType.Reservation => StockRegister.ND40,
+            PaymentType.CashWithReceipt or PaymentType.CardWithReceipt or PaymentType.ClickWithReceipt or PaymentType.Site or PaymentType.Return or PaymentType.Contract or PaymentType.Reservation => StockRegister.IM40,
+            PaymentType.CashNoReceipt or PaymentType.ClickNoReceipt or PaymentType.Click or PaymentType.Payme => StockRegister.ND40,
             _ => StockRegister.IM40
         };
     }
