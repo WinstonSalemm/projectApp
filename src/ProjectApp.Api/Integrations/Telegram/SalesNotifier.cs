@@ -14,6 +14,22 @@ public class SalesNotifier(ITelegramService tg, IOptions<TelegramSettings> optio
     private readonly TelegramSettings _settings = options.Value;
     private readonly ILogger<SalesNotifier> _logger = logger;
 
+    private static string PaymentTypeRu(PaymentType pt) => pt switch
+    {
+        PaymentType.CashWithReceipt => "Наличные (чек)",
+        PaymentType.CardWithReceipt => "Карта (чек)",
+        PaymentType.ClickWithReceipt => "Click (чек)",
+        PaymentType.CashNoReceipt => "Наличные (без чека)",
+        PaymentType.ClickNoReceipt => "Click (без чека)",
+        PaymentType.Click => "Click",
+        PaymentType.Payme => "Payme",
+        PaymentType.Site => "Сайт",
+        PaymentType.Reservation => "Резервация",
+        PaymentType.Return => "Возврат",
+        PaymentType.Contract => "По договору",
+        _ => pt.ToString()
+    };
+
     public async Task NotifySaleAsync(Sale sale, CancellationToken ct = default)
     {
         try
@@ -28,7 +44,8 @@ public class SalesNotifier(ITelegramService tg, IOptions<TelegramSettings> optio
             var itemsCount = sale.Items?.Count ?? 0;
             var qty = sale.Items?.Sum(i => i.Qty) ?? 0m;
             var title = $"Продажа #{sale.Id}";
-            var msg = $"{title}\nДата: {sale.CreatedAt:yyyy-MM-dd HH:mm}\nКлиент: {sale.ClientName}\nОплата: {sale.PaymentType}\nПозиции: {itemsCount} (шт: {qty})\nИтого: {sale.Total}\nОператор: {sale.CreatedBy ?? "n/a"}";
+            var paymentRu = PaymentTypeRu(sale.PaymentType);
+            var msg = $"{title}\nДата: {sale.CreatedAt:yyyy-MM-dd HH:mm}\nКлиент: {sale.ClientName}\nОплата: {paymentRu}\nПозиции: {itemsCount} (шт: {qty})\nИтого: {sale.Total}\nОператор: {sale.CreatedBy ?? "n/a"}";
 
             foreach (var chatId in ids)
             {
