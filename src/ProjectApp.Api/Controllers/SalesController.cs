@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Dtos;
 using ProjectApp.Api.Models;
 using ProjectApp.Api.Repositories;
@@ -65,6 +66,12 @@ public class SalesController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return ValidationProblem(detail: ex.Message);
+        }
+        catch (DbUpdateException ex)
+        {
+            // Surface DB constraint issues (e.g., identity/keys/length) to caller as 400 for faster diagnosis
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            return ValidationProblem(detail: msg);
         }
     }
 
