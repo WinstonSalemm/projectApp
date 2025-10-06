@@ -224,4 +224,13 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
         var ok = await tg.DeleteWebhookAsync(HttpContext.RequestAborted);
         return Ok(new { ok });
     }
+
+    // GET /api/telegram/webhook-info
+    [HttpGet("webhook-info")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> GetWebhookInfo()
+    {
+        var info = await tg.GetWebhookInfoAsync(HttpContext.RequestAborted);
+        return Content(info, "application/json");
+    }
 }

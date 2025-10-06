@@ -9,6 +9,7 @@ public interface ITelegramService
     Task<bool> SendMessageAsync(long chatId, string text, object? replyMarkup, CancellationToken ct = default);
     Task<bool> SetWebhookAsync(string url, string? secretToken, CancellationToken ct = default);
     Task<bool> DeleteWebhookAsync(CancellationToken ct = default);
+    Task<string> GetWebhookInfoAsync(CancellationToken ct = default);
 }
 
 public class TelegramService(IHttpClientFactory httpClientFactory, IOptions<TelegramSettings> options) : ITelegramService
@@ -53,5 +54,13 @@ public class TelegramService(IHttpClientFactory httpClientFactory, IOptions<Tele
         var client = CreateClient();
         var resp = await client.PostAsync("deleteWebhook", new FormUrlEncodedContent([]), ct);
         return resp.IsSuccessStatusCode;
+    }
+
+    public async Task<string> GetWebhookInfoAsync(CancellationToken ct = default)
+    {
+        var client = CreateClient();
+        var resp = await client.GetAsync("getWebhookInfo", ct);
+        var content = await resp.Content.ReadAsStringAsync(ct);
+        return content;
     }
 }
