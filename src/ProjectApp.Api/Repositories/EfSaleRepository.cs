@@ -140,6 +140,7 @@ public class EfSaleRepository : ISaleRepository
 
         // Update per-manager stats (CreatedBy is username from JWT)
         var managerKey = string.IsNullOrWhiteSpace(sale.CreatedBy) ? "unknown" : sale.CreatedBy!;
+        if (managerKey.Length > 64) managerKey = managerKey.Substring(0, 64);
         var stat = await _db.ManagerStats.FirstOrDefaultAsync(m => m.UserName == managerKey, ct);
         if (stat is null)
         {
