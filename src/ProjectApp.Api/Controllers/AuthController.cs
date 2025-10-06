@@ -22,7 +22,7 @@ public class AuthController(IJwtTokenService tokenService, IOptions<JwtSettings>
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(req.UserName))
+            if (req is null || string.IsNullOrWhiteSpace(req.UserName))
                 return Unauthorized();
 
             // 1) Try DB users
@@ -96,9 +96,11 @@ public class AuthController(IJwtTokenService tokenService, IOptions<JwtSettings>
         catch
         {
             // Last-resort: allow built-in admin login to prevent 500
-            if (!string.IsNullOrWhiteSpace(req.UserName)
-                && string.Equals(req.UserName, "admin", StringComparison.OrdinalIgnoreCase)
-                && string.Equals(req.Password ?? string.Empty, "140606tl", StringComparison.Ordinal))
+            var uname = req?.UserName;
+            var pwd = req?.Password ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(uname)
+                && string.Equals(uname, "admin", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(pwd, "140606tl", StringComparison.Ordinal))
             {
                 var token = tokenService.CreateToken("0", "admin", "Admin");
                 var exp = DateTime.UtcNow.AddMinutes(jwtOptions.Value.AccessTokenLifetimeMinutes);
