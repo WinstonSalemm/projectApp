@@ -54,7 +54,8 @@ public class SalesController : ControllerBase
                 sale.Id, sale.ClientId, sale.Total, sale.PaymentType);
 
             // Fire-and-forget notification (do not block the response)
-            _ = _notifier.NotifySaleAsync(sale, ct);
+            // Use CancellationToken.None to avoid request-abort cancelling Telegram send
+            _ = _notifier.NotifySaleAsync(sale, CancellationToken.None);
 
             var location = $"/api/sales/{sale.Id}";
             return Created(location, sale);

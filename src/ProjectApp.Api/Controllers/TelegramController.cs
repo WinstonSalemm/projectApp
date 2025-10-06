@@ -26,35 +26,49 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
                 return Unauthorized();
         }
 
-        using var reader = new StreamReader(Request.Body);
-        var json = await reader.ReadToEndAsync();
-        using var doc = JsonDocument.Parse(json);
-        var root = doc.RootElement;
-        var message = root.GetProperty("message");
-        var chatId = message.GetProperty("chat").GetProperty("id").GetInt64();
-        var text = message.TryGetProperty("text", out var t) ? t.GetString() ?? string.Empty : string.Empty;
-
-        if (string.IsNullOrWhiteSpace(text)) return Ok();
-
-        if (text.StartsWith("/start") || text.StartsWith("/help"))
+        try
         {
-            var kb = new
+            using var reader = new StreamReader(Request.Body);
+            var json = await reader.ReadToEndAsync();
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            // Support both "message" and "edited_message"; ignore other update types
+            JsonElement message;
+            if (!root.TryGetProperty("message", out message))
             {
-                keyboard = new object[]
+                if (root.TryGetProperty("edited_message", out var edited))
+                    message = edited;
+                else
+                    return Ok();
+            }
+
+            if (!message.TryGetProperty("chat", out var chatElem) || !chatElem.TryGetProperty("id", out var idElem))
+                return Ok();
+            var chatId = idElem.GetInt64();
+            var text = message.TryGetProperty("text", out var t) ? t.GetString() ?? string.Empty : string.Empty;
+
+            if (string.IsNullOrWhiteSpace(text)) return Ok();
+
+            if (text.StartsWith("/start") || text.StartsWith("/help"))
+            {
+                var kb = new
                 {
-                    new object[] { new { text = "/report today" }, new { text = "/top today" } },
-                    new object[] { new { text = "/report week" }, new { text = "/top week" } },
-                    new object[] { new { text = "/report month" }, new { text = "/top month" } }
-                },
-                resize_keyboard = true,
-                one_time_keyboard = false
-            };
-            await tg.SendMessageAsync(chatId,
-                "Добро пожаловать! Доступные команды:\n/report today|week|month — отчёт по продажам\n/top today|week|month — топ-1 продавец\n/stock <SKU> — остатки по артикулу\n/whoami — показать ваш chat id",
-                kb,
-                HttpContext.RequestAborted);
-            return Ok();
-        }
+                    keyboard = new object[]
+                    {
+                        new object[] { new { text = "/report today" }, new { text = "/top today" } },
+                        new object[] { new { text = "/report week" }, new { text = "/top week" } },
+                        new object[] { new { text = "/report month" }, new { text = "/top month" } }
+                    },
+                    resize_keyboard = true,
+                    one_time_keyboard = false
+                };
+                await tg.SendMessageAsync(chatId,
+                    "Добро пожаловать! Доступные команды:\n/report today|week|month — отчёт по продажам\n/top today|week|month — топ-1 продавец\n/stock <SKU> — остатки по артикулу\n/whoami — показать ваш chat id",
+                    kb,
+                    HttpContext.RequestAborted);
+                return Ok();
+            }
 
         if (text.StartsWith("/whoami", StringComparison.OrdinalIgnoreCase))
         {
@@ -158,6 +172,12 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
 
         await tg.SendMessageAsync(chatId, "Неизвестная команда. /help", HttpContext.RequestAborted);
         return Ok();
+        }
+        catch
+        {
+            // Never fail the webhook; just acknowledge to stop retries
+            return Ok();
+        }
     }
 
     private static (DateTime From, DateTime To) ResolveRange(string preset)
