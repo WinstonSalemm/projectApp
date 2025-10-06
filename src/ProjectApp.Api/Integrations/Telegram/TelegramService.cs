@@ -10,6 +10,7 @@ public interface ITelegramService
     Task<bool> SetWebhookAsync(string url, string? secretToken, CancellationToken ct = default);
     Task<bool> DeleteWebhookAsync(CancellationToken ct = default);
     Task<string> GetWebhookInfoAsync(CancellationToken ct = default);
+    Task<(bool ok, string body, int status)> SendMessageDebugAsync(long chatId, string text, object? replyMarkup, CancellationToken ct = default);
 }
 
 public class TelegramService(IHttpClientFactory httpClientFactory, IOptions<TelegramSettings> options) : ITelegramService
@@ -62,5 +63,14 @@ public class TelegramService(IHttpClientFactory httpClientFactory, IOptions<Tele
         var resp = await client.GetAsync("getWebhookInfo", ct);
         var content = await resp.Content.ReadAsStringAsync(ct);
         return content;
+    }
+
+    public async Task<(bool ok, string body, int status)> SendMessageDebugAsync(long chatId, string text, object? replyMarkup, CancellationToken ct = default)
+    {
+        var client = CreateClient();
+        var payload = new { chat_id = chatId, text, reply_markup = replyMarkup };
+        var resp = await client.PostAsJsonAsync("sendMessage", payload, ct);
+        var body = await resp.Content.ReadAsStringAsync(ct);
+        return (resp.IsSuccessStatusCode, body, (int)resp.StatusCode);
     }
 }

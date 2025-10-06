@@ -241,7 +241,7 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Send([FromBody] SendRequest req)
     {
-        var ok = await tg.SendMessageAsync(req.ChatId, string.IsNullOrWhiteSpace(req.Text) ? "ping" : req.Text!, HttpContext.RequestAborted);
-        return Ok(new { ok });
+        var (ok, body, status) = await tg.SendMessageDebugAsync(req.ChatId, string.IsNullOrWhiteSpace(req.Text) ? "ping" : req.Text!, null, HttpContext.RequestAborted);
+        return Ok(new { ok, status, body });
     }
 }
