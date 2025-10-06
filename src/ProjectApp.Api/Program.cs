@@ -544,6 +544,21 @@ await using (var scope = app.Services.CreateAsyncScope())
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 await db.Database.ExecuteSqlRawAsync(sql10);
             }
+
+            // Ensure Sales.ReservationNotes exists (MySQL)
+            var salesResNotesExists = false;
+            using (var conn11 = db.Database.GetDbConnection())
+            {
+                await conn11.OpenAsync();
+                await using var cmd11 = conn11.CreateCommand();
+                cmd11.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Sales' AND COLUMN_NAME = 'ReservationNotes'";
+                var scalar11 = await cmd11.ExecuteScalarAsync();
+                salesResNotesExists = scalar11 != null && scalar11 != DBNull.Value && Convert.ToInt64(scalar11) > 0;
+            }
+            if (!salesResNotesExists)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Sales` ADD COLUMN `ReservationNotes` TEXT NULL;");
+            }
         }
         else if (provider2.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
@@ -751,6 +766,25 @@ await using (var scope = app.Services.CreateAsyncScope())
   Qty DECIMAL(18,3) NOT NULL
 );";
                 await db.Database.ExecuteSqlRawAsync(sql10);
+            }
+
+            // Ensure Sales.ReservationNotes exists (SQLite)
+            var hasSalesResNotes = false;
+            using (var conn11 = db.Database.GetDbConnection())
+            {
+                await conn11.OpenAsync();
+                await using var cmd11 = conn11.CreateCommand();
+                cmd11.CommandText = "PRAGMA table_info('Sales');";
+                await using var reader11 = await cmd11.ExecuteReaderAsync();
+                while (await reader11.ReadAsync())
+                {
+                    var name = reader11.GetString(1);
+                    if (string.Equals(name, "ReservationNotes", StringComparison.OrdinalIgnoreCase)) { hasSalesResNotes = true; break; }
+                }
+            }
+            if (!hasSalesResNotes)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Sales ADD COLUMN ReservationNotes TEXT NULL;");
             }
         }
     }
