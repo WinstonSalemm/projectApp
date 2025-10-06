@@ -73,6 +73,13 @@ public class SalesController : ControllerBase
             var msg = ex.InnerException?.Message ?? ex.Message;
             return ValidationProblem(detail: msg);
         }
+        catch (Exception ex)
+        {
+            // As a temporary measure, return details to help diagnose persistent 500s
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            _logger.LogError(ex, "Error creating sale");
+            return ValidationProblem(detail: msg);
+        }
     }
 
     [HttpGet("{id:int}")]
