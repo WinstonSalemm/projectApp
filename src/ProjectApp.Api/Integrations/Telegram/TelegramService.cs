@@ -33,7 +33,12 @@ public class TelegramService(IHttpClientFactory httpClientFactory, IOptions<Tele
     public async Task<bool> SendMessageAsync(long chatId, string text, object? replyMarkup, CancellationToken ct = default)
     {
         var client = CreateClient();
-        var payload = new { chat_id = chatId, text, reply_markup = replyMarkup };
+        var payload = new Dictionary<string, object?>
+        {
+            ["chat_id"] = chatId,
+            ["text"] = text
+        };
+        if (replyMarkup is not null) payload["reply_markup"] = replyMarkup;
         var resp = await client.PostAsJsonAsync("sendMessage", payload, ct);
         return resp.IsSuccessStatusCode;
     }
@@ -68,7 +73,12 @@ public class TelegramService(IHttpClientFactory httpClientFactory, IOptions<Tele
     public async Task<(bool ok, string body, int status)> SendMessageDebugAsync(long chatId, string text, object? replyMarkup, CancellationToken ct = default)
     {
         var client = CreateClient();
-        var payload = new { chat_id = chatId, text, reply_markup = replyMarkup };
+        var payload = new Dictionary<string, object?>
+        {
+            ["chat_id"] = chatId,
+            ["text"] = text
+        };
+        if (replyMarkup is not null) payload["reply_markup"] = replyMarkup;
         var resp = await client.PostAsJsonAsync("sendMessage", payload, ct);
         var body = await resp.Content.ReadAsStringAsync(ct);
         return (resp.IsSuccessStatusCode, body, (int)resp.StatusCode);
