@@ -233,4 +233,15 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
         var info = await tg.GetWebhookInfoAsync(HttpContext.RequestAborted);
         return Content(info, "application/json");
     }
+
+    public record SendRequest(long ChatId, string? Text);
+
+    // POST /api/telegram/send
+    [HttpPost("send")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> Send([FromBody] SendRequest req)
+    {
+        var ok = await tg.SendMessageAsync(req.ChatId, string.IsNullOrWhiteSpace(req.Text) ? "ping" : req.Text!, HttpContext.RequestAborted);
+        return Ok(new { ok });
+    }
 }
