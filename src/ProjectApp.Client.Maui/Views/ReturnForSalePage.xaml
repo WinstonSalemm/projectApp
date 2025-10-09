@@ -3,39 +3,38 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ProjectApp.Client.Maui.Views.ReturnForSalePage"
              Title="Возврат по продаже">
-  <ScrollView>
-    <VerticalStackLayout Padding="16" Spacing="12">
+  <Grid Padding="16" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="12">
+    <VerticalStackLayout Grid.Row="0" Spacing="6">
       <Label Text="Информация о продаже" FontAttributes="Bold"/>
       <Label Text="{Binding SaleId, StringFormat='Продажа #{0}'}"/>
       <Label Text="{Binding ClientName}"/>
-      <Label Text="{Binding PaymentType}"/>
-      <Label Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"/>
-
-      <Label Text="Позиции" FontAttributes="Bold"/>
-      <CollectionView ItemsSource="{Binding Lines}">
-        <CollectionView.ItemTemplate>
-          <DataTemplate>
-            <Frame Padding="8" HasShadow="False" CornerRadius="8">
-              <Grid ColumnDefinitions="*,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
-                <Label Grid.Row="0" Grid.Column="0" Text="{Binding Sku}" FontAttributes="Bold"/>
-                <Label Grid.Row="0" Grid.Column="1" Text="{Binding Name}"/>
-                <Label Grid.Row="1" Grid.Column="0" Text="Продано:"/>
-                <Label Grid.Row="1" Grid.Column="1" Text="{Binding SoldQty}"/>
-                <Label Grid.Row="2" Grid.Column="0" Text="Доступно к возврату:"/>
-                <Label Grid.Row="2" Grid.Column="1" Text="{Binding AvailableQty}"/>
-                <Entry Grid.Row="0" Grid.Column="2" WidthRequest="100" Keyboard="Numeric" Text="{Binding ReturnQty}"/>
-              </Grid>
-            </Frame>
-          </DataTemplate>
-        </CollectionView.ItemTemplate>
-      </CollectionView>
-
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <Button Text="Выбрать всё" Command="{Binding SelectAllCommand}"/>
-        <Button Grid.Column="1" Text="Оформить возврат" Command="{Binding SubmitCommand}"/>
-      </Grid>
-
-      <Label Text="{Binding StatusMessage}" TextColor="Red"/>
+      <Label Text="{Binding PaymentType, Converter={StaticResource PaymentTypeToRuConverter}}"/>
+      <Label Text="{Binding CreatedAt, Converter={StaticResource DateTimeToRuConverter}}"/>
     </VerticalStackLayout>
-  </ScrollView>
+
+    <CollectionView Grid.Row="1" ItemsSource="{Binding Lines}">
+      <CollectionView.ItemTemplate>
+        <DataTemplate>
+          <Frame Padding="8" HasShadow="False" CornerRadius="8">
+            <Grid ColumnDefinitions="*,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
+              <Label Grid.Row="0" Grid.Column="0" Text="{Binding Sku}" FontAttributes="Bold"/>
+              <Label Grid.Row="0" Grid.Column="1" Text="{Binding Name}"/>
+              <Label Grid.Row="1" Grid.Column="0" Text="Продано:"/>
+              <Label Grid.Row="1" Grid.Column="1" Text="{Binding SoldQty}"/>
+              <Label Grid.Row="2" Grid.Column="0" Text="Доступно к возврату:"/>
+              <Label Grid.Row="2" Grid.Column="1" Text="{Binding AvailableQty}"/>
+              <Entry Grid.Row="0" Grid.Column="2" WidthRequest="100" Keyboard="Numeric" Text="{Binding ReturnQty}"/>
+            </Grid>
+          </Frame>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+    </CollectionView>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <Button Text="Выбрать всё" Command="{Binding SelectAllCommand}"/>
+      <Button Grid.Column="1" Text="Оформить возврат" Command="{Binding SubmitCommand}"/>
+    </Grid>
+
+    <Label Grid.Row="3" Text="{Binding StatusMessage}" TextColor="Red"/>
+  </Grid>
 </ContentPage>

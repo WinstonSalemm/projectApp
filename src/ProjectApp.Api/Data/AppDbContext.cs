@@ -6,6 +6,7 @@ namespace ProjectApp.Api.Data;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<CategoryRec> Categories => Set<CategoryRec>();
     public DbSet<Client> Clients => Set<Client>();
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleItem> SaleItems => Set<SaleItem>();
@@ -52,6 +53,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(p => p.Price).HasColumnType("decimal(18,2)");
             b.HasIndex(p => p.Sku).IsUnique(false);
             b.HasData(seedProducts);
+        });
+
+        // Categories (optional directory of categories, in addition to Product.Category strings)
+        modelBuilder.Entity<CategoryRec>(b =>
+        {
+            b.ToTable("Categories");
+            b.HasKey(c => c.Id);
+            b.Property(c => c.Name).IsRequired().HasMaxLength(128);
+            b.HasIndex(c => c.Name).IsUnique();
         });
 
         modelBuilder.Entity<Client>(b =>

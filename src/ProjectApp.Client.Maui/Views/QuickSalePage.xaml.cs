@@ -60,7 +60,7 @@ public partial class QuickSalePage : ContentPage
 
     private async void OnReturnsClicked(object? sender, EventArgs e)
     {
-        var page = _services.GetService<ReturnsPage>();
+        var page = _services.GetService<SalesHistoryPage>();
         if (page != null)
         {
             await Navigation.PushAsync(page);

@@ -3,30 +3,34 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ProjectApp.Client.Maui.Views.SuppliesHistoryPage"
              Title="Поставки">
-  <ScrollView>
-    <VerticalStackLayout Padding="16" Spacing="12">
-      <HorizontalStackLayout Spacing="8">
-        <Label Text="Код партии:" VerticalTextAlignment="Center"/>
-        <Entry Text="{Binding CodeFilter}" Placeholder="например, 2025-10"/>
-        <Button Text="Обновить" Command="{Binding LoadCommand}"/>
-      </HorizontalStackLayout>
+  <Grid Padding="16" RowDefinitions="Auto,*" RowSpacing="12">
+    <HorizontalStackLayout Grid.Row="0" Spacing="8">
+      <Label Text="Код партии:" VerticalTextAlignment="Center"/>
+      <Entry Text="{Binding CodeFilter}" Placeholder="например, 2025-10"/>
+      <Button Text="Обновить" Command="{Binding LoadCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8"/>
+    </HorizontalStackLayout>
 
-      <CollectionView ItemsSource="{Binding Items}">
-        <CollectionView.ItemTemplate>
-          <DataTemplate>
-            <Frame Padding="10" HasShadow="False" CornerRadius="10">
-              <VerticalStackLayout Spacing="6">
-                <Label Text="{Binding Code, StringFormat='Код: {0}'}" FontAttributes="Bold"/>
-                <Label Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}" FontSize="12" TextColor="Gray"/>
-                <Label Text="{Binding ProductId, StringFormat='Товар: #{0}'}"/>
-                <Label Text="{Binding Register, StringFormat='Регистр: {0}'}" FontSize="12"/>
-                <Label Text="{Binding Qty, StringFormat='Кол-во: {0}'}"/>
-                <Label Text="{Binding UnitCost, StringFormat='Себестоимость: {0:C}'}"/>
-              </VerticalStackLayout>
-            </Frame>
-          </DataTemplate>
-        </CollectionView.ItemTemplate>
-      </CollectionView>
-    </VerticalStackLayout>
-  </ScrollView>
+    <CollectionView Grid.Row="1" ItemsSource="{Binding Items}">
+      <CollectionView.ItemTemplate>
+        <DataTemplate>
+          <Frame Padding="10" HasShadow="False" CornerRadius="10">
+            <VerticalStackLayout Spacing="6">
+              <Label Text="{Binding Code, StringFormat='Код: {0}'}" FontAttributes="Bold"/>
+              <Label Text="{Binding CreatedAt, Converter={StaticResource DateTimeToRuConverter}}" FontSize="12" TextColor="Gray"/>
+              <Label Text="{Binding ProductId, StringFormat='Товар: #{0}'}"/>
+              <Label Text="{Binding Register, StringFormat='Регистр: {0}'}" FontSize="12"/>
+              <Label Text="{Binding Qty, StringFormat='Кол-во: {0}'}"/>
+              <Label Text="{Binding UnitCost, Converter={StaticResource CurrencyConverter}, StringFormat='Себестоимость: {0}'}"/>
+            </VerticalStackLayout>
+          </Frame>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+      <CollectionView.EmptyView>
+        <VerticalStackLayout Padding="12" Spacing="6">
+          <Label Text="Поставки не найдены" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
+          <Label Text="Уточните код партии и обновите список" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+        </VerticalStackLayout>
+      </CollectionView.EmptyView>
+    </CollectionView>
+  </Grid>
 </ContentPage>

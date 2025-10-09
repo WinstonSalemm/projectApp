@@ -145,4 +145,69 @@ public class ApiStocksService : IStocksService
             Note = d.Note
         });
     }
+
+    private class AvailabilityDto
+    {
+        public string Key { get; set; } = string.Empty; // productId as string
+        public decimal TotalQty { get; set; }
+        public decimal Im40Qty { get; set; }
+        public decimal Nd40Qty { get; set; }
+    }
+
+    // Open endpoint (no auth) used as a fallback for quick sale when secured stocks endpoint is unavailable
+    public async Task<Dictionary<int, (decimal Total, decimal Im40, decimal Nd40)>> GetAvailabilityByProductIdsAsync(IEnumerable<int> productIds, CancellationToken ct = default)
+    {
+        var ids = productIds?.Distinct().ToList() ?? new List<int>();
+        if (ids.Count == 0) return new();
+        var client = _httpClientFactory.CreateClient();
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        // This endpoint is open; auth header not required but harmless
+        _auth.ConfigureClient(client);
+        var qs = Uri.EscapeDataString(string.Join(',', ids));
+        var url = $"/api/stock/available/by-product-ids?ids={qs}";
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
+        using var resp = await client.SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            return new();
+        }
+        var list = await resp.Content.ReadFromJsonAsync<List<AvailabilityDto>>(cancellationToken: ct) ?? new();
+        var dict = new Dictionary<int, (decimal Total, decimal Im40, decimal Nd40)>();
+        foreach (var a in list)
+        {
+            if (int.TryParse(a.Key, out var pid))
+            {
+                dict[pid] = (a.TotalQty, a.Im40Qty, a.Nd40Qty);
+            }
+        }
+        return dict;
+    }
+
+    // Another open endpoint (key = SKU)
+    public async Task<Dictionary<string, (decimal Total, decimal Im40, decimal Nd40)>> GetAvailabilityBySkusAsync(IEnumerable<string> skus, CancellationToken ct = default)
+    {
+        var list = skus?.Where(s => !string.IsNullOrWhiteSpace(s))
+                        .Select(s => s.Trim().ToUpperInvariant())
+                        .Distinct()
+                        .ToList() ?? new List<string>();
+        if (list.Count == 0) return new();
+        var client = _httpClientFactory.CreateClient();
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+        var qs = Uri.EscapeDataString(string.Join(',', list));
+        var url = $"/api/stock/available?skus={qs}";
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
+        using var resp = await client.SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode) return new();
+        var arr = await resp.Content.ReadFromJsonAsync<List<AvailabilityDto>>(cancellationToken: ct) ?? new();
+        var dict = new Dictionary<string, (decimal Total, decimal Im40, decimal Nd40)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in arr)
+        {
+            if (!string.IsNullOrWhiteSpace(a.Key))
+                dict[a.Key] = (a.TotalQty, a.Im40Qty, a.Nd40Qty);
+        }
+        return dict;
+    }
 }

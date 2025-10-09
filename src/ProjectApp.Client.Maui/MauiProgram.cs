@@ -76,6 +76,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<IStocksService>(sp => sp.GetRequiredService<ApiStocksService>());
         builder.Services.AddSingleton<ApiContractsService>();
         builder.Services.AddSingleton<IContractsService>(sp => sp.GetRequiredService<ApiContractsService>());
+        // Products (create)
+        builder.Services.AddSingleton<ApiProductsService>();
+        builder.Services.AddSingleton<IProductsService>(sp => sp.GetRequiredService<ApiProductsService>());
         builder.Services.AddSingleton<ApiClientsService>();
         builder.Services.AddSingleton<ISuppliesService>(sp => sp.GetRequiredService<ApiSuppliesService>());
         builder.Services.AddSingleton<IReturnsService>(sp => sp.GetRequiredService<ApiReturnsService>());
@@ -119,6 +122,8 @@ public static class MauiProgram
         builder.Services.AddTransient<SuppliesHistoryPage>();
         builder.Services.AddTransient<ContractsHistoryViewModel>();
         builder.Services.AddTransient<ContractsHistoryPage>();
+        builder.Services.AddTransient<ProductCreateViewModel>();
+        builder.Services.AddTransient<ProductCreatePage>();
         builder.Services.AddTransient<HistoryTabsPage>();
         builder.Services.AddTransient<ClientsListViewModel>();
         builder.Services.AddTransient<ClientsListPage>();

@@ -5,6 +5,9 @@ using System;
 using System.Linq;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using Microsoft.Maui.Controls;
+using Microsoft.Extensions.DependencyInjection;
+using ProjectApp.Client.Maui;
 
 namespace ProjectApp.Client.Maui.ViewModels;
 
@@ -129,7 +132,12 @@ public partial class ReturnForSaleViewModel : ObservableObject
             if (ok)
             {
                 await Application.Current!.MainPage!.DisplayAlert("OK", "Возврат создан", "OK");
-                await Application.Current!.MainPage!.Navigation.PopAsync();
+                try
+                {
+                    var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
+                    Application.Current!.MainPage = new NavigationPage(select);
+                }
+                catch { }
             }
         }
         catch (Exception ex)

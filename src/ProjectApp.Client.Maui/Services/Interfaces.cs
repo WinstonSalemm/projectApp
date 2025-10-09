@@ -182,14 +182,24 @@ public class RoutedCatalogService : ICatalogService
         _mock = mock;
     }
 
-    public Task<IEnumerable<ProductModel>> SearchAsync(string? query, string? category = null, CancellationToken ct = default)
+    public async Task<IEnumerable<ProductModel>> SearchAsync(string? query, string? category = null, CancellationToken ct = default)
     {
-        return _settings.UseApi ? _api.SearchAsync(query, category, ct) : _mock.SearchAsync(query, category, ct);
+        if (_settings.UseApi)
+        {
+            try { return await _api.SearchAsync(query, category, ct); }
+            catch { return await _mock.SearchAsync(query, category, ct); }
+        }
+        return await _mock.SearchAsync(query, category, ct);
     }
 
-    public Task<IEnumerable<string>> GetCategoriesAsync(CancellationToken ct = default)
+    public async Task<IEnumerable<string>> GetCategoriesAsync(CancellationToken ct = default)
     {
-        return _settings.UseApi ? _api.GetCategoriesAsync(ct) : _mock.GetCategoriesAsync(ct);
+        if (_settings.UseApi)
+        {
+            try { return await _api.GetCategoriesAsync(ct); }
+            catch { return await _mock.GetCategoriesAsync(ct); }
+        }
+        return await _mock.GetCategoriesAsync(ct);
     }
 }
 
@@ -210,4 +220,20 @@ public class RoutedSalesService : ISalesService
     {
         return _settings.UseApi ? _api.SubmitSaleAsync(draft, ct) : _mock.SubmitSaleAsync(draft, ct);
     }
+}
+
+// ----- Products (create product and create category) -----
+public class ProductCreateDraft
+{
+    public string Sku { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Unit { get; set; } = "шт";
+    public decimal Price { get; set; }
+    public string Category { get; set; } = string.Empty;
+}
+
+public interface IProductsService
+{
+    Task<bool> CreateCategoryAsync(string name, CancellationToken ct = default);
+    Task<int?> CreateProductAsync(ProductCreateDraft draft, CancellationToken ct = default);
 }

@@ -11,7 +11,7 @@
     </ResourceDictionary>
   </ContentPage.Resources>
   <ContentPage.ToolbarItems>
-    <ToolbarItem Text="Настройки" Clicked="OnSettingsClicked" />
+    <ToolbarItem Text="Настройки" Clicked="OnSettingsClicked" IconImageSource="{StaticResource IconSettings}" />
   </ContentPage.ToolbarItems>
   <ContentPage.Content>
     <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto" Padding="12">
@@ -19,7 +19,7 @@
       <Frame Grid.Row="0" BackgroundColor="#FFCC00" Padding="8" HasShadow="False" IsVisible="{Binding IsOffline}">
         <HorizontalStackLayout Spacing="12">
           <Label Text="Оффлайн режим (моки)" FontAttributes="Bold" VerticalOptions="Center"/>
-          <Button Text="Повторить" Command="{Binding RetryCommand}" />
+          <Button Text="Повторить" Command="{Binding RetryCommand}" Style="{StaticResource OutlinedButton}" />
         </HorizontalStackLayout>
       </Frame>
 
@@ -37,26 +37,71 @@
       <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
         <!-- Search results as cards grid -->
         <VerticalStackLayout Grid.Column="0">
-          <Label Text="Результаты" FontAttributes="Bold"/>
+          <Label Text="Результаты" Style="{StaticResource SectionTitle}"/>
           <CollectionView ItemsSource="{Binding SearchResults}" Margin="0,8,0,0">
+            <CollectionView.EmptyView>
+              <VerticalStackLayout Padding="12" Spacing="6">
+                <Label Text="Ничего не найдено" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
+                <Label Text="Попробуйте изменить запрос или категорию" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+              </VerticalStackLayout>
+            </CollectionView.EmptyView>
             <CollectionView.ItemsLayout>
               <GridItemsLayout Orientation="Vertical" Span="4" />
             </CollectionView.ItemsLayout>
             <CollectionView.ItemTemplate>
               <DataTemplate>
-                <Frame Padding="8" HasShadow="False" CornerRadius="10" HeightRequest="140">
+                <Frame Style="{StaticResource CardFrame}" HeightRequest="160">
                   <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*">
                     <Label Grid.Row="0" Text="{Binding Name}" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
-                    <VerticalStackLayout Grid.Row="1" Spacing="4">
+                    <VerticalStackLayout Grid.Row="1" Spacing="6">
                       <Label Text="{Binding Sku}" FontSize="12" TextColor="Gray"/>
-                      <Label Text="{Binding Price, StringFormat='{0:C}'}" FontSize="14"/>
-                      <HorizontalStackLayout Spacing="10">
-                        <Label Text="{Binding Nd40Qty, StringFormat='ND-40 {0}'}" FontSize="11"/>
-                        <Label Text="{Binding Im40Qty, StringFormat='IM-40 {0}'}" FontSize="11"/>
-                        <Label Text="{Binding TotalQty, StringFormat='Всего {0}'}" FontSize="11"/>
+                      <Label x:Name="PriceLabel" Text="{Binding Price, Converter={StaticResource CurrencyConverter}}" FontSize="14">
+                        <Label.Triggers>
+                          <DataTrigger TargetType="Label" Binding="{Binding Price}" Value="0">
+                            <Setter Property="TextColor" Value="#B91C1C" />
+                            <Setter Property="FontAttributes" Value="Bold" />
+                          </DataTrigger>
+                        </Label.Triggers>
+                      </Label>
+                      <HorizontalStackLayout Spacing="8">
+                        <!-- ND-40 badge -->
+                        <Frame Style="{StaticResource BadgeFrame}"
+                               BackgroundColor="{Binding Nd40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=bg}"
+                               BorderColor="{Binding Nd40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=border}">
+                          <Label Text="{Binding Nd40Qty, StringFormat='ND-40: {0:N0}'}" FontSize="11"
+                                 TextColor="{Binding Nd40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}"/>
+                        </Frame>
+                        <!-- IM-40 badge -->
+                        <Frame Style="{StaticResource BadgeFrame}"
+                               BackgroundColor="{Binding Im40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=bg}"
+                               BorderColor="{Binding Im40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=border}">
+                          <Label Text="{Binding Im40Qty, StringFormat='IM-40: {0:N0}'}" FontSize="11"
+                                 TextColor="{Binding Im40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}"/>
+                        </Frame>
+                        <!-- Total badge -->
+                        <Frame Style="{StaticResource BadgeFrame}"
+                               BackgroundColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=bg}"
+                               BorderColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=border}">
+                          <Label Text="{Binding TotalQty, StringFormat='Всего: {0:N0}'}" FontSize="11"
+                                 TextColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}"/>
+                        </Frame>
                       </HorizontalStackLayout>
+                      <!-- Out of stock notice -->
+                      <Label Text="Нет в наличии" FontAttributes="Bold" TextColor="#B91C1C" IsVisible="False">
+                        <Label.Triggers>
+                          <DataTrigger TargetType="Label" Binding="{Binding TotalQty}" Value="0">
+                            <Setter Property="IsVisible" Value="True" />
+                          </DataTrigger>
+                        </Label.Triggers>
+                      </Label>
                     </VerticalStackLayout>
-                    <Button Grid.Row="2" Text="Добавить" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.AddToCartCommand}" CommandParameter="{Binding .}"/>
+                    <Button Grid.Row="2" Text="Добавить" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.AddToCartCommand}" CommandParameter="{Binding .}" ImageSource="{StaticResource IconAdd}" ContentLayout="Left,8">
+                      <Button.Triggers>
+                        <DataTrigger TargetType="Button" Binding="{Binding TotalQty}" Value="0">
+                          <Setter Property="IsVisible" Value="False" />
+                        </DataTrigger>
+                      </Button.Triggers>
+                    </Button>
                   </Grid>
                 </Frame>
               </DataTemplate>
@@ -64,24 +109,29 @@
           </CollectionView>
         </VerticalStackLayout>
 
-        <!-- Cart -->
         <VerticalStackLayout Grid.Column="1">
           <Label Text="Корзина" FontAttributes="Bold"/>
           <CollectionView ItemsSource="{Binding Cart}" Margin="0,8,0,0">
             <CollectionView.ItemTemplate>
               <DataTemplate>
-                <Grid ColumnDefinitions="*,Auto,Auto,Auto" Padding="4" ColumnSpacing="8">
+                <Grid ColumnDefinitions="*,Auto,Auto" Padding="4" ColumnSpacing="8">
                   <VerticalStackLayout>
                     <Label Text="{Binding Name}" FontAttributes="Bold"/>
                     <HorizontalStackLayout Spacing="6">
                       <Label Text="Цена:" FontSize="12"/>
                       <Entry Text="{Binding UnitPrice, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="100" FontSize="12"/>
                     </HorizontalStackLayout>
+                    <HorizontalStackLayout Spacing="6">
+                      <Label Text="Кол-во:" FontSize="12"/>
+                      <Entry Text="{Binding Qty, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="80" FontSize="12" />
+                    </HorizontalStackLayout>
+                    <HorizontalStackLayout Spacing="6">
+                      <Label Text="Сумма:" FontSize="12"/>
+                      <Label Text="{Binding Subtotal, Converter={StaticResource CurrencyConverter}}" FontAttributes="Bold"/>
+                    </HorizontalStackLayout>
                     <Label Text="{Binding Source={x:Reference RootPage}, Path=BindingContext.Total, StringFormat=''}" IsVisible="False"/>
                   </VerticalStackLayout>
-                  <Stepper Grid.Column="1" Minimum="0" Maximum="1000" Increment="1" Value="{Binding Qty, Mode=TwoWay}"/>
-                  <Label Grid.Column="2" Text="{Binding Qty, StringFormat='x{0:F0}'}" VerticalTextAlignment="Center"/>
-                  <Button Grid.Column="3" Text="Удалить" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RemoveFromCartCommand}" CommandParameter="{Binding .}"/>
+                  <Button Grid.Column="2" Text="Удалить" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RemoveFromCartCommand}" CommandParameter="{Binding .}" Style="{StaticResource OutlinedButton}"/>
                 </Grid>
               </DataTemplate>
             </CollectionView.ItemTemplate>
@@ -94,16 +144,18 @@
         <Label Text="Тип продажи:" VerticalOptions="Center"/>
         <Label VerticalOptions="Center"
                Text="{Binding SelectedPaymentType, Converter={StaticResource PaymentTypeToRuConverter}}"/>
-        <Button Text="Изменить" Command="{Binding ChangePaymentTypeCommand}"/>
+        <Button Text="Изменить" Command="{Binding ChangePaymentTypeCommand}" Style="{StaticResource OutlinedButton}"/>
         <Entry Placeholder="Имя клиента (необязательно)" Text="{Binding ClientName}" HorizontalOptions="FillAndExpand"/>
-        <Button Text="Клиент" Clicked="OnPickClientClicked"/>
+        <Button Text="Клиент" Clicked="OnPickClientClicked" Style="{StaticResource OutlinedButton}"/>
       </HorizontalStackLayout>
 
       <!-- Totals -->
-      <HorizontalStackLayout Grid.Row="4" Spacing="12">
-        <Label Text="Итого:" FontAttributes="Bold"/>
-        <Label Text="{Binding Total, StringFormat='{0:C}'}" FontAttributes="Bold"/>
-      </HorizontalStackLayout>
+      <Frame Grid.Row="4" Padding="8">
+        <HorizontalStackLayout Spacing="12">
+          <Label Text="Итого:" FontAttributes="Bold"/>
+          <Label Text="{Binding Total, Converter={StaticResource CurrencyConverter}}" FontAttributes="Bold"/>
+        </HorizontalStackLayout>
+      </Frame>
 
       <!-- Submit -->
       <!-- Reservation notes (visible only for Reservation) -->
@@ -111,21 +163,21 @@
         <Label Text="Заметки к броне" FontAttributes="Bold"/>
         <HorizontalStackLayout Spacing="8">
           <Entry Placeholder="Текст заметки" Text="{Binding NewReservationNote}" HorizontalOptions="FillAndExpand"/>
-          <Button Text="Добавить" Command="{Binding AddReservationNoteCommand}"/>
+          <Button Text="Добавить" Command="{Binding AddReservationNoteCommand}" Style="{StaticResource OutlinedButton}"/>
         </HorizontalStackLayout>
         <CollectionView ItemsSource="{Binding ReservationNotes}" Margin="0,4,0,0">
           <CollectionView.ItemTemplate>
             <DataTemplate>
               <Grid ColumnDefinitions="*,Auto" Padding="4" ColumnSpacing="8">
                 <Label Text="{Binding .}"/>
-                <Button Grid.Column="1" Text="Удалить" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RemoveReservationNoteCommand}" CommandParameter="{Binding .}"/>
+                <Button Grid.Column="1" Text="Удалить" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RemoveReservationNoteCommand}" CommandParameter="{Binding .}" Style="{StaticResource OutlinedButton}"/>
               </Grid>
             </DataTemplate>
           </CollectionView.ItemTemplate>
         </CollectionView>
       </VerticalStackLayout>
 
-      <Button Grid.Row="6" Text="Провести" Command="{Binding SubmitCommand}" Margin="0,8,0,0"/>
+      <Button Grid.Row="6" Text="Провести" Command="{Binding SubmitCommand}" IsEnabled="{Binding CanSubmit}" Margin="0,8,0,0"/>
     </Grid>
   </ContentPage.Content>
 </ContentPage>

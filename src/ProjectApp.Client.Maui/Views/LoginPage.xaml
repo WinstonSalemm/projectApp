@@ -5,11 +5,15 @@
              Title="Вход">
   <ContentPage.Content>
     <ScrollView>
-      <VerticalStackLayout Padding="24" Spacing="12">
-        <Label Text="Вход" FontAttributes="Bold" FontSize="20"/>
-        <Entry Placeholder="Логин" Text="{Binding UserName}"/>
-        <Entry Placeholder="Пароль (для Админа)" IsPassword="True" Text="{Binding Password}" IsVisible="{Binding IsPasswordVisible}"/>
-        <Button Text="Войти" Command="{Binding LoginCommand}"/>
+      <VerticalStackLayout Padding="24" Spacing="16">
+        <Label Text="Вход" FontAttributes="Bold" FontSize="24"/>
+        <Frame>
+          <VerticalStackLayout Spacing="12">
+            <Entry Placeholder="Логин" Text="{Binding UserName}"/>
+            <Entry Placeholder="Пароль (для Админа)" IsPassword="True" Text="{Binding Password}" IsVisible="{Binding IsPasswordVisible}"/>
+            <Button Text="Войти" Command="{Binding LoginCommand}"/>
+          </VerticalStackLayout>
+        </Frame>
       </VerticalStackLayout>
     </ScrollView>
   </ContentPage.Content>

@@ -2,6 +2,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProjectApp.Client.Maui.Services;
 using System.Collections.ObjectModel;
+using Microsoft.Maui.Controls;
+using Microsoft.Extensions.DependencyInjection;
+using ProjectApp.Client.Maui;
 
 namespace ProjectApp.Client.Maui.ViewModels;
 
@@ -97,6 +100,13 @@ public partial class ContractCreateViewModel : ObservableObject
             {
                 OrgName = string.Empty; Inn = null; Phone = null; Note = null; Status = "Signed"; Items.Clear();
                 Created?.Invoke(this, true);
+                // Navigate to account selection
+                try
+                {
+                    var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
+                    Application.Current!.MainPage = new NavigationPage(select);
+                }
+                catch { }
             }
         }
         catch (Exception ex)

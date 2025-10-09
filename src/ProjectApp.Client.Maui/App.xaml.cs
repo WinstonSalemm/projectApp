@@ -7,9 +7,11 @@ namespace ProjectApp.Client.Maui;
 
 public partial class App : Application
 {
+    public static IServiceProvider Services { get; private set; } = default!;
     public App(IServiceProvider services, AuthService auth)
     {
         InitializeComponent();
+        Services = services;
         if (auth.IsAuthenticated)
         {
             // After auth, force user to choose sale type and category first

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.ProductCreatePage"
+             Title="Новый товар">
+  <ScrollView>
+    <VerticalStackLayout Padding="12" Spacing="12">
+      <Frame>
+        <VerticalStackLayout Spacing="8">
+          <Label Text="Категория" FontAttributes="Bold"/>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <Picker Grid.Column="0" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}"/>
+            <Button Grid.Column="1" Text="Обновить" Command="{Binding LoadCategoriesAsyncCommand}"/>
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <Entry Grid.Column="0" Placeholder="Новая категория" Text="{Binding NewCategoryName}"/>
+            <Button Grid.Column="1" Text="Создать" Command="{Binding CreateCategoryAsyncCommand}"/>
+          </Grid>
+        </VerticalStackLayout>
+      </Frame>
+
+      <Frame>
+        <VerticalStackLayout Spacing="8">
+          <Label Text="Параметры товара" FontAttributes="Bold"/>
+          <Entry Placeholder="SKU" Text="{Binding Sku}"/>
+          <Entry Placeholder="Название" Text="{Binding Name}"/>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <Entry Grid.Column="0" Placeholder="Ед. измерения (шт)" Text="{Binding Unit}"/>
+            <Entry Grid.Column="1" Placeholder="Цена" Keyboard="Numeric" Text="{Binding Price}"/>
+          </Grid>
+        </VerticalStackLayout>
+      </Frame>
+
+      <HorizontalStackLayout Spacing="8">
+        <Button Text="Создать товар" Command="{Binding CreateProductAsyncCommand}"/>
+      </HorizontalStackLayout>
+
+      <Label Text="{Binding StatusMessage}" TextColor="Orange"/>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

@@ -60,7 +60,6 @@ public partial class QuickSaleViewModel : ObservableObject
         PaymentType.ClickNoReceipt,
         PaymentType.Click, // legacy
         PaymentType.Site,
-        PaymentType.Return,
         PaymentType.Reservation,
         PaymentType.Payme,
     };
@@ -81,6 +80,9 @@ public partial class QuickSaleViewModel : ObservableObject
     private bool isOffline = true;
 
     [ObservableProperty]
+    private bool canSubmit;
+
+    [ObservableProperty]
     private decimal total;
 
     [ObservableProperty]
@@ -96,6 +98,22 @@ public partial class QuickSaleViewModel : ObservableObject
     public ObservableCollection<string> ReservationNotes { get; } = new();
     [ObservableProperty]
     private string newReservationNote = string.Empty;
+
+    [RelayCommand]
+    private void AddReservationNote()
+    {
+        var note = (NewReservationNote ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(note)) return;
+        ReservationNotes.Add(note);
+        NewReservationNote = string.Empty;
+    }
+
+    [RelayCommand]
+    private void RemoveReservationNote(string? note)
+    {
+        if (string.IsNullOrWhiteSpace(note)) return;
+        ReservationNotes.Remove(note);
+    }
 
     public QuickSaleViewModel(ICatalogService catalog, ISalesService sales, IStocksService stocks, AppSettings settings, AuthService auth)
     {
@@ -113,6 +131,7 @@ public partial class QuickSaleViewModel : ObservableObject
         _ = LoadCategoriesAsync();
         // Admin cannot conduct sales
         IsSaleAllowed = !string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+        UpdateCanSubmit();
 
         // Listen for client picker selection
         WeakReferenceMessenger.Default.Register<ClientPickedMessage>(this, (r, m) =>
@@ -145,20 +164,52 @@ public partial class QuickSaleViewModel : ObservableObject
             {
                 await Task.Delay(300, token); // debounce 300ms
                 if (token.IsCancellationRequested) return;
+                // Require auth in API mode to avoid silent zero stocks for non-auth users
+                if (_settings.UseApi && !_auth.IsAuthenticated)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                    {
+                        IsOffline = true;
+                        try { await Toast.Make("Нужен вход: выполните вход как Менеджер и повторите поиск", ToastDuration.Short).Show(token); } catch { }
+                    });
+                    return;
+                }
                 _lastAction = LastAction.Search;
                 _lastSearchQuery = searchText;
                 var cat = string.IsNullOrWhiteSpace(SelectedCategory) ? _presetCategory : SelectedCategory;
                 // 1) Catalog is mandatory
                 var results = await _catalog.SearchAsync(searchText, cat, token);
-                // 2) Stocks are optional
-                IEnumerable<StockViewModel> stockList;
+                // 2) Stocks are optional, fallback to public availability if secured API fails
+                IEnumerable<StockViewModel> stockList = Enumerable.Empty<StockViewModel>();
+                Dictionary<int, (decimal Total, decimal Im40, decimal Nd40)>? availability = null;
+                Dictionary<string, (decimal Total, decimal Im40, decimal Nd40)>? availabilityBySku = null;
                 try
                 {
                     stockList = await _stocks.GetStocksAsync(searchText, cat, token);
                 }
                 catch
                 {
-                    stockList = Enumerable.Empty<StockViewModel>();
+                    // ignore here; we'll try fallback below
+                }
+                bool needsFallback = (!stockList?.Any() ?? true) || (stockList.Any() && stockList.All(s => s.TotalQty == 0m));
+                if (needsFallback && _settings.UseApi && _stocks is ProjectApp.Client.Maui.Services.ApiStocksService apiStocks1)
+                {
+                    try
+                    {
+                        var ids = results.Select(r => r.Id);
+                        availability = await apiStocks1.GetAvailabilityByProductIdsAsync(ids, token);
+                    }
+                    catch { }
+                    // If still nothing meaningful, try by SKUs
+                    try
+                    {
+                        if (availability == null || availability.Count == 0)
+                        {
+                            var skus = results.Select(r => r.Sku);
+                            availabilityBySku = await apiStocks1.GetAvailabilityBySkusAsync(skus, token);
+                        }
+                    }
+                    catch { }
                 }
                 var stockMap = stockList.ToDictionary(s => s.ProductId, s => s);
 
@@ -168,6 +219,18 @@ public partial class QuickSaleViewModel : ObservableObject
                     foreach (var p in results)
                     {
                         stockMap.TryGetValue(p.Id, out var stock);
+                        // default tuple values to satisfy definite assignment
+                        (decimal Total, decimal Im40, decimal Nd40) availTuple = default;
+                        var hasAvail = availability != null && availability.TryGetValue(p.Id, out availTuple);
+                        if (!hasAvail && availabilityBySku != null)
+                        {
+                            var key = (p.Sku ?? string.Empty).ToUpperInvariant();
+                            if (availabilityBySku.TryGetValue(key, out var a2))
+                            {
+                                hasAvail = true;
+                                availTuple = (a2.Total, a2.Im40, a2.Nd40);
+                            }
+                        }
                         SearchResults.Add(new QuickProductRow
                         {
                             Id = p.Id,
@@ -175,9 +238,9 @@ public partial class QuickSaleViewModel : ObservableObject
                             Name = p.Name,
                             Unit = p.Unit,
                             Price = p.Price,
-                            Nd40Qty = stock?.Nd40Qty ?? 0,
-                            Im40Qty = stock?.Im40Qty ?? 0,
-                            TotalQty = stock?.TotalQty ?? 0
+                            Nd40Qty = hasAvail ? availTuple.Nd40 : (stock?.Nd40Qty ?? 0),
+                            Im40Qty = hasAvail ? availTuple.Im40 : (stock?.Im40Qty ?? 0),
+                            TotalQty = hasAvail ? availTuple.Total : (stock?.TotalQty ?? 0)
                         });
                     }
                     if (_settings.UseApi)
@@ -189,13 +252,18 @@ public partial class QuickSaleViewModel : ObservableObject
                 });
             }
             catch (OperationCanceledException) { }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // If API mode and call failed, show offline banner
                 if (_settings.UseApi)
                 {
                     IsOffline = true;
-                    try { await Toast.Make("Нет связи с сервером", ToastDuration.Short).Show(token); } catch { }
+                    var msg = (ex.Message ?? string.Empty);
+                    var authErr = msg.Contains("401") || msg.Contains("403");
+                    var text = authErr
+                        ? "Доступ запрещён или сессия истекла. Войдите как Менеджер и повторите."
+                        : "Нет связи с сервером";
+                    try { await Toast.Make(text, ToastDuration.Short).Show(token); } catch { }
                 }
             }
         }, token);
@@ -265,6 +333,7 @@ public partial class QuickSaleViewModel : ObservableObject
             it.PropertyChanged += CartItemOnPropertyChanged;
         }
         RecalculateTotal();
+        UpdateCanSubmit();
     }
 
     private void CartItemOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -272,12 +341,19 @@ public partial class QuickSaleViewModel : ObservableObject
         if (e.PropertyName == nameof(CartItemModel.Qty) || e.PropertyName == nameof(CartItemModel.UnitPrice))
         {
             RecalculateTotal();
+            UpdateCanSubmit();
         }
     }
 
     private void RecalculateTotal()
     {
         Total = Cart.Sum(i => (decimal)i.Qty * i.UnitPrice);
+    }
+
+    private void UpdateCanSubmit()
+    {
+        bool AllIntegersPositive() => Cart.All(i => i.Qty >= 1d && Math.Abs(i.Qty - Math.Round(i.Qty)) < 1e-9);
+        CanSubmit = IsSaleAllowed && Cart.Count > 0 && Cart.All(i => i.UnitPrice > 0m) && AllIntegersPositive();
     }
 
     partial void OnSelectedPaymentTypeChanged(PaymentType value)
@@ -291,6 +367,7 @@ public partial class QuickSaleViewModel : ObservableObject
         if (item == null) return;
         Cart.Remove(item);
         RecalculateTotal();
+        UpdateCanSubmit();
     }
 
     [RelayCommand]
@@ -308,7 +385,7 @@ public partial class QuickSaleViewModel : ObservableObject
         var draft = new SaleDraft
         {
             ClientId = SelectedClientId,
-            ClientName = string.IsNullOrWhiteSpace(ClientName) ? "Quick Client" : ClientName,
+            ClientName = string.IsNullOrWhiteSpace(ClientName) ? "Посетитель" : ClientName,
             PaymentType = SelectedPaymentType,
             Items = Cart.Select(c => new SaleDraftItem { ProductId = c.ProductId, Qty = c.Qty, UnitPrice = c.UnitPrice }).ToList()
         };
@@ -335,20 +412,38 @@ public partial class QuickSaleViewModel : ObservableObject
             });
             Cart.Clear();
             Total = 0m;
+            // Navigate to account selection
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                try
+                {
+                    var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
+                    Application.Current!.MainPage = new NavigationPage(select);
+                }
+                catch { }
+            });
         }
         else
         {
-            if (_settings.UseApi)
+            // Decide if it's a network issue or a business/validation error
+            var err = result.ErrorMessage ?? string.Empty;
+            var isNetwork = string.IsNullOrWhiteSpace(err)
+                            || err.Contains("Сетевая ошибка", StringComparison.OrdinalIgnoreCase)
+                            || err.StartsWith("HTTP 5")
+                            || err.StartsWith("HTTP 0");
+
+            if (_settings.UseApi && isNetwork)
             {
                 IsOffline = true;
-                var msg = string.IsNullOrWhiteSpace(result.ErrorMessage) ? "Нет связи с сервером" : result.ErrorMessage;
+                var msg = string.IsNullOrWhiteSpace(err) ? "Нет связи с сервером" : err;
                 try { await Toast.Make(msg, ToastDuration.Long).Show(); } catch { }
             }
             else
             {
+                // Show server-provided message (e.g., недостаточно остатков)
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    var msg = string.IsNullOrWhiteSpace(result.ErrorMessage) ? "Не удалось провести продажу" : result.ErrorMessage;
+                    var msg = string.IsNullOrWhiteSpace(err) ? "Не удалось провести продажу" : err;
                     await Application.Current!.MainPage!.DisplayAlert("Ошибка", msg, "OK");
                 });
             }
@@ -391,6 +486,15 @@ public partial class QuickSaleViewModel : ObservableObject
                             Cart.Clear();
                             Total = 0m;
                             IsOffline = false;
+                            await MainThread.InvokeOnMainThreadAsync(() =>
+                            {
+                                try
+                                {
+                                    var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
+                                    Application.Current!.MainPage = new NavigationPage(select);
+                                }
+                                catch { }
+                            });
                         }
                         else
                         {

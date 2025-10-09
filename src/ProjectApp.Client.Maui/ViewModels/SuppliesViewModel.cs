@@ -2,6 +2,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProjectApp.Client.Maui.Services;
 using System.Collections.ObjectModel;
+using Microsoft.Maui.Controls;
+using Microsoft.Extensions.DependencyInjection;
+using ProjectApp.Client.Maui;
 
 namespace ProjectApp.Client.Maui.ViewModels;
 
@@ -76,7 +79,16 @@ public partial class SuppliesViewModel : ObservableObject
             IsBusy = true; StatusMessage = string.Empty;
             var ok = await _supplies.CreateSupplyAsync(new SupplyDraft { Items = Items.ToList() });
             StatusMessage = ok ? "Поставка создана (ND-40)" : "Ошибка создания поставки";
-            if (ok) Items.Clear();
+            if (ok)
+            {
+                Items.Clear();
+                try
+                {
+                    var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
+                    Application.Current!.MainPage = new NavigationPage(select);
+                }
+                catch { }
+            }
         }
         catch (Exception ex)
         {
@@ -111,7 +123,16 @@ public partial class SuppliesViewModel : ObservableObject
             IsBusy = true; StatusMessage = string.Empty;
             var ok = await _supplies.TransferToIm40Async(TransferCode.Trim(), TransferItems.ToList());
             StatusMessage = ok ? "Переведено в IM-40" : "Ошибка перевода";
-            if (ok) TransferItems.Clear();
+            if (ok)
+            {
+                TransferItems.Clear();
+                try
+                {
+                    var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
+                    Application.Current!.MainPage = new NavigationPage(select);
+                }
+                catch { }
+            }
         }
         catch (Exception ex)
         {

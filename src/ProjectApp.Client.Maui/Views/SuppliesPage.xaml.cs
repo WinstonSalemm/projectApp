@@ -60,4 +60,27 @@ public partial class SuppliesPage : ContentPage
             vm.TransferTotalQty = picked.TotalQty;
         }
     }
+
+    private async void OnCreateProductClicked(object? sender, EventArgs e)
+    {
+        if (BindingContext is not SuppliesViewModel vm) return;
+        var page = _services.GetService<ProductCreatePage>();
+        if (page == null) return;
+
+        var tcs = new TaskCompletionSource<(int Id, string Sku, string Name, string Category)>();
+        void Handler(object? s, (int Id, string Sku, string Name, string Category) p) => tcs.TrySetResult(p);
+        page.ProductCreated += Handler;
+        await Navigation.PushAsync(page);
+        var created = await tcs.Task;
+        page.ProductCreated -= Handler;
+        await Navigation.PopAsync();
+
+        if (created.Id > 0)
+        {
+            vm.NewProductId = created.Id;
+            vm.SelectedNd40Qty = 0;
+            vm.SelectedIm40Qty = 0;
+            vm.SelectedTotalQty = 0;
+        }
+    }
 }

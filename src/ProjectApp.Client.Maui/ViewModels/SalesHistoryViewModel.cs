@@ -18,7 +18,7 @@ public partial class SalesHistoryViewModel : ObservableObject
     private bool isLoading;
 
     [ObservableProperty]
-    private DateTime? dateFrom = DateTime.UtcNow.Date.AddDays(-7);
+    private DateTime? dateFrom = DateTime.UtcNow.Date.AddDays(-31);
 
     [ObservableProperty]
     private DateTime? dateTo = DateTime.UtcNow.Date.AddDays(1);

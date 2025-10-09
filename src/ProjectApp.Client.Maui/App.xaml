@@ -2,76 +2,173 @@
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:beh="clr-namespace:ProjectApp.Client.Maui.Behaviors"
+             xmlns:conv="clr-namespace:ProjectApp.Client.Maui.Converters"
              x:Class="ProjectApp.Client.Maui.App">
     <Application.Resources>
       <ResourceDictionary>
-        <!-- Pure black background across the app -->
+        <!-- Design system colors (muted, darker accents) -->
+        <Color x:Key="PrimaryColor">#365A8C</Color>
+        <Color x:Key="BgColor">#F9FAFB</Color>
+        <Color x:Key="TextColor">#111827</Color>
+        <Color x:Key="MutedTextColor">#6B7280</Color>
+        <Color x:Key="BorderColor">#E2E8F0</Color>
+        <Color x:Key="InputBgColor">#F5F7FA</Color>
+        <Color x:Key="SuccessColor">#16A34A</Color>
+        <Color x:Key="WarningColor">#D97706</Color>
+        <Color x:Key="ErrorColor">#DC2626</Color>
+
+        <!-- Spacing & Radius -->
+        <x:Double x:Key="RadiusSm">8</x:Double>
+        <x:Double x:Key="RadiusMd">10</x:Double>
+        <x:Double x:Key="RadiusLg">12</x:Double>
+        <Thickness x:Key="CardPadding">12,10</Thickness>
+
+        <!-- Pages -->
         <Style TargetType="ContentPage">
-          <Setter Property="BackgroundColor" Value="#000000" />
+          <Setter Property="BackgroundColor" Value="{StaticResource BgColor}" />
         </Style>
-        <!-- Turquoise top bar with black text -->
         <Style TargetType="NavigationPage">
-          <Setter Property="BarBackgroundColor" Value="#40E0D0" />
-          <Setter Property="BarTextColor" Value="#000000" />
+          <Setter Property="BarBackgroundColor" Value="{StaticResource PrimaryColor}" />
+          <Setter Property="BarTextColor" Value="#FFFFFF" />
         </Style>
-        <!-- Text: white on black -->
+
+        <!-- Typography -->
         <Style TargetType="Label">
-          <Setter Property="TextColor" Value="#FFFFFF" />
+          <Setter Property="TextColor" Value="{StaticResource TextColor}" />
         </Style>
-        <!-- Inputs: dark grey background, white text -->
+
+        <!-- Inputs -->
         <Style TargetType="Entry">
-          <Setter Property="TextColor" Value="#FFFFFF" />
-          <Setter Property="PlaceholderColor" Value="#BBBBBB" />
-          <Setter Property="BackgroundColor" Value="#111111" />
+          <Setter Property="TextColor" Value="{StaticResource TextColor}" />
+          <Setter Property="PlaceholderColor" Value="{StaticResource MutedTextColor}" />
+          <Setter Property="BackgroundColor" Value="{StaticResource InputBgColor}" />
         </Style>
         <Style TargetType="Picker">
-          <Setter Property="TextColor" Value="#FFFFFF" />
-          <Setter Property="TitleColor" Value="#BBBBBB" />
-          <Setter Property="BackgroundColor" Value="#111111" />
+          <Setter Property="TextColor" Value="{StaticResource TextColor}" />
+          <Setter Property="TitleColor" Value="{StaticResource MutedTextColor}" />
+          <Setter Property="BackgroundColor" Value="{StaticResource InputBgColor}" />
         </Style>
         <Style TargetType="Switch">
-          <Setter Property="OnColor" Value="#40E0D0" />
+          <Setter Property="OnColor" Value="{StaticResource PrimaryColor}" />
           <Setter Property="ThumbColor" Value="#FFFFFF" />
         </Style>
-        <!-- Buttons: outline (black bg, turquoise border/text) -->
+
+        <!-- Buttons: Primary by default -->
         <Style TargetType="Button">
-          <Setter Property="BackgroundColor" Value="#000000" />
-          <Setter Property="TextColor" Value="#40E0D0" />
-          <Setter Property="BorderColor" Value="#40E0D0" />
-          <Setter Property="BorderWidth" Value="2" />
-          <Setter Property="CornerRadius" Value="12" />
+          <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
+          <Setter Property="TextColor" Value="#FFFFFF" />
+          <Setter Property="BorderColor" Value="{StaticResource PrimaryColor}" />
+          <Setter Property="BorderWidth" Value="0" />
+          <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}" />
           <Setter Property="Padding" Value="16,10" />
           <Setter Property="beh:PointerCursor.IsEnabled" Value="True" />
         </Style>
-        <!-- Cards/frames: dark grey with subtle border -->
-        <Style TargetType="Frame">
-          <Setter Property="BackgroundColor" Value="#111111" />
-          <Setter Property="BorderColor" Value="#2A2A2A" />
-          <Setter Property="HasShadow" Value="False" />
-          <Setter Property="CornerRadius" Value="10" />
+
+        <!-- Outlined secondary button -->
+        <Style x:Key="OutlinedButton" TargetType="Button">
+          <Setter Property="BackgroundColor" Value="{StaticResource BgColor}" />
+          <Setter Property="TextColor" Value="{StaticResource PrimaryColor}" />
+          <Setter Property="BorderColor" Value="{StaticResource PrimaryColor}" />
+          <Setter Property="BorderWidth" Value="1" />
+          <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}" />
+          <Setter Property="Padding" Value="16,10" />
+          <Setter Property="beh:PointerCursor.IsEnabled" Value="True" />
         </Style>
-        <!-- Containers: force black background -->
+
+        <!-- Ghost button -->
+        <Style x:Key="GhostButton" TargetType="Button">
+          <Setter Property="BackgroundColor" Value="Transparent"/>
+          <Setter Property="TextColor" Value="{StaticResource PrimaryColor}"/>
+          <Setter Property="BorderWidth" Value="0"/>
+          <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}"/>
+          <Setter Property="Padding" Value="12,8"/>
+          <Setter Property="beh:PointerCursor.IsEnabled" Value="True" />
+        </Style>
+
+        <!-- Cards/frames -->
+        <Style TargetType="Frame">
+          <Setter Property="HasShadow" Value="False" />
+          <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}" />
+        </Style>
+
+        <Style x:Key="CardFrame" TargetType="Frame">
+          <Setter Property="Padding" Value="{StaticResource CardPadding}" />
+          <Setter Property="BackgroundColor" Value="{StaticResource BgColor}" />
+          <Setter Property="BorderColor" Value="{StaticResource BorderColor}" />
+          <Setter Property="HasShadow" Value="False" />
+          <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}" />
+          <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+              <VisualStateGroup x:Name="CommonStates">
+                <VisualState x:Name="Normal" />
+                <VisualState x:Name="PointerOver">
+                  <VisualState.Setters>
+                    <Setter Property="BorderColor" Value="#D8DEE9" />
+                  </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="Pressed">
+                  <VisualState.Setters>
+                    <Setter Property="BorderColor" Value="#C5CEDB" />
+                  </VisualState.Setters>
+                </VisualState>
+              </VisualStateGroup>
+            </VisualStateGroupList>
+          </Setter>
+        </Style>
+
+        <!-- Badge frame/label -->
+        <Style x:Key="BadgeFrame" TargetType="Frame">
+          <Setter Property="Padding" Value="6,2" />
+          <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}" />
+          <Setter Property="HasShadow" Value="False" />
+          <Setter Property="BackgroundColor" Value="{StaticResource InputBgColor}" />
+          <Setter Property="BorderColor" Value="{StaticResource BorderColor}" />
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="Label">
+          <Setter Property="FontAttributes" Value="Bold"/>
+          <Setter Property="FontSize" Value="18"/>
+        </Style>
+
+        <!-- Containers: force white background -->
         <Style TargetType="ScrollView">
-          <Setter Property="BackgroundColor" Value="#000000" />
+          <Setter Property="BackgroundColor" Value="{StaticResource BgColor}" />
+          <Setter Property="VerticalScrollBarVisibility" Value="Always" />
+          <Setter Property="HorizontalScrollBarVisibility" Value="Never" />
         </Style>
         <Style TargetType="Grid">
-          <Setter Property="BackgroundColor" Value="#000000" />
+          <Setter Property="BackgroundColor" Value="{StaticResource BgColor}" />
         </Style>
         <Style TargetType="StackLayout">
-          <Setter Property="BackgroundColor" Value="#000000" />
+          <Setter Property="BackgroundColor" Value="{StaticResource BgColor}" />
         </Style>
         <Style TargetType="VerticalStackLayout">
-          <Setter Property="BackgroundColor" Value="#000000" />
+          <Setter Property="BackgroundColor" Value="{StaticResource BgColor}" />
         </Style>
         <Style TargetType="HorizontalStackLayout">
-          <Setter Property="BackgroundColor" Value="#000000" />
+          <Setter Property="BackgroundColor" Value="{StaticResource BgColor}" />
         </Style>
         <Style TargetType="CollectionView">
-          <Setter Property="BackgroundColor" Value="#000000" />
+          <Setter Property="BackgroundColor" Value="{StaticResource BgColor}" />
         </Style>
         <Style TargetType="ContentView">
-          <Setter Property="BackgroundColor" Value="#000000" />
+          <Setter Property="BackgroundColor" Value="{StaticResource BgColor}" />
         </Style>
+
+        <!-- Converters -->
+        <conv:ContractStatusToColorConverter x:Key="ContractStatusToColorConverter" />
+        <conv:QtyToAvailabilityColorConverter x:Key="QtyToAvailabilityColorConverter" />
+        <conv:PaymentTypeToColorConverter x:Key="PaymentTypeToColorConverter" />
+        <conv:PaymentTypeToRuConverter x:Key="PaymentTypeToRuConverter" />
+        <conv:CurrencyConverter x:Key="CurrencyConverter" />
+        <conv:ClientTypeToRuConverter x:Key="ClientTypeToRuConverter" />
+        <conv:DateTimeToRuConverter x:Key="DateTimeToRuConverter" />
+
+        <!-- Fluent/MDL2 icon resources (Windows) -->
+        <FontImageSource x:Key="IconAdd" Glyph="&#xE710;" Color="{StaticResource PrimaryColor}" FontFamily="Segoe MDL2 Assets" Size="18" />
+        <FontImageSource x:Key="IconEdit" Glyph="&#xE70F;" Color="{StaticResource PrimaryColor}" FontFamily="Segoe MDL2 Assets" Size="18" />
+        <FontImageSource x:Key="IconRefresh" Glyph="&#xE72C;" Color="{StaticResource PrimaryColor}" FontFamily="Segoe MDL2 Assets" Size="18" />
+        <FontImageSource x:Key="IconReturn" Glyph="&#xE10E;" Color="{StaticResource PrimaryColor}" FontFamily="Segoe MDL2 Assets" Size="18" />
+        <FontImageSource x:Key="IconSettings" Glyph="&#xE713;" Color="{StaticResource PrimaryColor}" FontFamily="Segoe MDL2 Assets" Size="18" />
       </ResourceDictionary>
     </Application.Resources>
 </Application>

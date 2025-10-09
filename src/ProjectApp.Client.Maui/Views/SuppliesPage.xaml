@@ -4,67 +4,73 @@
              x:Class="ProjectApp.Client.Maui.Views.SuppliesPage"
              x:Name="Root"
              Title="Поставки (ND-40)">
-  <ScrollView>
-    <VerticalStackLayout Padding="12" Spacing="12">
-      <Label Text="Новая поставка в ND-40" FontAttributes="Bold"/>
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto" RowDefinitions="Auto" ColumnSpacing="8">
-        <Button Text="Выбрать товар" Clicked="OnPickProductForSupplyClicked"/>
-        <Entry Grid.Column="1" Placeholder="Qty" Keyboard="Numeric" Text="{Binding NewQty}"/>
-        <Entry Grid.Column="2" Placeholder="UnitCost" Keyboard="Numeric" Text="{Binding NewUnitCost}"/>
-        <Entry Grid.Column="3" Placeholder="Code (партия)" Text="{Binding NewCode}"/>
-      </Grid>
-      <HorizontalStackLayout Spacing="12">
-        <Label Text="{Binding SelectedNd40Qty, StringFormat='ND-40: {0}'}" FontSize="11"/>
-        <Label Text="{Binding SelectedIm40Qty, StringFormat='IM-40: {0}'}" FontSize="11"/>
-        <Label Text="{Binding SelectedTotalQty, StringFormat='Всего: {0}'}" FontSize="11"/>
-      </HorizontalStackLayout>
-      <Entry Placeholder="Примечание" Text="{Binding NewNote}"/>
-      <HorizontalStackLayout Spacing="8">
-        <Button Text="Добавить позицию" Command="{Binding AddItemCommand}"/>
-        <Button Text="Создать поставку" Command="{Binding CreateSupplyCommand}"/>
-      </HorizontalStackLayout>
-      <CollectionView ItemsSource="{Binding Items}">
-        <CollectionView.ItemTemplate>
-          <DataTemplate>
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8" Padding="4">
-              <Label Text="{Binding ProductId}"/>
-              <Label Grid.Column="1" Text="{Binding Code}"/>
-              <Label Grid.Column="2" Text="{Binding Qty}"/>
-              <Label Grid.Column="3" Text="{Binding UnitCost}"/>
-              <Button Grid.Column="4" Text="Удалить" Command="{Binding Source={x:Reference Root}, Path=BindingContext.RemoveItemCommand}" CommandParameter="{Binding .}"/>
-            </Grid>
-          </DataTemplate>
-        </CollectionView.ItemTemplate>
-      </CollectionView>
+  <Grid Padding="12" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,*,Auto,Auto" RowSpacing="12">
+    <Label Grid.Row="0" Text="Новая поставка в ND-40" FontAttributes="Bold"/>
 
-      <BoxView HeightRequest="1" BackgroundColor="#ddd"/>
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+      <Button Text="Выбрать товар" Clicked="OnPickProductForSupplyClicked"/>
+      <Entry Grid.Column="1" Placeholder="Qty" Keyboard="Numeric" Text="{Binding NewQty}"/>
+      <Entry Grid.Column="2" Placeholder="UnitCost" Keyboard="Numeric" Text="{Binding NewUnitCost}"/>
+      <Entry Grid.Column="3" Placeholder="Code (партия)" Text="{Binding NewCode}"/>
+      <Button Grid.Column="4" Text="Новый товар" Clicked="OnCreateProductClicked"/>
+    </Grid>
 
-      <Label Text="Перевод в IM-40 по коду" FontAttributes="Bold"/>
-      <Entry Placeholder="Код партии" Text="{Binding TransferCode}"/>
-      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-        <Button Text="Выбрать товар" Clicked="OnPickProductForTransferClicked"/>
-        <Entry Grid.Column="1" Placeholder="Qty" Keyboard="Numeric" Text="{Binding TransferQty}"/>
-        <Button Grid.Column="2" Text="Добавить" Command="{Binding AddTransferItemCommand}"/>
-      </Grid>
-      <HorizontalStackLayout Spacing="12">
-        <Label Text="{Binding TransferNd40Qty, StringFormat='ND-40: {0}'}" FontSize="11"/>
-        <Label Text="{Binding TransferIm40Qty, StringFormat='IM-40: {0}'}" FontSize="11"/>
-        <Label Text="{Binding TransferTotalQty, StringFormat='Всего: {0}'}" FontSize="11"/>
-      </HorizontalStackLayout>
-      <CollectionView ItemsSource="{Binding TransferItems}">
-        <CollectionView.ItemTemplate>
-          <DataTemplate>
-            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Padding="4">
-              <Label Text="{Binding ProductId}"/>
-              <Label Grid.Column="1" Text="{Binding Qty}"/>
-              <Button Grid.Column="2" Text="Удалить" Command="{Binding Source={x:Reference Root}, Path=BindingContext.RemoveTransferItemCommand}" CommandParameter="{Binding .}"/>
-            </Grid>
-          </DataTemplate>
-        </CollectionView.ItemTemplate>
-      </CollectionView>
-      <Button Text="Перевести в IM-40" Command="{Binding TransferCommand}"/>
+    <HorizontalStackLayout Grid.Row="2" Spacing="12">
+      <Label Text="{Binding SelectedNd40Qty, StringFormat='ND-40: {0}'}" FontSize="11"/>
+      <Label Text="{Binding SelectedIm40Qty, StringFormat='IM-40: {0}'}" FontSize="11"/>
+      <Label Text="{Binding SelectedTotalQty, StringFormat='Всего: {0}'}" FontSize="11"/>
+    </HorizontalStackLayout>
 
-      <Label Text="{Binding StatusMessage}" TextColor="Red"/>
-    </VerticalStackLayout>
-  </ScrollView>
+    <Entry Grid.Row="3" Placeholder="Примечание" Text="{Binding NewNote}"/>
+
+    <HorizontalStackLayout Grid.Row="4" Spacing="8">
+      <Button Text="Добавить позицию" Command="{Binding AddItemCommand}"/>
+      <Button Text="Создать поставку" Command="{Binding CreateSupplyCommand}"/>
+    </HorizontalStackLayout>
+
+    <CollectionView Grid.Row="5" ItemsSource="{Binding Items}">
+      <CollectionView.ItemTemplate>
+        <DataTemplate>
+          <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8" Padding="4">
+            <Label Text="{Binding ProductId}"/>
+            <Label Grid.Column="1" Text="{Binding Code}"/>
+            <Label Grid.Column="2" Text="{Binding Qty}"/>
+            <Label Grid.Column="3" Text="{Binding UnitCost}"/>
+            <Button Grid.Column="4" Text="Удалить" Command="{Binding Source={x:Reference Root}, Path=BindingContext.RemoveItemCommand}" CommandParameter="{Binding .}"/>
+          </Grid>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+    </CollectionView>
+
+    <BoxView Grid.Row="6" HeightRequest="1" BackgroundColor="#ddd"/>
+
+    <Label Grid.Row="7" Text="Перевод в IM-40 по коду" FontAttributes="Bold"/>
+    <Entry Grid.Row="8" Placeholder="Код партии" Text="{Binding TransferCode}"/>
+    <Grid Grid.Row="9" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+      <Button Text="Выбрать товар" Clicked="OnPickProductForTransferClicked"/>
+      <Entry Grid.Column="1" Placeholder="Qty" Keyboard="Numeric" Text="{Binding TransferQty}"/>
+      <Button Grid.Column="2" Text="Добавить" Command="{Binding AddTransferItemCommand}"/>
+    </Grid>
+    <HorizontalStackLayout Grid.Row="10" Spacing="12">
+      <Label Text="{Binding TransferNd40Qty, StringFormat='ND-40: {0}'}" FontSize="11"/>
+      <Label Text="{Binding TransferIm40Qty, StringFormat='IM-40: {0}'}" FontSize="11"/>
+      <Label Text="{Binding TransferTotalQty, StringFormat='Всего: {0}'}" FontSize="11"/>
+    </HorizontalStackLayout>
+
+    <CollectionView Grid.Row="11" ItemsSource="{Binding TransferItems}">
+      <CollectionView.ItemTemplate>
+        <DataTemplate>
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Padding="4">
+            <Label Text="{Binding ProductId}"/>
+            <Label Grid.Column="1" Text="{Binding Qty}"/>
+            <Button Grid.Column="2" Text="Удалить" Command="{Binding Source={x:Reference Root}, Path=BindingContext.RemoveTransferItemCommand}" CommandParameter="{Binding .}"/>
+          </Grid>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+    </CollectionView>
+
+    <Button Grid.Row="12" Text="Перевести в IM-40" Command="{Binding TransferCommand}"/>
+
+    <Label Grid.Row="13" Text="{Binding StatusMessage}" TextColor="Red"/>
+  </Grid>
 </ContentPage>

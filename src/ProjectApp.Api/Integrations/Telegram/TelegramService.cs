@@ -7,6 +7,7 @@ public interface ITelegramService
 {
     Task<bool> SendMessageAsync(long chatId, string text, CancellationToken ct = default);
     Task<bool> SendMessageAsync(long chatId, string text, object? replyMarkup, CancellationToken ct = default);
+    Task<bool> SendMessageAsync(long chatId, string text, string? parseMode, object? replyMarkup, CancellationToken ct = default);
     Task<bool> SetWebhookAsync(string url, string? secretToken, CancellationToken ct = default);
     Task<bool> DeleteWebhookAsync(CancellationToken ct = default);
     Task<string> GetWebhookInfoAsync(CancellationToken ct = default);
@@ -27,10 +28,15 @@ public class TelegramService(IHttpClientFactory httpClientFactory, IOptions<Tele
 
     public async Task<bool> SendMessageAsync(long chatId, string text, CancellationToken ct = default)
     {
-        return await SendMessageAsync(chatId, text, null, ct);
+        return await SendMessageAsync(chatId, text, (string?)null, null, ct);
     }
 
     public async Task<bool> SendMessageAsync(long chatId, string text, object? replyMarkup, CancellationToken ct = default)
+    {
+        return await SendMessageAsync(chatId, text, null, replyMarkup, ct);
+    }
+
+    public async Task<bool> SendMessageAsync(long chatId, string text, string? parseMode, object? replyMarkup, CancellationToken ct = default)
     {
         var client = CreateClient();
         var payload = new Dictionary<string, object?>
@@ -38,6 +44,7 @@ public class TelegramService(IHttpClientFactory httpClientFactory, IOptions<Tele
             ["chat_id"] = chatId,
             ["text"] = text
         };
+        if (!string.IsNullOrWhiteSpace(parseMode)) payload["parse_mode"] = parseMode;
         if (replyMarkup is not null) payload["reply_markup"] = replyMarkup;
         var resp = await client.PostAsJsonAsync("sendMessage", payload, ct);
         return resp.IsSuccessStatusCode;

@@ -11,7 +11,6 @@ namespace ProjectApp.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "AdminOnly")]
 public class ContractsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -89,6 +88,7 @@ public class ContractsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(IEnumerable<ContractDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List([FromQuery] string? status, CancellationToken ct)
     {
@@ -120,6 +120,7 @@ public class ContractsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [Authorize(Policy = "AdminOnly")]
     [ProducesResponseType(typeof(ContractDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById([FromRoute] int id, CancellationToken ct)
@@ -149,6 +150,7 @@ public class ContractsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "AdminOnly")]
     [ProducesResponseType(typeof(ContractDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] ContractCreateDto dto, CancellationToken ct)
     {
@@ -217,6 +219,7 @@ public class ContractsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Policy = "AdminOnly")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update([FromRoute] int id, [FromBody] ContractCreateDto dto, CancellationToken ct)
@@ -248,6 +251,7 @@ public class ContractsController : ControllerBase
     }
 
     [HttpPut("{id:int}/status")]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateStatus([FromRoute] int id, [FromBody] ContractUpdateStatusDto dto, CancellationToken ct)

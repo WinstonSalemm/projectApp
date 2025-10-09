@@ -5,16 +5,20 @@
              Title="Настройки">
   <ContentPage.Content>
     <ScrollView>
-      <VerticalStackLayout Padding="16" Spacing="12">
-        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-          <Label Text="Использовать API" VerticalOptions="Center"/>
-          <Switch Grid.Column="1" IsToggled="{Binding UseApi, Mode=TwoWay}"/>
-        </Grid>
-
-        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-          <Label Text="API Base URL" VerticalOptions="Center"/>
-          <Entry Grid.Column="1" Placeholder="http://localhost:5028" Text="{Binding ApiBaseUrl, Mode=TwoWay}"/>
-        </Grid>
+      <VerticalStackLayout Padding="16" Spacing="16">
+        <Label Text="Подключение" FontAttributes="Bold" FontSize="20"/>
+        <Frame>
+          <VerticalStackLayout Spacing="12">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+              <Label Text="Использовать API" VerticalOptions="Center"/>
+              <Switch Grid.Column="1" IsToggled="{Binding UseApi, Mode=TwoWay}"/>
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+              <Label Text="API Base URL" VerticalOptions="Center"/>
+              <Entry Grid.Column="1" Placeholder="http://localhost:5028" Text="{Binding ApiBaseUrl, Mode=TwoWay}"/>
+            </Grid>
+          </VerticalStackLayout>
+        </Frame>
 
         <Button Text="Сохранить" Command="{Binding SaveCommand}"/>
       </VerticalStackLayout>

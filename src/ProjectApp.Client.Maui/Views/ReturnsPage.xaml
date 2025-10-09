@@ -4,39 +4,38 @@
              x:Class="ProjectApp.Client.Maui.Views.ReturnsPage"
              x:Name="Root"
              Title="Возврат">
-  <ScrollView>
-    <VerticalStackLayout Padding="12" Spacing="12">
-      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-        <Label Text="Продажа #" VerticalTextAlignment="Center"/>
-        <Entry Grid.Column="1" Keyboard="Numeric" Text="{Binding RefSaleId}"/>
-      </Grid>
-      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-        <Label Text="КлиентId" VerticalTextAlignment="Center"/>
-        <Entry Grid.Column="1" Keyboard="Numeric" Text="{Binding ClientId}"/>
-      </Grid>
-      <Entry Placeholder="Причина (необязательно)" Text="{Binding Reason}"/>
+  <Grid Padding="12" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" RowSpacing="12">
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+      <Label Text="Продажа #" VerticalTextAlignment="Center"/>
+      <Entry Grid.Column="1" Keyboard="Numeric" Text="{Binding RefSaleId}"/>
+    </Grid>
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+      <Label Text="КлиентId" VerticalTextAlignment="Center"/>
+      <Entry Grid.Column="1" Keyboard="Numeric" Text="{Binding ClientId}"/>
+    </Grid>
+    <Entry Grid.Row="2" Placeholder="Причина (необязательно)" Text="{Binding Reason}"/>
 
-      <Label Text="Позиции (оставьте пусто для полного возврата)" FontAttributes="Bold"/>
-      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-        <Entry Placeholder="SaleItemId" Keyboard="Numeric" Text="{Binding NewSaleItemId}"/>
-        <Entry Grid.Column="1" Placeholder="Qty" Keyboard="Numeric" Text="{Binding NewQty}"/>
-        <Button Grid.Column="2" Text="Добавить" Command="{Binding AddItemCommand}"/>
-      </Grid>
-      <CollectionView ItemsSource="{Binding Items}">
-        <CollectionView.ItemTemplate>
-          <DataTemplate>
-            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Padding="4">
-              <Label Text="{Binding SaleItemId}"/>
-              <Label Grid.Column="1" Text="{Binding Qty}"/>
-              <Button Grid.Column="2" Text="Удалить" Command="{Binding Source={x:Reference Root}, Path=BindingContext.RemoveItemCommand}" CommandParameter="{Binding .}"/>
-            </Grid>
-          </DataTemplate>
-        </CollectionView.ItemTemplate>
-      </CollectionView>
+    <Label Grid.Row="3" Text="Позиции (оставьте пусто для полного возврата)" FontAttributes="Bold"/>
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,28,0,0">
+      <Entry Placeholder="SaleItemId" Keyboard="Numeric" Text="{Binding NewSaleItemId}"/>
+      <Entry Grid.Column="1" Placeholder="Qty" Keyboard="Numeric" Text="{Binding NewQty}"/>
+      <Button Grid.Column="2" Text="Добавить" Command="{Binding AddItemCommand}"/>
+    </Grid>
 
-      <Button Text="Создать возврат" Command="{Binding CreateReturnCommand}"/>
+    <CollectionView Grid.Row="4" ItemsSource="{Binding Items}">
+      <CollectionView.ItemTemplate>
+        <DataTemplate>
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Padding="4">
+            <Label Text="{Binding SaleItemId}"/>
+            <Label Grid.Column="1" Text="{Binding Qty}"/>
+            <Button Grid.Column="2" Text="Удалить" Command="{Binding Source={x:Reference Root}, Path=BindingContext.RemoveItemCommand}" CommandParameter="{Binding .}"/>
+          </Grid>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+    </CollectionView>
 
-      <Label Text="{Binding StatusMessage}" TextColor="Red"/>
-    </VerticalStackLayout>
-  </ScrollView>
+    <Button Grid.Row="5" Text="Создать возврат" Command="{Binding CreateReturnCommand}"/>
+
+    <Label Grid.Row="6" Text="{Binding StatusMessage}" TextColor="Red"/>
+  </Grid>
 </ContentPage>

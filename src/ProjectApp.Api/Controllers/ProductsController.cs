@@ -54,8 +54,17 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<string>>> GetCategories(CancellationToken ct)
     {
-        var cats = await _repository.GetCategoriesAsync(ct);
-        return Ok(cats);
+        // Merge directory categories with those coming from existing products
+        var repoCats = await _repository.GetCategoriesAsync(ct);
+        var dirCats = await _db.Categories.AsNoTracking().Select(c => c.Name)
+            .Where(n => n != null && n != "")
+            .ToListAsync(ct);
+        var all = repoCats.Concat(dirCats)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(c => c)
+            .ToList();
+        return Ok(all);
     }
 
     [HttpGet("lookup")]
@@ -77,7 +86,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost]
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "AdminOnly")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(ProductDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ProductDto>> Create([FromBody] ProductCreateDto dto, CancellationToken ct)
@@ -93,6 +102,17 @@ public class ProductsController : ControllerBase
             Price = dto.Price,
             Category = dto.Category?.Trim() ?? string.Empty
         };
+        // Ensure category directory contains this name (optional directory)
+        if (!string.IsNullOrWhiteSpace(p.Category))
+        {
+            var catName = p.Category.Trim();
+            if (!await _db.Categories.AnyAsync(c => c.Name == catName, ct))
+            {
+                _db.Categories.Add(new CategoryRec { Name = catName });
+                await _db.SaveChangesAsync(ct);
+            }
+        }
+
         p = await _repository.AddAsync(p, ct);
         var result = new ProductDto { Id = p.Id, Name = p.Name, Sku = p.Sku, UnitPrice = p.Price, Category = p.Category };
         return Created($"/api/products/{p.Id}", result);
