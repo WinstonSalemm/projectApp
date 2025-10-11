@@ -6,6 +6,7 @@ using ProjectApp.Api.Data;
 using ProjectApp.Api.Integrations.Telegram;
 using System.Text.Json;
 using System.Linq;
+using Microsoft.AspNetCore.Http;
 
 namespace ProjectApp.Api.Controllers;
 
@@ -313,13 +314,10 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
     [HttpPost("send-report-now-multipart")]
     [Authorize(Policy = "AdminOnly")]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> SendReportNowMultipart()
+    public async Task<IActionResult> SendReportNowMultipart([FromForm(Name = "files")] List<IFormFile>? files)
     {
         var ids = _settings.ParseAllowedChatIds();
         if (ids.Count == 0) return ValidationProblem("Telegram AllowedChatIds not configured");
-
-        if (!Request.HasFormContentType)
-            return ValidationProblem("Expected multipart/form-data with file fields 'files'");
 
         // Build today's summary (local day based on settings offset)
         var offset = TimeSpan.FromMinutes(_settings.TimeZoneOffsetMinutes);
@@ -350,18 +348,21 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
             try { await tg.SendMessageAsync(chatId, msg, HttpContext.RequestAborted); } catch { }
         }
 
-        var form = await Request.ReadFormAsync(HttpContext.RequestAborted);
-        var files = form.Files.Where(f => f.Length > 0).ToList();
-        foreach (var f in files)
+        int sent = 0;
+        if (files != null && files.Count > 0)
         {
-            await using var stream = f.OpenReadStream();
-            foreach (var chatId in ids)
+            foreach (var f in files.Where(f => f.Length > 0))
             {
-                stream.Position = 0;
-                try { await tg.SendPhotoAsync(chatId, stream, f.FileName ?? "photo.jpg", null, null, HttpContext.RequestAborted); } catch { }
+                await using var stream = f.OpenReadStream();
+                foreach (var chatId in ids)
+                {
+                    stream.Position = 0;
+                    try { await tg.SendPhotoAsync(chatId, stream, f.FileName ?? "photo.jpg", null, null, HttpContext.RequestAborted); } catch { }
+                }
+                sent++;
             }
         }
 
-        return Ok(new { ok = true, files = files.Count });
+        return Ok(new { ok = true, files = sent });
     }
 }
