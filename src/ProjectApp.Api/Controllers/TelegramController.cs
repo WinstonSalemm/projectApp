@@ -309,8 +309,8 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
         return Ok(new { ok = true });
     }
 
-    // POST /api/telegram/send-report-now (multipart form-data with files)
-    [HttpPost("send-report-now")]
+    // POST /api/telegram/send-report-now-multipart (multipart form-data with files)
+    [HttpPost("send-report-now-multipart")]
     [Authorize(Policy = "AdminOnly")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> SendReportNowMultipart()
