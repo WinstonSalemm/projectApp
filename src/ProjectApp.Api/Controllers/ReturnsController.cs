@@ -54,6 +54,11 @@ public class ReturnsController : ControllerBase
             if (sale is null)
                 return ValidationProblem(detail: $"Sale not found: {dto.RefSaleId}");
 
+            // Business rule: only a single return per sale is allowed
+            var alreadyExists = await _db.Returns.AnyAsync(r => r.RefSaleId == sale.Id, ct);
+            if (alreadyExists)
+                return ValidationProblem(detail: $"Return for sale #{sale.Id} already exists. You can cancel it if created by mistake.");
+
             // Full return (restock by original batches)
             if (dto.Items is null || dto.Items.Count == 0)
             {
@@ -151,6 +156,29 @@ public class ReturnsController : ControllerBase
         {
             return ValidationProblem(detail: ex.Message);
         }
+    }
+
+    [HttpPost("/api/sales/{saleId:int}/return/cancel")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelBySale([FromRoute] int saleId, CancellationToken ct)
+    {
+        var ret = await _db.Returns.Include(r => r.Items).Where(r => r.RefSaleId == saleId)
+            .OrderByDescending(r => r.Id).FirstOrDefaultAsync(ct);
+        if (ret is null) return NotFound();
+
+        var sale = await _db.Sales.Include(s => s.Items).FirstOrDefaultAsync(s => s.Id == saleId, ct);
+        if (sale is null) return NotFound();
+
+        await ReverseReturnRestockAsync(sale, ret, ct);
+        // Delete return and its items + restock records
+        var restocks = await _db.ReturnItemRestocks.Where(x => x.ReturnItemId == 0 || ret.Items.Select(i => i.Id).Contains(x.ReturnItemId)).ToListAsync(ct);
+        _db.ReturnItemRestocks.RemoveRange(restocks);
+        _db.ReturnItems.RemoveRange(ret.Items);
+        _db.Returns.Remove(ret);
+        await _db.SaveChangesAsync(ct);
+        return NoContent();
     }
 
     private static StockRegister MapPaymentToRegister(PaymentType payment)
@@ -273,6 +301,32 @@ public class ReturnsController : ControllerBase
                 await _db.SaveChangesAsync(ct);
                 _db.ReturnItemRestocks.Add(new ReturnItemRestock { ReturnItemId = ri.Id, SaleItemId = si.Id, BatchId = newBatch.Id, Qty = toReturn });
             }
+        }
+    }
+
+    // Reverse previously recorded restocks for a return (used when cancelling a return)
+    private async Task ReverseReturnRestockAsync(Sale sale, Return ret, CancellationToken ct)
+    {
+        var retItemIds = ret.Items.Select(i => i.Id).ToHashSet();
+        var restocks = await _db.ReturnItemRestocks
+            .Where(r => retItemIds.Contains(r.ReturnItemId))
+            .OrderBy(r => r.Id)
+            .ToListAsync(ct);
+
+        var saleItems = sale.Items.ToDictionary(si => si.Id, si => si);
+
+        foreach (var rs in restocks)
+        {
+            if (!saleItems.TryGetValue(rs.SaleItemId, out var si))
+                continue;
+
+            var batch = await _db.Batches.FirstOrDefaultAsync(b => b.Id == rs.BatchId, ct);
+            if (batch is null)
+                continue;
+
+            // Decrement batch quantity and stock by the restocked amount
+            batch.Qty -= rs.Qty;
+            await AdjustStockAsync(si.ProductId, batch.Register, -rs.Qty, ct);
         }
     }
 

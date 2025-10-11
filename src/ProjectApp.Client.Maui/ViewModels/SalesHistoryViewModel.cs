@@ -42,7 +42,8 @@ public partial class SalesHistoryViewModel : ObservableObject
         {
             IsLoading = true;
             var isAdmin = string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
-            var list = await _sales.GetSalesAsync(DateFrom, DateTo, createdBy: isAdmin ? null : _auth.UserName, all: ShowAll);
+            var createdBy = (ShowAll || isAdmin) ? null : _auth.UserName;
+            var list = await _sales.GetSalesAsync(DateFrom, DateTo, createdBy: createdBy, all: ShowAll);
             await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
             {
                 Items.Clear();

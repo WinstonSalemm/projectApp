@@ -30,6 +30,11 @@ public partial class ReturnForSaleViewModel : ObservableObject
 
     public ObservableCollection<ReturnLine> Lines { get; } = new();
 
+    // If a return already exists for the sale we show 'Отмена возврата'
+    [ObservableProperty] private bool hasReturn;
+    public string ActionButtonText => HasReturn ? "Отмена возврата" : "Оформить возврат";
+    partial void OnHasReturnChanged(bool value) => OnPropertyChanged(nameof(ActionButtonText));
+
     public ReturnForSaleViewModel(ApiSalesService sales, ApiReturnsService returnsApi, IReturnsService returns, ApiCatalogService catalog)
     {
         _sales = sales;
@@ -61,6 +66,7 @@ public partial class ReturnForSaleViewModel : ObservableObject
             SaleId = s.Id; ClientId = s.ClientId; ClientName = s.ClientName; PaymentType = s.PaymentType; CreatedAt = s.CreatedAt;
 
             var returns = await _returnsApi.GetBySaleAsync(saleId);
+            HasReturn = returns.Any();
             var returnedMap = returns
                 .SelectMany(r => r.Items)
                 .GroupBy(i => i.SaleItemId)
@@ -107,37 +113,47 @@ public partial class ReturnForSaleViewModel : ObservableObject
         foreach (var l in Lines)
             l.ReturnQty = l.AvailableQty;
     }
-
     [RelayCommand]
     private async Task SubmitAsync()
     {
         if (SaleId <= 0) { StatusMessage = "Продажа не выбрана"; return; }
-        var items = Lines.Where(l => l.ReturnQty > 0).Select(l => new ReturnDraftItem
-        {
-            SaleItemId = l.SaleItemId,
-            Qty = l.ReturnQty
-        }).ToList();
-        var draft = new ReturnDraft
-        {
-            RefSaleId = SaleId,
-            ClientId = ClientId,
-            Reason = Reason,
-            Items = items.Count == 0 ? null : items
-        };
         try
         {
             IsBusy = true; StatusMessage = string.Empty;
-            var ok = await _returns.CreateReturnAsync(draft);
-            StatusMessage = ok ? "Возврат создан" : "Ошибка возврата";
-            if (ok)
+            if (HasReturn)
             {
-                await Application.Current!.MainPage!.DisplayAlert("OK", "Возврат создан", "OK");
-                try
+                var confirm = await Application.Current!.MainPage!.DisplayAlert("Отмена возврата", "Отменить возврат по этой продаже?", "Да", "Нет");
+                if (!confirm) return;
+                var okCancel = await _returns.CancelBySaleAsync(SaleId);
+                StatusMessage = okCancel ? "Возврат отменён" : "Не удалось отменить возврат";
+                if (okCancel)
                 {
-                    var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
-                    Application.Current!.MainPage = new NavigationPage(select);
+                    HasReturn = false;
+                    await LoadAsync(SaleId);
+                    return;
                 }
-                catch { }
+            }
+            else
+            {
+                var items = Lines.Where(l => l.ReturnQty > 0).Select(l => new ReturnDraftItem
+                {
+                    SaleItemId = l.SaleItemId,
+                    Qty = l.ReturnQty
+                }).ToList();
+                var draft = new ReturnDraft
+                {
+                    RefSaleId = SaleId,
+                    ClientId = ClientId,
+                    Reason = Reason,
+                    Items = items.Count == 0 ? null : items
+                };
+                var ok = await _returns.CreateReturnAsync(draft);
+                StatusMessage = ok ? "Возврат создан" : "Ошибка возврата";
+                if (ok)
+                {
+                    HasReturn = true;
+                    await Application.Current!.MainPage!.DisplayAlert("OK", "Возврат создан", "OK");
+                }
             }
         }
         catch (Exception ex)

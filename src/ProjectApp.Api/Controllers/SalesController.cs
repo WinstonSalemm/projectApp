@@ -6,6 +6,9 @@ using ProjectApp.Api.Models;
 using ProjectApp.Api.Repositories;
 using ProjectApp.Api.Services;
 using ProjectApp.Api.Integrations.Telegram;
+using Microsoft.Extensions.Options;
+using ProjectApp.Api.Data;
+using System.IO;
 
 namespace ProjectApp.Api.Controllers;
 
@@ -17,13 +20,21 @@ public class SalesController : ControllerBase
     private readonly ISaleCalculator _calculator;
     private readonly ILogger<SalesController> _logger;
     private readonly ISalesNotifier _notifier;
+    private readonly ITelegramService _tg;
+    private readonly TelegramSettings _tgSettings;
+    private readonly AppDbContext _db;
+    private readonly IConfiguration _config;
 
-    public SalesController(ISaleRepository sales, ISaleCalculator calculator, ILogger<SalesController> logger, ISalesNotifier notifier)
+    public SalesController(ISaleRepository sales, ISaleCalculator calculator, ILogger<SalesController> logger, ISalesNotifier notifier, ITelegramService tg, IOptions<TelegramSettings> tgOptions, AppDbContext db, IConfiguration config)
     {
         _sales = sales;
         _calculator = calculator;
         _logger = logger;
         _notifier = notifier;
+        _tg = tg;
+        _tgSettings = tgOptions.Value;
+        _db = db;
+        _config = config;
     }
 
     [HttpGet]
@@ -53,9 +64,13 @@ public class SalesController : ControllerBase
             _logger.LogInformation("Sale created {SaleId} for client {ClientId} total {Total} payment {PaymentType}",
                 sale.Id, sale.ClientId, sale.Total, sale.PaymentType);
 
-            // Fire-and-forget notification (do not block the response)
-            // Use CancellationToken.None to avoid request-abort cancelling Telegram send
-            _ = _notifier.NotifySaleAsync(sale, CancellationToken.None);
+            // Notification: if client set NotifyHold=true, skip text; Android client will upload photo+caption
+            if (!(dto.NotifyHold ?? false))
+            {
+                // Fire-and-forget notification (do not block the response)
+                // Use CancellationToken.None to avoid request-abort cancelling Telegram send
+                _ = _notifier.NotifySaleAsync(sale, CancellationToken.None);
+            }
 
             var location = $"/api/sales/{sale.Id}";
             return Created(location, sale);
@@ -91,6 +106,151 @@ public class SalesController : ControllerBase
         var sale = await _sales.GetByIdAsync(id, ct);
         if (sale is null) return NotFound();
         return Ok(sale);
+    }
+
+    private static string HtmlEscape(string? s)
+        => string.IsNullOrEmpty(s)
+            ? string.Empty
+            : s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
+    private static string PaymentTypeRu(PaymentType pt) => pt switch
+    {
+        PaymentType.CashWithReceipt => "Наличные (чек)",
+        PaymentType.CardWithReceipt => "Карта (чек)",
+        PaymentType.ClickWithReceipt => "Click (чек)",
+        PaymentType.CashNoReceipt => "Наличные (без чека)",
+        PaymentType.ClickNoReceipt => "Click (без чека)",
+        PaymentType.Click => "Click",
+        PaymentType.Payme => "Payme",
+        PaymentType.Site => "Сайт",
+        PaymentType.Reservation => "Резервация",
+        PaymentType.Return => "Возврат",
+        PaymentType.Contract => "По договору",
+        _ => pt.ToString()
+    };
+
+    private async Task<string> BuildSaleCaptionAsync(Sale sale, CancellationToken ct)
+    {
+        var localTime = sale.CreatedAt.AddMinutes(_tgSettings.TimeZoneOffsetMinutes);
+        var clientName = string.IsNullOrWhiteSpace(sale.ClientName) ? "Посетитель" : sale.ClientName;
+        var createdBy = sale.CreatedBy ?? string.Empty;
+        string managerDisplay = createdBy;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(createdBy))
+            {
+                var dbUser = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserName == createdBy, ct);
+                if (dbUser is not null && !string.IsNullOrWhiteSpace(dbUser.DisplayName))
+                    managerDisplay = dbUser.DisplayName;
+                else
+                {
+                    var cfgUsers = _config.GetSection("Users").Get<List<dynamic>>();
+                    if (cfgUsers is not null)
+                    {
+                        foreach (var u in cfgUsers)
+                        {
+                            try
+                            {
+                                string uname = u.UserName;
+                                if (string.Equals(uname, createdBy, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    managerDisplay = string.IsNullOrWhiteSpace((string?)u.DisplayName) ? uname : (string)u.DisplayName;
+                                    break;
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+        if (string.IsNullOrWhiteSpace(managerDisplay)) managerDisplay = "n/a";
+
+        var pids = sale.Items?.Select(i => i.ProductId).Distinct().ToList() ?? new List<int>();
+        var prodMap = await _db.Products.AsNoTracking()
+            .Where(p => pids.Contains(p.Id))
+            .Select(p => new { p.Id, p.Sku, p.Name })
+            .ToDictionaryAsync(p => p.Id, p => p, ct);
+
+        var lines = new List<string>();
+        foreach (var it in sale.Items ?? new List<SaleItem>())
+        {
+            prodMap.TryGetValue(it.ProductId, out var p);
+            var name = p?.Name ?? $"#{it.ProductId}";
+            var sum = it.Qty * it.UnitPrice;
+            var nameShort = name.Length > 28 ? name.Substring(0, 28) + "…" : name;
+            var safeNameShort = HtmlEscape(nameShort);
+            lines.Add($"{safeNameShort,-30} {it.Qty,5:N0} x {it.UnitPrice,9:N0} = {sum,10:N0}");
+        }
+
+        var itemsCount = sale.Items?.Count ?? 0;
+        var qty = sale.Items?.Sum(i => i.Qty) ?? 0m;
+        var paymentRu = PaymentTypeRu(sale.PaymentType);
+        var safeClient = HtmlEscape(clientName);
+        var safeManager = HtmlEscape(managerDisplay);
+
+        var title = $"<b>Продажа #{sale.Id}</b>";
+        var header = $"Дата: {localTime:yyyy-MM-dd HH:mm}\nКлиент: {safeClient}\nОплата: {paymentRu}\nПозиции: {itemsCount} (шт: {qty:N0})\nИтого: {sale.Total:N0}\nМенеджер: {safeManager}";
+        var itemsBlock = lines.Count > 0 ? ("\n<pre>" + string.Join("\n", lines) + "</pre>") : string.Empty;
+        return title + "\n" + header + itemsBlock;
+    }
+
+    [HttpPost("/api/sales/{saleId:int}/photo")]
+    [Authorize(Policy = "ManagerOnly")]
+    [RequestSizeLimit(20_000_000)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UploadSalePhoto([FromRoute] int saleId, CancellationToken ct)
+    {
+        var sale = await _sales.GetByIdAsync(saleId, ct);
+        if (sale is null) return ValidationProblem(detail: $"Sale not found: {saleId}");
+
+        if (!Request.HasFormContentType) return ValidationProblem(detail: "Expected multipart/form-data");
+        var form = await Request.ReadFormAsync(ct);
+        var file = form.Files["file"] ?? form.Files.FirstOrDefault();
+        if (file is null || file.Length == 0) return ValidationProblem(detail: "Photo file is required");
+
+        var caption = await BuildSaleCaptionAsync(sale, ct);
+        var ids = _tgSettings.ParseAllowedChatIds();
+        if (ids.Count == 0) return NoContent();
+
+        await using var stream = file.OpenReadStream();
+        foreach (var chatId in ids)
+        {
+            stream.Position = 0;
+            var ok = await _tg.SendPhotoAsync(chatId, stream, file.FileName ?? $"sale_{saleId}.jpg", caption, "HTML", ct);
+            if (!ok) _logger.LogWarning("Failed to send sale photo to chat {ChatId} for sale {SaleId}", chatId, saleId);
+        }
+
+        // Store last photo per manager until next sale
+        try
+        {
+            var user = sale.CreatedBy ?? "unknown";
+            var baseDir = Path.Combine(AppContext.BaseDirectory, "sale-photos");
+            Directory.CreateDirectory(baseDir);
+            var savePath = Path.Combine(baseDir, $"{user}_{saleId}_{DateTime.UtcNow:yyyyMMddHHmmss}.jpg");
+            stream.Position = 0;
+            await using (var fs = System.IO.File.Create(savePath))
+            {
+                await stream.CopyToAsync(fs, ct);
+            }
+            // Delete previous photos for this user
+            var prev = await _db.SalePhotos.Where(p => p.UserName == user && p.SaleId != saleId).ToListAsync(ct);
+            foreach (var p in prev)
+            {
+                try { if (!string.IsNullOrWhiteSpace(p.PathOrBlob) && System.IO.File.Exists(p.PathOrBlob)) System.IO.File.Delete(p.PathOrBlob); } catch { }
+            }
+            _db.SalePhotos.RemoveRange(prev);
+            // Upsert current record (remove any duplicates for same sale)
+            var currPrev = await _db.SalePhotos.Where(p => p.SaleId == saleId).ToListAsync(ct);
+            _db.SalePhotos.RemoveRange(currPrev);
+            _db.SalePhotos.Add(new SalePhoto { SaleId = sale.Id, UserName = user, Mime = file.ContentType, Size = file.Length, CreatedAt = DateTime.UtcNow, PathOrBlob = savePath });
+            await _db.SaveChangesAsync(ct);
+        }
+        catch { }
+
+        return NoContent();
     }
 }
 

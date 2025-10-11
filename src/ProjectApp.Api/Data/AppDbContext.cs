@@ -22,6 +22,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ContractItem> ContractItems => Set<ContractItem>();
     public DbSet<SaleItemConsumption> SaleItemConsumptions => Set<SaleItemConsumption>();
     public DbSet<ReturnItemRestock> ReturnItemRestocks => Set<ReturnItemRestock>();
+    public DbSet<SalePhoto> SalePhotos => Set<SalePhoto>();
+    public DbSet<Reservation> Reservations => Set<Reservation>();
+    public DbSet<ReservationItem> ReservationItems => Set<ReservationItem>();
+    public DbSet<ReservationLog> ReservationLogs => Set<ReservationLog>();
+    public DbSet<StockSnapshot> StockSnapshots => Set<StockSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -233,6 +238,67 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .WithMany(c => c.Items)
              .HasForeignKey(i => i.ContractId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SalePhoto>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.UserName).HasMaxLength(64);
+            b.Property(x => x.Mime).HasMaxLength(64);
+            b.Property(x => x.PathOrBlob).HasMaxLength(512);
+            b.Property(x => x.CreatedAt).IsRequired();
+            b.HasIndex(x => x.SaleId);
+            b.HasIndex(x => x.UserName);
+        });
+
+        // Reservations (snapshot items with prices at reservation time)
+        modelBuilder.Entity<Reservation>(b =>
+        {
+            b.HasKey(r => r.Id);
+            b.Property(r => r.CreatedBy).HasMaxLength(64);
+            b.Property(r => r.CreatedAt).IsRequired();
+            b.Property(r => r.Paid).IsRequired();
+            b.Property(r => r.ReservedUntil).IsRequired();
+            b.Property(r => r.Status).IsRequired();
+            b.Property(r => r.Note).HasMaxLength(1024);
+            b.HasMany(r => r.Items)
+             .WithOne()
+             .HasForeignKey(i => i.ReservationId)
+             .OnDelete(DeleteBehavior.Cascade);
+            b.HasIndex(r => new { r.Status, r.ReservedUntil });
+            b.HasIndex(r => r.CreatedBy);
+            b.HasIndex(r => r.ClientId);
+        });
+
+        modelBuilder.Entity<ReservationItem>(b =>
+        {
+            b.HasKey(i => i.Id);
+            b.Property(i => i.Qty).HasColumnType("decimal(18,3)");
+            b.Property(i => i.UnitPrice).HasColumnType("decimal(18,2)");
+            b.Property(i => i.Sku).HasMaxLength(64);
+            b.Property(i => i.Name).HasMaxLength(256);
+            b.HasIndex(i => new { i.ProductId, i.Register });
+        });
+
+        modelBuilder.Entity<ReservationLog>(b =>
+        {
+            b.HasKey(l => l.Id);
+            b.Property(l => l.Action).HasMaxLength(32);
+            b.Property(l => l.UserName).HasMaxLength(64);
+            b.Property(l => l.CreatedAt).IsRequired();
+            b.Property(l => l.Details).HasMaxLength(1024);
+            b.HasIndex(l => l.ReservationId);
+        });
+
+        modelBuilder.Entity<StockSnapshot>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.NdQty).HasColumnType("decimal(18,3)");
+            b.Property(x => x.ImQty).HasColumnType("decimal(18,3)");
+            b.Property(x => x.TotalQty).HasColumnType("decimal(18,3)");
+            b.Property(x => x.CreatedAt).IsRequired();
+            b.HasIndex(x => x.CreatedAt);
+            b.HasIndex(x => x.ProductId);
         });
     }
 }

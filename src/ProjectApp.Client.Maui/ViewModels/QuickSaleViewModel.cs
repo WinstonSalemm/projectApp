@@ -5,6 +5,8 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Devices;
+using Microsoft.Maui.Media;
 using ProjectApp.Client.Maui.Models;
 using ProjectApp.Client.Maui.Services;
 using CommunityToolkit.Maui.Alerts;
@@ -18,6 +20,7 @@ public partial class QuickSaleViewModel : ObservableObject
 {
     private readonly ICatalogService _catalog;
     private readonly ISalesService _sales;
+    private readonly IReservationsService _reservations;
     private readonly IStocksService _stocks;
     private readonly AppSettings _settings;
     private readonly AuthService _auth;
@@ -91,6 +94,10 @@ public partial class QuickSaleViewModel : ObservableObject
     [ObservableProperty]
     private int? selectedClientId;
 
+    // Reservation-specific: whether payment has already been taken
+    [ObservableProperty]
+    private bool reservationPaid;
+
     // Admin restriction
     [ObservableProperty]
     private bool isSaleAllowed = true;
@@ -115,10 +122,11 @@ public partial class QuickSaleViewModel : ObservableObject
         ReservationNotes.Remove(note);
     }
 
-    public QuickSaleViewModel(ICatalogService catalog, ISalesService sales, IStocksService stocks, AppSettings settings, AuthService auth)
+    public QuickSaleViewModel(ICatalogService catalog, ISalesService sales, IReservationsService reservations, IStocksService stocks, AppSettings settings, AuthService auth)
     {
         _catalog = catalog;
         _sales = sales;
+        _reservations = reservations;
         _stocks = stocks;
         _settings = settings;
         _auth = auth;
@@ -353,7 +361,13 @@ public partial class QuickSaleViewModel : ObservableObject
     private void UpdateCanSubmit()
     {
         bool AllIntegersPositive() => Cart.All(i => i.Qty >= 1d && Math.Abs(i.Qty - Math.Round(i.Qty)) < 1e-9);
-        CanSubmit = IsSaleAllowed && Cart.Count > 0 && Cart.All(i => i.UnitPrice > 0m) && AllIntegersPositive();
+        var ok = IsSaleAllowed && Cart.Count > 0 && Cart.All(i => i.UnitPrice > 0m) && AllIntegersPositive();
+        if (SelectedPaymentType == PaymentType.Reservation)
+        {
+            // For reservations: require client name to be filled
+            ok = ok && !string.IsNullOrWhiteSpace(ClientName);
+        }
+        CanSubmit = ok;
     }
 
     partial void OnSelectedPaymentTypeChanged(PaymentType value)
@@ -382,6 +396,132 @@ public partial class QuickSaleViewModel : ObservableObject
             return;
         }
         if (Cart.Count == 0) return;
+        // If Reservation type -> separate API flow
+        if (SelectedPaymentType == PaymentType.Reservation)
+        {
+            // Build reservation draft with snapshot prices from cart
+            var rd = new ReservationCreateDraft
+            {
+                ClientId = SelectedClientId,
+                Paid = ReservationPaid,
+                Note = ReservationNotes.Any() ? string.Join("; ", ReservationNotes) : null,
+            };
+            foreach (var c in Cart)
+            {
+                rd.Items.Add(new ReservationCreateItemDraft
+                {
+                    ProductId = c.ProductId,
+                    // Prefer IM40 by default; register-specific UI может быть добавлен позже
+                    Register = Models.StockRegister.IM40,
+                    Qty = (decimal)c.Qty
+                });
+            }
+
+            // Windows: create without photo (text notify immediately)
+            if (DeviceInfo.Platform == DevicePlatform.WinUI || DeviceInfo.Platform == DevicePlatform.WinUI)
+            {
+                var resId = await _reservations.CreateReservationAsync(rd, waitForPhoto: false, source: "Windows");
+                if (!resId.HasValue)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                        await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось создать резерв", "OK"));
+                    return;
+                }
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                    await Application.Current!.MainPage!.DisplayAlert("Успех", $"Резерв создан #{resId}", "OK"));
+                Cart.Clear();
+                Total = 0m;
+                ReservationPaid = false;
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    try
+                    {
+                        var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
+                        Application.Current!.MainPage = new NavigationPage(select);
+                    }
+                    catch { }
+                });
+                return;
+            }
+
+            // Android: create with WaitForPhoto and then capture + upload
+            if (DeviceInfo.Platform == DevicePlatform.Android)
+            {
+                var resId = await _reservations.CreateReservationAsync(rd, waitForPhoto: true, source: "Android");
+                if (!resId.HasValue)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                        await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось создать резерв", "OK"));
+                    return;
+                }
+
+                try
+                {
+                    var photo = await MediaPicker.CapturePhotoAsync();
+                    if (photo == null)
+                    {
+                        await MainThread.InvokeOnMainThreadAsync(async () =>
+                            await Application.Current!.MainPage!.DisplayAlert("Фото обязательно", "Для резерва требуется фото менеджера", "OK"));
+                        return;
+                    }
+                    await using var stream = await photo.OpenReadAsync();
+                    var okUp = await _reservations.UploadReservationPhotoAsync(resId.Value, stream, System.IO.Path.GetFileName(photo.FullPath) ?? "reserve.jpg");
+                    if (!okUp)
+                    {
+                        await MainThread.InvokeOnMainThreadAsync(async () =>
+                            await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось отправить фото в Telegram", "OK"));
+                        return;
+                    }
+                }
+                catch
+                {
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                        await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось сделать фото. Повторите.", "OK"));
+                    return;
+                }
+
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                    await Application.Current!.MainPage!.DisplayAlert("Успех", $"Резерв создан #{resId}", "OK"));
+                Cart.Clear();
+                Total = 0m;
+                ReservationPaid = false;
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    try
+                    {
+                        var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
+                        Application.Current!.MainPage = new NavigationPage(select);
+                    }
+                    catch { }
+                });
+                return;
+            }
+
+            // Other platforms: fallback to no-photo create
+            var resIdOther = await _reservations.CreateReservationAsync(rd, waitForPhoto: false, source: DeviceInfo.Platform.ToString());
+            if (!resIdOther.HasValue)
+            {
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                    await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось создать резерв", "OK"));
+                return;
+            }
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+                await Application.Current!.MainPage!.DisplayAlert("Успех", $"Резерв создан #{resIdOther}", "OK"));
+            Cart.Clear();
+            Total = 0m;
+            ReservationPaid = false;
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                try
+                {
+                    var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
+                    Application.Current!.MainPage = new NavigationPage(select);
+                }
+                catch { }
+            });
+            return;
+        }
+
         var draft = new SaleDraft
         {
             ClientId = SelectedClientId,
@@ -389,9 +529,20 @@ public partial class QuickSaleViewModel : ObservableObject
             PaymentType = SelectedPaymentType,
             Items = Cart.Select(c => new SaleDraftItem { ProductId = c.ProductId, Qty = c.Qty, UnitPrice = c.UnitPrice }).ToList()
         };
-        if (SelectedPaymentType == PaymentType.Reservation && ReservationNotes.Any())
+        // Android: hold text notification; we'll send photo+caption
+        if (DeviceInfo.Platform == DevicePlatform.Android)
         {
-            draft.ReservationNotes = ReservationNotes.ToList();
+            draft.NotifyHold = true;
+        }
+        if (SelectedPaymentType == PaymentType.Reservation)
+        {
+            // Always include a generated description line with client and whether paid
+            var notes = new List<string>();
+            var client = string.IsNullOrWhiteSpace(ClientName) ? "(не указан)" : ClientName.Trim();
+            var paidText = ReservationPaid ? "Да" : "Нет";
+            notes.Add($"Клиент: {client}; Оплата: {paidText}");
+            if (ReservationNotes.Any()) notes.AddRange(ReservationNotes);
+            draft.ReservationNotes = notes;
         }
         _lastAction = LastAction.Submit;
         _lastDraft = draft;
@@ -406,12 +557,55 @@ public partial class QuickSaleViewModel : ObservableObject
         }
         if (result.Success)
         {
+            // If Android: mandatory front camera photo and upload before finalizing
+            if (DeviceInfo.Platform == DevicePlatform.Android)
+            {
+                try
+                {
+                    var photo = await MediaPicker.CapturePhotoAsync();
+                    if (photo == null)
+                    {
+                        await MainThread.InvokeOnMainThreadAsync(async () =>
+                        {
+                            await Application.Current!.MainPage!.DisplayAlert("Фото обязательно", "Для подтверждения требуется фото", "OK");
+                        });
+                        return;
+                    }
+                    if (!(result.SaleId.HasValue && result.SaleId.Value > 0))
+                    {
+                        await MainThread.InvokeOnMainThreadAsync(async () =>
+                        {
+                            await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось определить номер продажи для загрузки фото", "OK");
+                        });
+                        return;
+                    }
+                    await using var stream = await photo.OpenReadAsync();
+                    var okUp = await _sales.UploadSalePhotoAsync(result.SaleId!.Value, stream, System.IO.Path.GetFileName(photo.FullPath) ?? "sale.jpg");
+                    if (!okUp)
+                    {
+                        await MainThread.InvokeOnMainThreadAsync(async () =>
+                        {
+                            await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось отправить фото в Telegram", "OK");
+                        });
+                        return;
+                    }
+                }
+                catch
+                {
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                    {
+                        await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось сделать фото. Повторите.", "OK");
+                    });
+                    return;
+                }
+            }
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 await Application.Current!.MainPage!.DisplayAlert("Успех", "Продажа проведена", "OK");
             });
             Cart.Clear();
             Total = 0m;
+            ReservationPaid = false;
             // Navigate to account selection
             await MainThread.InvokeOnMainThreadAsync(() =>
             {

@@ -9,6 +9,7 @@ using ProjectApp.Client.Maui.ViewModels;
 using ProjectApp.Client.Maui.Views;
 using CommunityToolkit.Maui;
 using Microsoft.Maui.Storage;
+using Plugin.Maui.Audio;
 
 namespace ProjectApp.Client.Maui;
 
@@ -63,23 +64,24 @@ public static class MauiProgram
         // Register concrete API and Mock services
         builder.Services.AddHttpClient(); // generic factory
         builder.Services.AddSingleton<AuthService>();
+        builder.Services.AddSingleton<IAudioManager>(sp => AudioManager.Current);
         builder.Services.AddSingleton<ApiCatalogService>();
         builder.Services.AddSingleton<ApiSalesService>();
         builder.Services.AddSingleton<ApiSuppliesService>();
-        builder.Services.AddSingleton<ApiReturnsService>();
         builder.Services.AddSingleton<MockCatalogService>();
         builder.Services.AddSingleton<MockSalesService>();
         // Routed services decide at runtime based on current AppSettings
         builder.Services.AddSingleton<ICatalogService, RoutedCatalogService>();
         builder.Services.AddSingleton<ISalesService, RoutedSalesService>();
-        builder.Services.AddSingleton<ApiStocksService>();
-        builder.Services.AddSingleton<IStocksService>(sp => sp.GetRequiredService<ApiStocksService>());
+        builder.Services.AddSingleton<ApiReturnsService>();
+        builder.Services.AddSingleton<IReturnsService>(sp => sp.GetRequiredService<ApiReturnsService>());
+        builder.Services.AddSingleton<ApiReservationsService>();
+        builder.Services.AddSingleton<IReservationsService>(sp => sp.GetRequiredService<ApiReservationsService>());
         builder.Services.AddSingleton<ApiContractsService>();
         builder.Services.AddSingleton<IContractsService>(sp => sp.GetRequiredService<ApiContractsService>());
         // Products (create)
         builder.Services.AddSingleton<ApiProductsService>();
         builder.Services.AddSingleton<IProductsService>(sp => sp.GetRequiredService<ApiProductsService>());
-        builder.Services.AddSingleton<ApiClientsService>();
         builder.Services.AddSingleton<ISuppliesService>(sp => sp.GetRequiredService<ApiSuppliesService>());
         builder.Services.AddSingleton<IReturnsService>(sp => sp.GetRequiredService<ApiReturnsService>());
 
@@ -137,6 +139,7 @@ public static class MauiProgram
         builder.Services.AddTransient<ClientEditPage>();
         builder.Services.AddTransient<UnregisteredClientViewModel>();
         builder.Services.AddTransient<UnregisteredClientPage>();
+        builder.Services.AddTransient<ConfirmAccountPage>();
 
         return builder.Build();
     }

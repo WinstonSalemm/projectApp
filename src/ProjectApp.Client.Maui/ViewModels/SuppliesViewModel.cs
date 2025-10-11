@@ -20,10 +20,16 @@ public partial class SuppliesViewModel : ObservableObject
 
     // New supply item editor
     [ObservableProperty] private int newProductId;
+    [ObservableProperty] private string? newProductSku;
+    [ObservableProperty] private string? newProductName;
     [ObservableProperty] private decimal newQty = 1m;
     [ObservableProperty] private decimal newUnitCost;
     [ObservableProperty] private string newCode = string.Empty;
     [ObservableProperty] private string? newNote;
+
+    public decimal NewLineTotal => NewQty * NewUnitCost;
+    partial void OnNewQtyChanged(decimal value) => OnPropertyChanged(nameof(NewLineTotal));
+    partial void OnNewUnitCostChanged(decimal value) => OnPropertyChanged(nameof(NewLineTotal));
 
     // Stocks for selected product (supply editor)
     [ObservableProperty] private decimal selectedNd40Qty;
@@ -35,6 +41,8 @@ public partial class SuppliesViewModel : ObservableObject
     // Transfer section
     [ObservableProperty] private string transferCode = string.Empty;
     [ObservableProperty] private int transferProductId;
+    [ObservableProperty] private string? transferProductSku;
+    [ObservableProperty] private string? transferProductName;
     [ObservableProperty] private decimal transferQty = 1m;
     public ObservableCollection<SupplyTransferItem> TransferItems { get; } = new();
 
@@ -58,9 +66,11 @@ public partial class SuppliesViewModel : ObservableObject
             Qty = NewQty,
             UnitCost = NewUnitCost,
             Code = NewCode ?? string.Empty,
-            Note = NewNote
+            Note = NewNote,
+            Sku = NewProductSku,
+            Name = NewProductName
         });
-        NewProductId = 0; NewQty = 1; NewUnitCost = 0; NewCode = string.Empty; NewNote = null;
+        NewProductId = 0; NewProductSku = null; NewProductName = null; NewQty = 1; NewUnitCost = 0; NewCode = string.Empty; NewNote = null;
     }
 
     [RelayCommand]
@@ -103,7 +113,7 @@ public partial class SuppliesViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(TransferCode)) { StatusMessage = "Код обязателен"; return; }
         if (TransferProductId <= 0 || TransferQty <= 0) return;
         TransferItems.Add(new SupplyTransferItem { ProductId = TransferProductId, Qty = TransferQty });
-        TransferProductId = 0; TransferQty = 1m;
+        TransferProductId = 0; TransferProductSku = null; TransferProductName = null; TransferQty = 1m;
     }
 
     [RelayCommand]

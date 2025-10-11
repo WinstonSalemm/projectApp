@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net9.0-windows10.0.19041.0</TargetFrameworks>
     <OutputType>WinExe</OutputType>
@@ -23,7 +23,9 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
+    <PackageReference Include="Plugin.Maui.Audio" Version="2.0.0" />
   </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
@@ -32,6 +34,14 @@
   <ItemGroup>
     <ProjectCapability Include="MAUI" />
   </ItemGroup>
+  <ItemGroup>
+    <MauiAsset Include="Resources\Raw\**\*" />
+    <MauiAsset Include="..\..\pig.mp3">
+      <LogicalName>pig.mp3</LogicalName>
+      <Link>Resources\Raw\pig.mp3</Link>
+    </MauiAsset>
+  </ItemGroup>
+
   <PropertyGroup>
     <WindowsPackageType>None</WindowsPackageType>
     <SkipValidateMauiImplicitPackageReferences>true</SkipValidateMauiImplicitPackageReferences>

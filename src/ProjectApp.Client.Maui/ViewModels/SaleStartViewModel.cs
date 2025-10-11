@@ -39,16 +39,33 @@ public partial class SaleStartViewModel : ObservableObject
 
     private async Task LoadAsync()
     {
-        try
+        IEnumerable<string> list;
+        try { list = await _catalog.GetCategoriesAsync(); }
+        catch { list = Array.Empty<string>(); }
+
+        if (list is null || !list.Any())
         {
-            var list = await _catalog.GetCategoriesAsync();
-            await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
+            // Strong local defaults so экран никогда не пустой
+            list = new[]
             {
-                Categories.Clear();
-                foreach (var c in list)
-                    Categories.Add(c);
-            });
+                "Огнетушители",
+                "Огнетушители ПОРОШКОВЫЕ",
+                "Огнетушители УГЛЕКИСЛОТНЫЕ",
+                "Кронштейны",
+                "Подставки",
+                "Шкафы",
+                "датчики",
+                "рукава"
+            };
         }
-        catch { }
+
+        await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            Categories.Clear();
+            // Always provide a placeholder to continue without filtering by category
+            Categories.Add("(Без категории)");
+            foreach (var c in list.Distinct().OrderBy(s => s))
+                Categories.Add(c);
+        });
     }
 }

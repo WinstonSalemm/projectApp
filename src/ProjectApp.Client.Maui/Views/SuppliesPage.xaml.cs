@@ -32,6 +32,8 @@ public partial class SuppliesPage : ContentPage
         if (picked != null)
         {
             vm.NewProductId = picked.Id;
+            vm.NewProductSku = picked.Sku;
+            vm.NewProductName = picked.Name;
             vm.SelectedNd40Qty = picked.Nd40Qty;
             vm.SelectedIm40Qty = picked.Im40Qty;
             vm.SelectedTotalQty = picked.TotalQty;
@@ -55,6 +57,8 @@ public partial class SuppliesPage : ContentPage
         if (picked != null)
         {
             vm.TransferProductId = picked.Id;
+            vm.TransferProductSku = picked.Sku;
+            vm.TransferProductName = picked.Name;
             vm.TransferNd40Qty = picked.Nd40Qty;
             vm.TransferIm40Qty = picked.Im40Qty;
             vm.TransferTotalQty = picked.TotalQty;

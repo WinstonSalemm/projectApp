@@ -1,9 +1,11 @@
+using System;
+using System.Collections.Generic;
 using System.Net.Http.Json;
 
 namespace ProjectApp.Client.Maui.Services;
 
-public class ApiReturnsService : IReturnsService
-{
+    public class ApiReturnsService : IReturnsService
+    {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly AppSettings _settings;
     private readonly AuthService _auth;
@@ -13,6 +15,15 @@ public class ApiReturnsService : IReturnsService
         _httpClientFactory = httpClientFactory;
         _settings = settings;
         _auth = auth;
+    }
+
+    private sealed class ProblemDetails
+    {
+        public string? Type { get; set; }
+        public string? Title { get; set; }
+        public int? Status { get; set; }
+        public string? Detail { get; set; }
+        public string? Instance { get; set; }
     }
 
     private class ReturnItemCreateDto
@@ -45,10 +56,20 @@ public class ApiReturnsService : IReturnsService
         };
 
         var resp = await client.PostAsJsonAsync("/api/returns", dto, ct);
-        return resp.IsSuccessStatusCode;
-    }
+        if (resp.IsSuccessStatusCode) return true;
 
-    // ---- History listing ----
+        try
+        {
+            var problem = await resp.Content.ReadFromJsonAsync<ProblemDetails>(cancellationToken: ct);
+            var msg = problem?.Detail;
+            if (string.IsNullOrWhiteSpace(msg)) msg = await resp.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException(string.IsNullOrWhiteSpace(msg) ? $"HTTP {(int)resp.StatusCode} {resp.StatusCode}" : msg);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(ex.Message);
+        }
+    }
     public class ReturnItemDto
     {
         public int SaleItemId { get; set; }
@@ -92,5 +113,15 @@ public class ApiReturnsService : IReturnsService
         var url = $"/api/sales/{saleId}/returns";
         var list = await client.GetFromJsonAsync<List<ReturnDto>>(url, ct);
         return list ?? Enumerable.Empty<ReturnDto>();
+    }
+
+    public async Task<bool> CancelBySaleAsync(int saleId, CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient();
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+        var resp = await client.PostAsync($"/api/sales/{saleId}/return/cancel", content: null, ct);
+        return resp.IsSuccessStatusCode;
     }
 }

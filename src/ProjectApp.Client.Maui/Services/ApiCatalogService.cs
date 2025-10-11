@@ -57,8 +57,42 @@ public class ApiCatalogService : ICatalogService
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
-        var list = await client.GetFromJsonAsync<List<string>>("/api/products/categories", ct);
-        return list ?? Enumerable.Empty<string>();
+        List<string>? list = null;
+        try
+        {
+            list = await client.GetFromJsonAsync<List<string>>("/api/products/categories", ct);
+        }
+        catch { list = null; }
+        if (list == null || list.Count == 0)
+        {
+            try
+            {
+                list = await client.GetFromJsonAsync<List<string>>("/api/categories", ct);
+            }
+            catch { list = null; }
+        }
+        var result = (list ?? new List<string>())
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s)
+            .ToList();
+        if (result.Count == 0)
+        {
+            // Local safety net so UI is never empty if server endpoints fail
+            var defaults = new[]
+            {
+                "Огнетушители",
+                "Огнетушители ПОРОШКОВЫЕ",
+                "Огнетушители УГЛЕКИСЛОТНЫЕ",
+                "Кронштейны",
+                "Подставки",
+                "Шкафы",
+                "датчики",
+                "рукава"
+            };
+            result = defaults.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s).ToList();
+        }
+        return result;
     }
 
     private class ProductBrief

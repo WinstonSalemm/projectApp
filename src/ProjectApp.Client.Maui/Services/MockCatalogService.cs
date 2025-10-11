@@ -6,9 +6,9 @@ public class MockCatalogService : ICatalogService
 {
     private readonly List<ProductModel> _all = new()
     {
-        new ProductModel { Id = 1, Sku = "SKU-001", Name = "Coffee Beans 1kg", Unit = "kg", Price = 15.99m },
-        new ProductModel { Id = 2, Sku = "SKU-002", Name = "Tea Leaves 500g", Unit = "pkg", Price = 8.49m },
-        new ProductModel { Id = 3, Sku = "SKU-003", Name = "Sugar 1kg", Unit = "kg", Price = 2.29m },
+        new ProductModel { Id = 1, Sku = "OP-1", Name = "ОП-1 (порошковый) 1 кг", Unit = "шт", Price = 150000m, Category = "Огнетушители" },
+        new ProductModel { Id = 2, Sku = "BR-OP5", Name = "Кронштейн настенный для ОП-5", Unit = "шт", Price = 60000m, Category = "Кронштейны" },
+        new ProductModel { Id = 3, Sku = "CAB-1", Name = "Шкаф для огнетушителя (металл)", Unit = "шт", Price = 450000m, Category = "Шкафы" },
     };
 
     public async Task<IEnumerable<ProductModel>> SearchAsync(string? query, string? category = null, CancellationToken ct = default)
@@ -27,7 +27,18 @@ public class MockCatalogService : ICatalogService
 
     public Task<IEnumerable<string>> GetCategoriesAsync(CancellationToken ct = default)
     {
-        var cats = _all.Select(p => p.Category).Where(c => !string.IsNullOrWhiteSpace(c)).Distinct().OrderBy(c => c).AsEnumerable();
-        return Task.FromResult(cats);
+        var cats = _all.Select(p => p.Category)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c)
+            .ToList();
+        if (cats.Count == 0)
+        {
+            cats = new[] { "Огнетушители", "Кронштейны", "Подставки", "Шкафы", "датчики", "рукава" }
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(c => c)
+                .ToList();
+        }
+        return Task.FromResult<IEnumerable<string>>(cats);
     }
 }

@@ -145,12 +145,20 @@
         <Label VerticalOptions="Center"
                Text="{Binding SelectedPaymentType, Converter={StaticResource PaymentTypeToRuConverter}}"/>
         <Button Text="Изменить" Command="{Binding ChangePaymentTypeCommand}" Style="{StaticResource OutlinedButton}"/>
-        <Entry Placeholder="Имя клиента (необязательно)" Text="{Binding ClientName}" HorizontalOptions="FillAndExpand"/>
+        <Entry Placeholder="Имя клиента (обязательно для брони)" Text="{Binding ClientName}" HorizontalOptions="FillAndExpand"/>
         <Button Text="Клиент" Clicked="OnPickClientClicked" Style="{StaticResource OutlinedButton}"/>
+        <!-- Reservation-paid toggle -->
+        <HorizontalStackLayout Spacing="6" IsVisible="{Binding IsReservation}">
+          <Label Text="Оплата:" VerticalOptions="Center"/>
+          <Switch IsToggled="{Binding ReservationPaid}"/>
+        </HorizontalStackLayout>
       </HorizontalStackLayout>
+      <!-- Reservation hint -->
+      <Label Grid.Row="4" Text="Для брони обязательно укажите клиента и при необходимости отметьте 'Оплата'"
+             FontSize="12" TextColor="#6B7280" IsVisible="{Binding IsReservation}"/>
 
       <!-- Totals -->
-      <Frame Grid.Row="4" Padding="8">
+      <Frame Grid.Row="5" Padding="8">
         <HorizontalStackLayout Spacing="12">
           <Label Text="Итого:" FontAttributes="Bold"/>
           <Label Text="{Binding Total, Converter={StaticResource CurrencyConverter}}" FontAttributes="Bold"/>
@@ -159,7 +167,7 @@
 
       <!-- Submit -->
       <!-- Reservation notes (visible only for Reservation) -->
-      <VerticalStackLayout Grid.Row="5" Spacing="8" IsVisible="{Binding IsReservation}">
+      <VerticalStackLayout Grid.Row="6" Spacing="8" IsVisible="{Binding IsReservation}">
         <Label Text="Заметки к броне" FontAttributes="Bold"/>
         <HorizontalStackLayout Spacing="8">
           <Entry Placeholder="Текст заметки" Text="{Binding NewReservationNote}" HorizontalOptions="FillAndExpand"/>
@@ -177,7 +185,7 @@
         </CollectionView>
       </VerticalStackLayout>
 
-      <Button Grid.Row="6" Text="Провести" Command="{Binding SubmitCommand}" IsEnabled="{Binding CanSubmit}" Margin="0,8,0,0"/>
+      <Button Grid.Row="7" Text="Провести" Command="{Binding SubmitCommand}" IsEnabled="{Binding CanSubmit}" Margin="0,8,0,0"/>
     </Grid>
   </ContentPage.Content>
 </ContentPage>

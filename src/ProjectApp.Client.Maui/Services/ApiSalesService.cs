@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using System.Net.Http;
+using System.Text;
 using System.Text.Json.Serialization;
 using ProjectApp.Client.Maui.Models;
 
@@ -17,6 +19,21 @@ public class ApiSalesService : ISalesService
         _auth = auth;
     }
 
+    public async Task<bool> UploadSalePhotoAsync(int saleId, Stream photoStream, string fileName, CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient();
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+
+        using var form = new MultipartFormDataContent();
+        var sc = new StreamContent(photoStream);
+        sc.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        form.Add(sc, "file", fileName);
+        var resp = await client.PostAsync($"/api/sales/{saleId}/photo", form, ct);
+        return resp.IsSuccessStatusCode;
+    }
+
     private class SaleCreateItemDto
     {
         public int ProductId { get; set; }
@@ -31,6 +48,7 @@ public class ApiSalesService : ISalesService
         public List<SaleCreateItemDto> Items { get; set; } = new();
         public string PaymentType { get; set; } = "CashWithReceipt";
         public List<string>? ReservationNotes { get; set; }
+        public bool? NotifyHold { get; set; }
     }
 
     private class ProblemDetails
@@ -59,11 +77,24 @@ public class ApiSalesService : ISalesService
                 UnitPrice = i.UnitPrice
             }).ToList(),
             PaymentType = draft.PaymentType.ToString(),
-            ReservationNotes = draft.ReservationNotes
+            ReservationNotes = draft.ReservationNotes,
+            NotifyHold = draft.NotifyHold
         };
 
         var response = await client.PostAsJsonAsync("/api/sales", dto, ct);
-        if ((int)response.StatusCode == 201) return SalesResult.Ok();
+        if ((int)response.StatusCode == 201)
+        {
+            // try parse created sale to get Id
+            try
+            {
+                var created = await response.Content.ReadFromJsonAsync<SaleDetailsDto>(cancellationToken: ct);
+                return SalesResult.Ok(created?.Id);
+            }
+            catch
+            {
+                return SalesResult.Ok(null);
+            }
+        }
 
         try
         {

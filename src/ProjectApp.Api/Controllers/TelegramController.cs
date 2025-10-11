@@ -244,4 +244,124 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
         var (ok, body, status) = await tg.SendMessageDebugAsync(req.ChatId, string.IsNullOrWhiteSpace(req.Text) ? "ping" : req.Text!, null, HttpContext.RequestAborted);
         return Ok(new { ok, status, body });
     }
+
+    public record SendReportNowRequest(List<string>? Files);
+
+    // POST /api/telegram/send-report-now
+    [HttpPost("send-report-now")]
+    [Authorize(Policy = "AdminOnly")]
+    [Consumes("application/json")]
+    public async Task<IActionResult> SendReportNow([FromBody] SendReportNowRequest req)
+    {
+        var ids = _settings.ParseAllowedChatIds();
+        if (ids.Count == 0) return ValidationProblem("Telegram AllowedChatIds not configured");
+
+        // Build today's summary (local day based on settings offset)
+        var offset = TimeSpan.FromMinutes(_settings.TimeZoneOffsetMinutes);
+        var nowUtc = DateTime.UtcNow;
+        var localToday = (nowUtc + offset).Date; // 00:00 local
+        var fromUtc = localToday - offset;
+        var toUtc = localToday.AddDays(1) - offset;
+
+        var rows = await db.Sales
+            .AsNoTracking()
+            .Where(s => s.CreatedAt >= fromUtc && s.CreatedAt < toUtc)
+            .Select(s => new { s.Total, s.CreatedBy, Qty = s.Items.Sum(i => i.Qty) })
+            .ToListAsync(HttpContext.RequestAborted);
+
+        var totalAmount = rows.Sum(r => r.Total);
+        var totalQty = rows.Sum(r => r.Qty);
+        var salesCount = rows.Count;
+        var top = rows
+            .GroupBy(r => r.CreatedBy ?? "unknown")
+            .Select(g => new { Seller = g.Key, Amount = g.Sum(x => x.Total) })
+            .OrderByDescending(x => x.Amount)
+            .FirstOrDefault();
+
+        var periodStr = localToday.ToString("yyyy-MM-dd");
+        var msg = $"Ежедневная сводка за {periodStr}\nОборот: {totalAmount}\nШтук: {totalQty}\nЧеки: {salesCount}\nТоп продавец: {top?.Seller ?? "нет"} ({top?.Amount ?? 0m})";
+
+        foreach (var chatId in ids)
+        {
+            try { await tg.SendMessageAsync(chatId, msg, HttpContext.RequestAborted); } catch { }
+        }
+
+        // Optionally send provided photos from file system (absolute paths recommended)
+        if (req?.Files != null && req.Files.Count > 0)
+        {
+            foreach (var filePath in req.Files)
+            {
+                try
+                {
+                    if (string.IsNullOrWhiteSpace(filePath)) continue;
+                    if (!System.IO.File.Exists(filePath)) continue;
+                    await using var fs = System.IO.File.OpenRead(filePath);
+                    foreach (var chatId in ids)
+                    {
+                        fs.Position = 0;
+                        try { await tg.SendPhotoAsync(chatId, fs, System.IO.Path.GetFileName(filePath), null, null, HttpContext.RequestAborted); } catch { }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        return Ok(new { ok = true });
+    }
+
+    // POST /api/telegram/send-report-now (multipart form-data with files)
+    [HttpPost("send-report-now")]
+    [Authorize(Policy = "AdminOnly")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> SendReportNowMultipart()
+    {
+        var ids = _settings.ParseAllowedChatIds();
+        if (ids.Count == 0) return ValidationProblem("Telegram AllowedChatIds not configured");
+
+        if (!Request.HasFormContentType)
+            return ValidationProblem("Expected multipart/form-data with file fields 'files'");
+
+        // Build today's summary (local day based on settings offset)
+        var offset = TimeSpan.FromMinutes(_settings.TimeZoneOffsetMinutes);
+        var nowUtc = DateTime.UtcNow;
+        var localToday = (nowUtc + offset).Date; // 00:00 local
+        var fromUtc = localToday - offset;
+        var toUtc = localToday.AddDays(1) - offset;
+
+        var rows = await db.Sales
+            .AsNoTracking()
+            .Where(s => s.CreatedAt >= fromUtc && s.CreatedAt < toUtc)
+            .Select(s => new { s.Total, s.CreatedBy, Qty = s.Items.Sum(i => i.Qty) })
+            .ToListAsync(HttpContext.RequestAborted);
+
+        var totalAmount = rows.Sum(r => r.Total);
+        var totalQty = rows.Sum(r => r.Qty);
+        var salesCount = rows.Count;
+        var top = rows
+            .GroupBy(r => r.CreatedBy ?? "unknown")
+            .Select(g => new { Seller = g.Key, Amount = g.Sum(x => x.Total) })
+            .OrderByDescending(x => x.Amount)
+            .FirstOrDefault();
+
+        var periodStr = localToday.ToString("yyyy-MM-dd");
+        var msg = $"Ежедневная сводка за {periodStr}\nОборот: {totalAmount}\nШтук: {totalQty}\nЧеки: {salesCount}\nТоп продавец: {top?.Seller ?? "нет"} ({top?.Amount ?? 0m})";
+        foreach (var chatId in ids)
+        {
+            try { await tg.SendMessageAsync(chatId, msg, HttpContext.RequestAborted); } catch { }
+        }
+
+        var form = await Request.ReadFormAsync(HttpContext.RequestAborted);
+        var files = form.Files.Where(f => f.Length > 0).ToList();
+        foreach (var f in files)
+        {
+            await using var stream = f.OpenReadStream();
+            foreach (var chatId in ids)
+            {
+                stream.Position = 0;
+                try { await tg.SendPhotoAsync(chatId, stream, f.FileName ?? "photo.jpg", null, null, HttpContext.RequestAborted); } catch { }
+            }
+        }
+
+        return Ok(new { ok = true, files = files.Count });
+    }
 }

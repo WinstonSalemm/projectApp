@@ -1,4 +1,5 @@
 using ProjectApp.Client.Maui.Models;
+using System.IO;
 
 namespace ProjectApp.Client.Maui.Services;
 
@@ -6,7 +7,8 @@ public class SalesResult
 {
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
-    public static SalesResult Ok() => new SalesResult { Success = true };
+    public int? SaleId { get; set; }
+    public static SalesResult Ok(int? saleId = null) => new SalesResult { Success = true, SaleId = saleId };
     public static SalesResult Fail(string? message) => new SalesResult { Success = false, ErrorMessage = message };
 }
 
@@ -70,6 +72,7 @@ public interface ICatalogService
 public interface ISalesService
 {
     Task<SalesResult> SubmitSaleAsync(SaleDraft draft, CancellationToken ct = default);
+    Task<bool> UploadSalePhotoAsync(int saleId, Stream photoStream, string fileName, CancellationToken ct = default);
 }
 
 public interface ISuppliesService
@@ -81,12 +84,35 @@ public interface ISuppliesService
 public interface IReturnsService
 {
     Task<bool> CreateReturnAsync(ReturnDraft draft, CancellationToken ct = default);
+    Task<bool> CancelBySaleAsync(int saleId, CancellationToken ct = default);
 }
 
 public interface IStocksService
 {
     Task<IEnumerable<StockViewModel>> GetStocksAsync(string? query = null, string? category = null, CancellationToken ct = default);
     Task<IEnumerable<BatchStockViewModel>> GetBatchesAsync(string? query = null, string? category = null, CancellationToken ct = default);
+}
+
+// Reservations (client API)
+public class ReservationCreateItemDraft
+{
+    public int ProductId { get; set; }
+    public ProjectApp.Client.Maui.Models.StockRegister Register { get; set; } = ProjectApp.Client.Maui.Models.StockRegister.IM40; // default
+    public decimal Qty { get; set; }
+}
+
+public class ReservationCreateDraft
+{
+    public int? ClientId { get; set; }
+    public bool Paid { get; set; }
+    public string? Note { get; set; }
+    public List<ReservationCreateItemDraft> Items { get; set; } = new();
+}
+
+public interface IReservationsService
+{
+    Task<int?> CreateReservationAsync(ReservationCreateDraft draft, bool waitForPhoto, string source, CancellationToken ct = default);
+    Task<bool> UploadReservationPhotoAsync(int reservationId, Stream photoStream, string fileName, CancellationToken ct = default);
 }
 
 // Draft models for submitting sales from the client
@@ -97,6 +123,8 @@ public class SaleDraft
     public PaymentType PaymentType { get; set; } = PaymentType.CashWithReceipt;
     public List<SaleDraftItem> Items { get; set; } = new();
     public List<string>? ReservationNotes { get; set; }
+    // Android: request API to hold text notify; client will send photo+caption
+    public bool? NotifyHold { get; set; }
 }
 
 public class SaleDraftItem
@@ -112,13 +140,34 @@ public class SupplyDraft
     public List<SupplyDraftItem> Items { get; set; } = new();
 }
 
-public class SupplyDraftItem
+public class SupplyDraftItem : System.ComponentModel.INotifyPropertyChanged
 {
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+    private void OnPropertyChanged(string name)
+        => PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(name));
+
     public int ProductId { get; set; }
-    public decimal Qty { get; set; }
-    public decimal UnitCost { get; set; }
+
+    private decimal _qty;
+    public decimal Qty
+    {
+        get => _qty;
+        set { if (_qty != value) { _qty = value; OnPropertyChanged(nameof(Qty)); OnPropertyChanged(nameof(Total)); } }
+    }
+
+    private decimal _unitCost;
+    public decimal UnitCost
+    {
+        get => _unitCost;
+        set { if (_unitCost != value) { _unitCost = value; OnPropertyChanged(nameof(UnitCost)); OnPropertyChanged(nameof(Total)); } }
+    }
+
     public string Code { get; set; } = string.Empty;
     public string? Note { get; set; }
+    // Optional, for UI display only (not used by API)
+    public string? Sku { get; set; }
+    public string? Name { get; set; }
+    public decimal Total => Qty * UnitCost;
 }
 
 public class SupplyTransferItem
@@ -203,11 +252,11 @@ public class RoutedCatalogService : ICatalogService
     }
 }
 
-public class RoutedSalesService : ISalesService
-{
-    private readonly AppSettings _settings;
-    private readonly ApiSalesService _api;
-    private readonly MockSalesService _mock;
+    public class RoutedSalesService : ISalesService
+    {
+        private readonly AppSettings _settings;
+        private readonly ApiSalesService _api;
+        private readonly MockSalesService _mock;
 
     public RoutedSalesService(AppSettings settings, ApiSalesService api, MockSalesService mock)
     {
@@ -217,9 +266,16 @@ public class RoutedSalesService : ISalesService
     }
 
     public Task<SalesResult> SubmitSaleAsync(SaleDraft draft, CancellationToken ct = default)
-    {
-        return _settings.UseApi ? _api.SubmitSaleAsync(draft, ct) : _mock.SubmitSaleAsync(draft, ct);
-    }
+        => _settings.UseApi ? _api.SubmitSaleAsync(draft, ct) : _mock.SubmitSaleAsync(draft, ct);
+
+    public Task<bool> UploadSalePhotoAsync(int saleId, Stream photoStream, string fileName, CancellationToken ct = default)
+        => _api.UploadSalePhotoAsync(saleId, photoStream, fileName, ct);
+}
+
+public interface IProductsService
+{
+    Task<bool> CreateCategoryAsync(string name, CancellationToken ct = default);
+    Task<int?> CreateProductAsync(ProductCreateDraft draft, CancellationToken ct = default);
 }
 
 // ----- Products (create product and create category) -----
@@ -230,10 +286,4 @@ public class ProductCreateDraft
     public string Unit { get; set; } = "шт";
     public decimal Price { get; set; }
     public string Category { get; set; } = string.Empty;
-}
-
-public interface IProductsService
-{
-    Task<bool> CreateCategoryAsync(string name, CancellationToken ct = default);
-    Task<int?> CreateProductAsync(ProductCreateDraft draft, CancellationToken ct = default);
 }

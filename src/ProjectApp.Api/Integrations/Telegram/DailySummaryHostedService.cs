@@ -102,6 +102,47 @@ public class DailySummaryHostedService : BackgroundService
                 _ = await tg.SendMessageAsync(chatId, msg, ct);
             }
             _logger.LogInformation("DailySummary: sent summary for {Date}", periodStr);
+
+            // Send top seller last photo (if any) next to the summary
+            if (top != null && !string.IsNullOrWhiteSpace(top.Seller))
+            {
+                try
+                {
+                    var topPhoto = await db.SalePhotos
+                        .AsNoTracking()
+                        .Where(p => p.UserName == top.Seller)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .FirstOrDefaultAsync(ct);
+                    if (topPhoto != null && !string.IsNullOrWhiteSpace(topPhoto.PathOrBlob) && System.IO.File.Exists(topPhoto.PathOrBlob))
+                    {
+                        await using var fs = System.IO.File.OpenRead(topPhoto.PathOrBlob);
+                        foreach (var chatId in ids)
+                        {
+                            fs.Position = 0;
+                            var caption = $"Топ продавец: {top.Seller} ({top.Amount})";
+                            try { _ = await tg.SendPhotoAsync(chatId, fs, System.IO.Path.GetFileName(topPhoto.PathOrBlob), caption, null, ct); }
+                            catch { }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "DailySummary: failed to send top seller photo");
+                }
+            }
+
+            // After daily summary: delete all stored sale photos
+            try
+            {
+                var photos = await db.SalePhotos.AsNoTracking().ToListAsync(ct);
+                foreach (var p in photos)
+                {
+                    try { if (!string.IsNullOrWhiteSpace(p.PathOrBlob) && System.IO.File.Exists(p.PathOrBlob)) System.IO.File.Delete(p.PathOrBlob); } catch { }
+                }
+                db.SalePhotos.RemoveRange(db.SalePhotos);
+                await db.SaveChangesAsync(ct);
+            }
+            catch { }
         }
         catch (Exception ex)
         {

@@ -210,10 +210,16 @@ builder.Services.AddSingleton<ProjectApp.Api.Services.IPasswordHasher, ProjectAp
 builder.Services.Configure<TelegramSettings>(builder.Configuration.GetSection("Telegram"));
 builder.Services.AddHttpClient("telegram");
 builder.Services.AddSingleton<ITelegramService, TelegramService>();
-builder.Services.AddSingleton<ISalesNotifier, SalesNotifier>();
+builder.Services.AddScoped<ISalesNotifier, SalesNotifier>();
 builder.Services.AddHostedService<DailySummaryHostedService>();
-builder.Services.AddSingleton<ProjectApp.Api.Integrations.Telegram.IReturnsNotifier, ProjectApp.Api.Integrations.Telegram.ReturnsNotifier>();
+builder.Services.AddScoped<ProjectApp.Api.Integrations.Telegram.IReturnsNotifier, ProjectApp.Api.Integrations.Telegram.ReturnsNotifier>();
 builder.Services.AddSingleton<ProjectApp.Api.Integrations.Telegram.IDebtsNotifier, ProjectApp.Api.Integrations.Telegram.DebtsNotifier>();
+builder.Services.AddHostedService<ProjectApp.Api.Services.StockSnapshotHostedService>();
+
+// Reservations
+builder.Services.Configure<ProjectApp.Api.Services.ReservationsOptions>(builder.Configuration.GetSection("Reservations"));
+builder.Services.AddScoped<ProjectApp.Api.Services.ReservationsService>();
+builder.Services.AddHostedService<ProjectApp.Api.Services.ReservationsCleanupService>();
 
 // Authentication & Authorization
 // JWT settings
@@ -330,11 +336,8 @@ await using (var scope = app.Services.CreateAsyncScope())
     }
     else
     {
-        var pending = await db.Database.GetPendingMigrationsAsync();
-        if (pending.Any())
-            await db.Database.MigrateAsync();
-        else
-            await db.Database.EnsureCreatedAsync();
+        // SQLite path: avoid EF Migrate(); we rely on EnsureCreated + manual patchers below
+        await db.Database.EnsureCreatedAsync();
     }
 
     // 1.1) Minimal schema patchers (idempotent)
@@ -566,6 +569,59 @@ await using (var scope = app.Services.CreateAsyncScope())
                 await db.Database.ExecuteSqlRawAsync(sql10);
             }
 
+            // Ensure SalePhotos table exists (MySQL)
+            var spExists = false;
+            using (var conn12 = db.Database.GetDbConnection())
+            {
+                await conn12.OpenAsync();
+                await using var cmd12 = conn12.CreateCommand();
+                cmd12.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'SalePhotos'";
+                var scalar12 = await cmd12.ExecuteScalarAsync();
+                spExists = scalar12 != null && scalar12 != DBNull.Value && Convert.ToInt64(scalar12) > 0;
+            }
+            if (!spExists)
+            {
+                var sql12 = @"CREATE TABLE `SalePhotos` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `SaleId` INT NOT NULL,
+  `UserName` VARCHAR(64) NULL,
+  `Mime` VARCHAR(64) NULL,
+  `Size` BIGINT NOT NULL,
+  `CreatedAt` DATETIME(6) NOT NULL,
+  `PathOrBlob` VARCHAR(512) NULL,
+  PRIMARY KEY (`Id`),
+  INDEX `IX_SalePhotos_SaleId` (`SaleId` ASC),
+  INDEX `IX_SalePhotos_UserName` (`UserName` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                await db.Database.ExecuteSqlRawAsync(sql12);
+            }
+
+            // Ensure StockSnapshots table exists (MySQL)
+            var ssExists = false;
+            using (var connSS = db.Database.GetDbConnection())
+            {
+                await connSS.OpenAsync();
+                await using var cmdSS = connSS.CreateCommand();
+                cmdSS.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'StockSnapshots'";
+                var scalarSS = await cmdSS.ExecuteScalarAsync();
+                ssExists = scalarSS != null && scalarSS != DBNull.Value && Convert.ToInt64(scalarSS) > 0;
+            }
+            if (!ssExists)
+            {
+                var sqlSS = @"CREATE TABLE `StockSnapshots` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `ProductId` INT NOT NULL,
+  `NdQty` DECIMAL(18,3) NOT NULL,
+  `ImQty` DECIMAL(18,3) NOT NULL,
+  `TotalQty` DECIMAL(18,3) NOT NULL,
+  `CreatedAt` DATETIME(6) NOT NULL,
+  PRIMARY KEY (`Id`),
+  INDEX `IX_StockSnapshots_CreatedAt` (`CreatedAt` ASC),
+  INDEX `IX_StockSnapshots_ProductId` (`ProductId` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                await db.Database.ExecuteSqlRawAsync(sqlSS);
+            }
+
             // Ensure Sales.ReservationNotes exists (MySQL)
             var salesResNotesExists = false;
             using (var conn11 = db.Database.GetDbConnection())
@@ -714,6 +770,131 @@ await using (var scope = app.Services.CreateAsyncScope())
   Name TEXT NOT NULL UNIQUE
 );";
                 await db.Database.ExecuteSqlRawAsync(sqlC);
+            }
+
+            // Ensure SalePhotos table exists (SQLite)
+            var hasSalePhotos = false;
+            using (var connSP = db.Database.GetDbConnection())
+            {
+                await connSP.OpenAsync();
+                await using var cmdSP = connSP.CreateCommand();
+                cmdSP.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='SalePhotos'";
+                var scalarSP = await cmdSP.ExecuteScalarAsync();
+                hasSalePhotos = scalarSP != null && scalarSP != DBNull.Value && Convert.ToInt64(scalarSP) > 0;
+            }
+            if (!hasSalePhotos)
+            {
+                var sqlSP = @"CREATE TABLE SalePhotos (
+  Id INTEGER NOT NULL CONSTRAINT PK_SalePhotos PRIMARY KEY AUTOINCREMENT,
+  SaleId INTEGER NOT NULL,
+  UserName TEXT NULL,
+  Mime TEXT NULL,
+  Size INTEGER NOT NULL,
+  CreatedAt TEXT NOT NULL,
+  PathOrBlob TEXT NULL
+);";
+                await db.Database.ExecuteSqlRawAsync(sqlSP);
+            }
+
+            // Ensure StockSnapshots table exists (SQLite)
+            var hasStockSnapshots = false;
+            using (var connSS = db.Database.GetDbConnection())
+            {
+                await connSS.OpenAsync();
+                await using var cmdSS = connSS.CreateCommand();
+                cmdSS.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='StockSnapshots'";
+                var scalarSS = await cmdSS.ExecuteScalarAsync();
+                hasStockSnapshots = scalarSS != null && scalarSS != DBNull.Value && Convert.ToInt64(scalarSS) > 0;
+            }
+            if (!hasStockSnapshots)
+            {
+                var sqlSS = @"CREATE TABLE StockSnapshots (
+  Id INTEGER NOT NULL CONSTRAINT PK_StockSnapshots PRIMARY KEY AUTOINCREMENT,
+  ProductId INTEGER NOT NULL,
+  NdQty DECIMAL(18,3) NOT NULL,
+  ImQty DECIMAL(18,3) NOT NULL,
+  TotalQty DECIMAL(18,3) NOT NULL,
+  CreatedAt TEXT NOT NULL
+);";
+                await db.Database.ExecuteSqlRawAsync(sqlSS);
+            }
+
+            // Ensure Reservations tables exist (SQLite)
+            var hasReservations = false;
+            using (var connR = db.Database.GetDbConnection())
+            {
+                await connR.OpenAsync();
+                await using var cmdR = connR.CreateCommand();
+                cmdR.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Reservations'";
+                var scalarR = await cmdR.ExecuteScalarAsync();
+                hasReservations = scalarR != null && scalarR != DBNull.Value && Convert.ToInt64(scalarR) > 0;
+            }
+            if (!hasReservations)
+            {
+                var sqlR = @"CREATE TABLE Reservations (
+  Id INTEGER NOT NULL CONSTRAINT PK_Reservations PRIMARY KEY AUTOINCREMENT,
+  ClientId INTEGER NULL,
+  SaleId INTEGER NULL,
+  ContractId INTEGER NULL,
+  CreatedBy TEXT NOT NULL,
+  CreatedAt TEXT NOT NULL,
+  Paid INTEGER NOT NULL,
+  ReservedUntil TEXT NOT NULL,
+  Status INTEGER NOT NULL,
+  Note TEXT NULL,
+  PhotoPath TEXT NULL,
+  PhotoMime TEXT NULL,
+  PhotoSize INTEGER NULL,
+  PhotoCreatedAt TEXT NULL
+);";
+                await db.Database.ExecuteSqlRawAsync(sqlR);
+            }
+
+            var hasReservationItems = false;
+            using (var connRI = db.Database.GetDbConnection())
+            {
+                await connRI.OpenAsync();
+                await using var cmdRI = connRI.CreateCommand();
+                cmdRI.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ReservationItems'";
+                var scalarRI = await cmdRI.ExecuteScalarAsync();
+                hasReservationItems = scalarRI != null && scalarRI != DBNull.Value && Convert.ToInt64(scalarRI) > 0;
+            }
+            if (!hasReservationItems)
+            {
+                var sqlRI = @"CREATE TABLE ReservationItems (
+  Id INTEGER NOT NULL CONSTRAINT PK_ReservationItems PRIMARY KEY AUTOINCREMENT,
+  ReservationId INTEGER NOT NULL,
+  ProductId INTEGER NOT NULL,
+  Register INTEGER NOT NULL,
+  Qty DECIMAL(18,3) NOT NULL,
+  Sku TEXT NOT NULL,
+  Name TEXT NOT NULL,
+  UnitPrice DECIMAL(18,2) NOT NULL,
+  CONSTRAINT FK_ReservationItems_Reservations_ReservationId FOREIGN KEY (ReservationId) REFERENCES Reservations (Id) ON DELETE CASCADE
+);";
+                await db.Database.ExecuteSqlRawAsync(sqlRI);
+            }
+
+            var hasReservationLogs = false;
+            using (var connRL = db.Database.GetDbConnection())
+            {
+                await connRL.OpenAsync();
+                await using var cmdRL = connRL.CreateCommand();
+                cmdRL.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ReservationLogs'";
+                var scalarRL = await cmdRL.ExecuteScalarAsync();
+                hasReservationLogs = scalarRL != null && scalarRL != DBNull.Value && Convert.ToInt64(scalarRL) > 0;
+            }
+            if (!hasReservationLogs)
+            {
+                var sqlRL = @"CREATE TABLE ReservationLogs (
+  Id INTEGER NOT NULL CONSTRAINT PK_ReservationLogs PRIMARY KEY AUTOINCREMENT,
+  ReservationId INTEGER NOT NULL,
+  Action TEXT NOT NULL,
+  UserName TEXT NOT NULL,
+  CreatedAt TEXT NOT NULL,
+  Details TEXT NULL
+);";
+                await db.Database.ExecuteSqlRawAsync(sqlRL);
             }
 
             // Ensure Contracts table exists (SQLite)
@@ -1029,6 +1210,176 @@ CREATE UNIQUE INDEX IX_Users_UserName ON Users(UserName);";
     }
     catch { }
 
+    // 1.3.1) Quick critical ensures (SQLite) independent of the big patcher above
+    try
+    {
+        var providerQ = db.Database.ProviderName ?? string.Empty;
+        if (providerQ.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            bool hasBatches = false;
+            using (var connB = db.Database.GetDbConnection())
+            {
+                await connB.OpenAsync();
+                await using var cmdB = connB.CreateCommand();
+                cmdB.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Batches'";
+                var scalarB = await cmdB.ExecuteScalarAsync();
+                hasBatches = scalarB != null && scalarB != DBNull.Value && Convert.ToInt64(scalarB) > 0;
+            }
+            if (!hasBatches)
+            {
+                try
+                {
+                    var sqlB = @"CREATE TABLE Batches (
+  Id INTEGER NOT NULL CONSTRAINT PK_Batches PRIMARY KEY AUTOINCREMENT,
+  ProductId INTEGER NOT NULL,
+  Register INTEGER NOT NULL,
+  Qty DECIMAL(18,3) NOT NULL,
+  UnitCost DECIMAL(18,2) NOT NULL DEFAULT 0,
+  CreatedAt TEXT NOT NULL,
+  Note TEXT NULL,
+  Code TEXT NULL
+);";
+                    await db.Database.ExecuteSqlRawAsync(sqlB);
+                }
+                catch { }
+            }
+
+            bool hasStocks = false;
+            using (var connS = db.Database.GetDbConnection())
+            {
+                await connS.OpenAsync();
+                await using var cmdS = connS.CreateCommand();
+                cmdS.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Stocks'";
+                var scalarS = await cmdS.ExecuteScalarAsync();
+                hasStocks = scalarS != null && scalarS != DBNull.Value && Convert.ToInt64(scalarS) > 0;
+            }
+            if (!hasStocks)
+            {
+                try
+                {
+                    var sqlS = @"CREATE TABLE Stocks (
+  Id INTEGER NOT NULL CONSTRAINT PK_Stocks PRIMARY KEY AUTOINCREMENT,
+  ProductId INTEGER NOT NULL,
+  Register INTEGER NOT NULL,
+  Qty DECIMAL(18,3) NOT NULL
+);";
+                    await db.Database.ExecuteSqlRawAsync(sqlS);
+                }
+                catch { }
+            }
+
+            // Ensure Products.Category exists (needed for seeding below)
+            bool hasProdCategory = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info('Products');";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "Category", StringComparison.OrdinalIgnoreCase)) { hasProdCategory = true; break; }
+                }
+            }
+            if (!hasProdCategory)
+            {
+                try { await db.Database.ExecuteSqlRawAsync("ALTER TABLE Products ADD COLUMN Category TEXT NOT NULL DEFAULT ''; "); } catch { }
+            }
+
+            // Ensure Reservations tables exist for cleanup service
+            bool hasRes = false;
+            using (var connR = db.Database.GetDbConnection())
+            {
+                await connR.OpenAsync();
+                await using var cmdR = connR.CreateCommand();
+                cmdR.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Reservations'";
+                var scalarR = await cmdR.ExecuteScalarAsync();
+                hasRes = scalarR != null && scalarR != DBNull.Value && Convert.ToInt64(scalarR) > 0;
+            }
+            if (!hasRes)
+            {
+                try
+                {
+                    var sqlR = @"CREATE TABLE Reservations (
+  Id INTEGER NOT NULL CONSTRAINT PK_Reservations PRIMARY KEY AUTOINCREMENT,
+  ClientId INTEGER NULL,
+  SaleId INTEGER NULL,
+  ContractId INTEGER NULL,
+  CreatedBy TEXT NOT NULL,
+  CreatedAt TEXT NOT NULL,
+  Paid INTEGER NOT NULL,
+  ReservedUntil TEXT NOT NULL,
+  Status INTEGER NOT NULL,
+  Note TEXT NULL,
+  PhotoPath TEXT NULL,
+  PhotoMime TEXT NULL,
+  PhotoSize INTEGER NULL,
+  PhotoCreatedAt TEXT NULL
+);";
+                    await db.Database.ExecuteSqlRawAsync(sqlR);
+                }
+                catch { }
+            }
+
+            bool hasResItems = false;
+            using (var connRI = db.Database.GetDbConnection())
+            {
+                await connRI.OpenAsync();
+                await using var cmdRI = connRI.CreateCommand();
+                cmdRI.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ReservationItems'";
+                var scalarRI = await cmdRI.ExecuteScalarAsync();
+                hasResItems = scalarRI != null && scalarRI != DBNull.Value && Convert.ToInt64(scalarRI) > 0;
+            }
+            if (!hasResItems)
+            {
+                try
+                {
+                    var sqlRI = @"CREATE TABLE ReservationItems (
+  Id INTEGER NOT NULL CONSTRAINT PK_ReservationItems PRIMARY KEY AUTOINCREMENT,
+  ReservationId INTEGER NOT NULL,
+  ProductId INTEGER NOT NULL,
+  Register INTEGER NOT NULL,
+  Qty DECIMAL(18,3) NOT NULL,
+  Sku TEXT NOT NULL,
+  Name TEXT NOT NULL,
+  UnitPrice DECIMAL(18,2) NOT NULL,
+  CONSTRAINT FK_ReservationItems_Reservations_ReservationId FOREIGN KEY (ReservationId) REFERENCES Reservations (Id) ON DELETE CASCADE
+);";
+                    await db.Database.ExecuteSqlRawAsync(sqlRI);
+                }
+                catch { }
+            }
+
+            bool hasResLogs = false;
+            using (var connRL = db.Database.GetDbConnection())
+            {
+                await connRL.OpenAsync();
+                await using var cmdRL = connRL.CreateCommand();
+                cmdRL.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ReservationLogs'";
+                var scalarRL = await cmdRL.ExecuteScalarAsync();
+                hasResLogs = scalarRL != null && scalarRL != DBNull.Value && Convert.ToInt64(scalarRL) > 0;
+            }
+            if (!hasResLogs)
+            {
+                try
+                {
+                    var sqlRL = @"CREATE TABLE ReservationLogs (
+  Id INTEGER NOT NULL CONSTRAINT PK_ReservationLogs PRIMARY KEY AUTOINCREMENT,
+  ReservationId INTEGER NOT NULL,
+  Action TEXT NOT NULL,
+  UserName TEXT NOT NULL,
+  CreatedAt TEXT NOT NULL,
+  Details TEXT NULL
+);";
+                    await db.Database.ExecuteSqlRawAsync(sqlRL);
+                }
+                catch { }
+            }
+        }
+    }
+    catch { }
+
     // 1.2.2) Ensure Clients table has Type, OwnerUserName, CreatedAt
     try
     {
@@ -1154,48 +1505,44 @@ CREATE UNIQUE INDEX IX_Users_UserName ON Users(UserName);";
     }
     catch { }
 
-    var seedEnabled = app.Configuration.GetValue("Seed:Enabled", true);
-    if (seedEnabled)
+    // 1.4) Seed initial fire-safety products if missing (idempotent by SKU)
+    try
     {
-        // If there are no fire-safety products yet, seed them idempotently by SKU
-        var hasFire = await db.Products.AnyAsync(p => p.Category == "Огнетушители");
-        if (!hasFire)
+        var toAdd = new List<ProjectApp.Api.Models.Product>
         {
-            var toAdd = new List<ProjectApp.Api.Models.Product>
+            new() { Sku = "OP-1",   Name = "ОП-1 (порошковый) 1 кг",            Unit = "шт", Price = 150000m, Category = "Огнетушители" },
+            new() { Sku = "OP-2",   Name = "ОП-2 (порошковый) 2 кг",            Unit = "шт", Price = 200000m, Category = "Огнетушители" },
+            new() { Sku = "OP-5",   Name = "ОП-5 (порошковый) 5 кг",            Unit = "шт", Price = 350000m, Category = "Огнетушители" },
+            new() { Sku = "OU-2",   Name = "ОУ-2 (углекислотный) 2 кг",         Unit = "шт", Price = 400000m, Category = "Огнетушители" },
+            new() { Sku = "OU-5",   Name = "ОУ-5 (углекислотный) 5 кг",         Unit = "шт", Price = 650000m, Category = "Огнетушители" },
+            new() { Sku = "BR-OP2", Name = "Кронштейн настенный для ОП-2/ОУ-2", Unit = "шт", Price = 50000m,  Category = "Кронштейны"   },
+            new() { Sku = "BR-OP5", Name = "Кронштейн настенный для ОП-5",      Unit = "шт", Price = 60000m,  Category = "Кронштейны"   },
+            new() { Sku = "BR-UNI", Name = "Кронштейн универсальный металлический", Unit = "шт", Price = 70000m,  Category = "Кронштейны"   },
+            new() { Sku = "ST-S",   Name = "Подставка под огнетушитель (малая)", Unit = "шт", Price = 80000m,  Category = "Подставки"     },
+            new() { Sku = "ST-D",   Name = "Подставка под огнетушители двойная", Unit = "шт", Price = 120000m, Category = "Подставки"     },
+            new() { Sku = "ST-FLR", Name = "Напольная стойка для огнетушителя",  Unit = "шт", Price = 180000m, Category = "Подставки"     },
+            new() { Sku = "CAB-1",  Name = "Шкаф для огнетушителя (металл)",     Unit = "шт", Price = 450000m, Category = "Шкафы"         }
+        };
+
+        foreach (var p in toAdd)
+        {
+            if (!await db.Products.AnyAsync(x => x.Sku == p.Sku))
             {
-                new() { Sku = "OP-1",   Name = "ОП-1 (порошковый) 1 кг",            Unit = "шт", Price = 150000m, Category = "Огнетушители" },
-                new() { Sku = "OP-2",   Name = "ОП-2 (порошковый) 2 кг",            Unit = "шт", Price = 200000m, Category = "Огнетушители" },
-                new() { Sku = "OP-5",   Name = "ОП-5 (порошковый) 5 кг",            Unit = "шт", Price = 350000m, Category = "Огнетушители" },
-                new() { Sku = "OU-2",   Name = "ОУ-2 (углекислотный) 2 кг",         Unit = "шт", Price = 400000m, Category = "Огнетушители" },
-                new() { Sku = "OU-5",   Name = "ОУ-5 (углекислотный) 5 кг",         Unit = "шт", Price = 650000m, Category = "Огнетушители" },
-                new() { Sku = "BR-OP2", Name = "Кронштейн настенный для ОП-2/ОУ-2", Unit = "шт", Price = 50000m,  Category = "Кронштейны"   },
-                new() { Sku = "BR-OP5", Name = "Кронштейн настенный для ОП-5",      Unit = "шт", Price = 60000m,  Category = "Кронштейны"   },
-                new() { Sku = "BR-UNI", Name = "Кронштейн универсальный металлический", Unit = "шт", Price = 70000m,  Category = "Кронштейны"   },
-                new() { Sku = "ST-S",   Name = "Подставка под огнетушитель (малая)", Unit = "шт", Price = 80000m,  Category = "Подставки"     },
-                new() { Sku = "ST-D",   Name = "Подставка под огнетушители двойная", Unit = "шт", Price = 120000m, Category = "Подставки"     },
-                new() { Sku = "ST-FLR", Name = "Напольная стойка для огнетушителя",  Unit = "шт", Price = 180000m, Category = "Подставки"     },
-                new() { Sku = "CAB-1",  Name = "Шкаф для огнетушителя (металл)",     Unit = "шт", Price = 450000m, Category = "Шкафы"         }
-            };
+                db.Products.Add(p);
+                await db.SaveChangesAsync();
 
-            foreach (var p in toAdd)
-            {
-                if (!await db.Products.AnyAsync(x => x.Sku == p.Sku))
-                {
-                    db.Products.Add(p);
-                    await db.SaveChangesAsync();
+                // Default stocks and batches for the new product
+                db.Stocks.Add(new ProjectApp.Api.Models.Stock { ProductId = p.Id, Register = ProjectApp.Api.Models.StockRegister.IM40, Qty = 100m });
+                db.Stocks.Add(new ProjectApp.Api.Models.Stock { ProductId = p.Id, Register = ProjectApp.Api.Models.StockRegister.ND40, Qty = 50m });
+                await db.SaveChangesAsync();
 
-                    // Default stocks and batches for the new product
-                    db.Stocks.Add(new ProjectApp.Api.Models.Stock { ProductId = p.Id, Register = ProjectApp.Api.Models.StockRegister.IM40, Qty = 100m });
-                    db.Stocks.Add(new ProjectApp.Api.Models.Stock { ProductId = p.Id, Register = ProjectApp.Api.Models.StockRegister.ND40, Qty = 50m });
-                    await db.SaveChangesAsync();
-
-                    db.Batches.Add(new ProjectApp.Api.Models.Batch { ProductId = p.Id, Register = ProjectApp.Api.Models.StockRegister.IM40, Qty = 100m, UnitCost = 0m, CreatedAt = DateTime.UtcNow, Note = "seed" });
-                    db.Batches.Add(new ProjectApp.Api.Models.Batch { ProductId = p.Id, Register = ProjectApp.Api.Models.StockRegister.ND40, Qty = 50m,  UnitCost = 0m, CreatedAt = DateTime.UtcNow, Note = "seed" });
-                    await db.SaveChangesAsync();
-                }
+                db.Batches.Add(new ProjectApp.Api.Models.Batch { ProductId = p.Id, Register = ProjectApp.Api.Models.StockRegister.IM40, Qty = 100m, UnitCost = 0m, CreatedAt = DateTime.UtcNow, Note = "seed" });
+                db.Batches.Add(new ProjectApp.Api.Models.Batch { ProductId = p.Id, Register = ProjectApp.Api.Models.StockRegister.ND40, Qty = 50m,  UnitCost = 0m, CreatedAt = DateTime.UtcNow, Note = "seed" });
+                await db.SaveChangesAsync();
             }
         }
     }
+    catch { }
 
     // 2) Create MySQL views for stock availability and manager stats (so the site can query directly if needed)
     if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))

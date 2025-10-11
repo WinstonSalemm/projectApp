@@ -31,10 +31,14 @@ public partial class ProductSelectViewModel : ObservableObject
 
     [ObservableProperty] private bool isBusy;
 
+    // Explicit command for XAML binding (fixes design-time 'SearchAsyncCommand not found')
+    public IAsyncRelayCommand SearchAsyncCommand { get; }
+
     public ProductSelectViewModel(ICatalogService catalog, IStocksService stocks)
     {
         _catalog = catalog;
         _stocks = stocks;
+        SearchAsyncCommand = new AsyncRelayCommand(SearchAsync);
         _ = LoadCategoriesAsync();
         _ = SearchAsync();
     }

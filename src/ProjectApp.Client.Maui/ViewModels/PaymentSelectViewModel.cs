@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls;
 using ProjectApp.Client.Maui.Models;
 using System.Threading.Tasks;
+using ProjectApp.Client.Maui.Services;
+using ProjectApp.Client.Maui.Views;
 
 namespace ProjectApp.Client.Maui.ViewModels;
 
@@ -25,12 +27,44 @@ public partial class PaymentSelectViewModel : ObservableObject
         if (!System.Enum.TryParse<PaymentType>(paymentType, out var pt))
             pt = PaymentType.CashWithReceipt;
         Selected = pt;
-        // Go to category selection page next
-        var start = _services.GetRequiredService<ProjectApp.Client.Maui.Views.SaleStartPage>();
-        if (start.BindingContext is ProjectApp.Client.Maui.ViewModels.SaleStartViewModel svm)
+
+        if (pt == PaymentType.Return)
         {
-            svm.SelectedPaymentType = pt;
+            // For returns, open sales history so manager can pick a sale and proceed to Return page
+            var history = _services.GetRequiredService<ProjectApp.Client.Maui.Views.SalesHistoryPage>();
+            if (history.BindingContext is ProjectApp.Client.Maui.ViewModels.SalesHistoryViewModel hvm)
+            {
+                // Show all by default for convenience; server will still enforce permissions
+                hvm.ShowAll = true;
+            }
+            await Application.Current!.MainPage!.Navigation.PushAsync(history);
+            return;
         }
-        await Application.Current!.MainPage!.Navigation.PushAsync(start);
+
+        // After selecting a payment type (non-return): show full-screen confirmation modal with loud sound
+        var auth = _services.GetRequiredService<AuthService>();
+        var account = string.IsNullOrWhiteSpace(auth.DisplayName) ? (auth.UserName ?? "аккаунт") : auth.DisplayName;
+
+        // Prepare actions
+        async Task OnYes()
+        {
+            // proceed to category selection
+            var startPage = _services.GetRequiredService<SaleStartPage>();
+            if (startPage.BindingContext is ProjectApp.Client.Maui.ViewModels.SaleStartViewModel svm2)
+                svm2.SelectedPaymentType = pt;
+            await Application.Current!.MainPage!.Navigation.PushAsync(startPage);
+        }
+
+        async Task OnNo()
+        {
+            // go back to account selection screen
+            var userSelect = _services.GetRequiredService<UserSelectPage>();
+            Application.Current!.MainPage = new NavigationPage(userSelect);
+            await Task.CompletedTask;
+        }
+
+        var audio = _services.GetRequiredService<Plugin.Maui.Audio.IAudioManager>();
+        var confirm = new ConfirmAccountPage(audio, account, OnYes, OnNo);
+        await Application.Current!.MainPage!.Navigation.PushModalAsync(confirm, true);
     }
 }

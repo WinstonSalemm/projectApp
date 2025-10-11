@@ -16,4 +16,6 @@ public class SaleCreateDto
     public List<SaleCreateItemDto> Items { get; set; } = new();
     public PaymentType PaymentType { get; set; }
     public List<string>? ReservationNotes { get; set; }
+    // If true, API will NOT send text message immediately; client will send photo+caption instead
+    public bool? NotifyHold { get; set; }
 }
