@@ -156,7 +156,7 @@ public class ReturnsController : ControllerBase
 
             _db.Returns.Add(retPartial);
             await _db.SaveChangesAsync(ct); // ensure ReturnItemIds
-            await RestockPartialReturnByBatchesAsync(sale, retPartial.Items, ct);
+            await RestockPartialReturnByBatchesAsync(sale, retPartial, retPartial.Items, ct);
             await _db.SaveChangesAsync(ct);
             // notify (defer if waiting for photo from client)
             if (!(dto.WaitForPhoto ?? false))
@@ -364,7 +364,7 @@ public class ReturnsController : ControllerBase
     }
 
     // Restock for partial return: distribute across original batches FIFO, fallback if no consumption
-    private async Task RestockPartialReturnByBatchesAsync(Sale sale, List<ReturnItem> items, CancellationToken ct)
+    private async Task RestockPartialReturnByBatchesAsync(Sale sale, Return ret, List<ReturnItem> items, CancellationToken ct)
     {
         foreach (var ri in items)
         {

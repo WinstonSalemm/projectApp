@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Modules.Finance.Dtos;
 using ProjectApp.Api.Modules.Finance.CashFlow;
 using ProjectApp.Api.Modules.Finance.Forecast;

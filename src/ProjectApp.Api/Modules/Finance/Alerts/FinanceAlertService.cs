@@ -43,7 +43,7 @@ public class FinanceAlertService
             }
         }
 
-        if (Settings.Alerts.DebtToRevenueAbove > 0 && kpi.DebtToRevenue > Settings.Alerts.DebtToRevenueAbove)
+        if (Settings.Alerts.DebtToRevenueAbove > 0 && kpi is not null && kpi.DebtToRevenue > Settings.Alerts.DebtToRevenueAbove)
         {
             alerts.Add(new FinanceAlert
             {
