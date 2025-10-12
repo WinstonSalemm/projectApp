@@ -21,6 +21,17 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.Extensions.Options;
+using ProjectApp.Api.Modules.Finance;
+using ProjectApp.Api.Modules.Finance.Models;
+using ProjectApp.Api.Modules.Finance.CashFlow;
+using ProjectApp.Api.Modules.Finance.Forecast;
+using ProjectApp.Api.Modules.Finance.Analysis;
+using ProjectApp.Api.Modules.Finance.Trends;
+using ProjectApp.Api.Modules.Finance.Ratios;
+using ProjectApp.Api.Modules.Finance.Taxes;
+using ProjectApp.Api.Modules.Finance.Export;
+using ProjectApp.Api.Modules.Finance.Clients;
+using ProjectApp.Api.Modules.Finance.Alerts;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((ctx, services, cfg) => cfg
@@ -220,6 +231,27 @@ builder.Services.AddHostedService<ProjectApp.Api.Services.StockSnapshotHostedSer
 builder.Services.Configure<ProjectApp.Api.Services.ReservationsOptions>(builder.Configuration.GetSection("Reservations"));
 builder.Services.AddScoped<ProjectApp.Api.Services.ReservationsService>();
 builder.Services.AddHostedService<ProjectApp.Api.Services.ReservationsCleanupService>();
+
+// Inventory services
+builder.Services.AddScoped<ProjectApp.Api.Services.InventoryConsumptionService>();
+builder.Services.AddHostedService<ProjectApp.Api.Services.InventoryCleanupJob>();
+
+// Finance module
+builder.Services.Configure<FinanceSettings>(builder.Configuration.GetSection("Finance"));
+builder.Services.AddScoped<IFinanceRepository, FinanceRepository>();
+builder.Services.AddScoped<FinanceReportBuilder>();
+builder.Services.AddScoped<FinanceService>();
+builder.Services.AddSingleton(sp => new FinanceMetricsCalculator(sp.GetRequiredService<IOptions<FinanceSettings>>().Value));
+builder.Services.AddHostedService<FinanceSnapshotJob>();
+builder.Services.AddScoped<FinanceCashFlowCalculator>();
+builder.Services.AddScoped<LiquidityService>();
+builder.Services.AddScoped<FinanceForecastService>();
+builder.Services.AddScoped<ProductAnalysisService>();
+builder.Services.AddScoped<FinanceTrendCalculator>();
+builder.Services.AddScoped<TaxCalculatorService>();
+builder.Services.AddScoped<FinanceExportService>();
+builder.Services.AddScoped<ClientFinanceReportBuilder>();
+builder.Services.AddScoped<FinanceAlertService>();
 
 // Authentication & Authorization
 // JWT settings
@@ -636,6 +668,155 @@ await using (var scope = app.Services.CreateAsyncScope())
             {
                 await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Sales` ADD COLUMN `ReservationNotes` TEXT NULL;");
             }
+
+            // Ensure Products.GtdCode exists
+            var prodGtdExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Products' AND COLUMN_NAME = 'GtdCode'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                prodGtdExists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!prodGtdExists)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Products` ADD COLUMN `GtdCode` VARCHAR(64) NULL;");
+            }
+
+            // Ensure Batches.GtdCode exists
+            var bGtdExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Batches' AND COLUMN_NAME = 'GtdCode'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                bGtdExists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!bGtdExists)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Batches` ADD COLUMN `GtdCode` VARCHAR(64) NULL;");
+            }
+
+            // Ensure Batches.ArchivedAt exists
+            var bArchivedAtExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Batches' AND COLUMN_NAME = 'ArchivedAt'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                bArchivedAtExists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!bArchivedAtExists)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Batches` ADD COLUMN `ArchivedAt` DATETIME(6) NULL;");
+            }
+
+            // Ensure StockSnapshots.TotalValue exists
+            var ssValExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'StockSnapshots' AND COLUMN_NAME = 'TotalValue'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                ssValExists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!ssValExists)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `StockSnapshots` ADD COLUMN `TotalValue` DECIMAL(18,2) NOT NULL DEFAULT 0;");
+            }
+
+            // Ensure InventoryTransactions table exists
+            var invTrExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'InventoryTransactions'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                invTrExists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!invTrExists)
+            {
+                var sql = @"CREATE TABLE `InventoryTransactions` (
+  `Id` BIGINT NOT NULL AUTO_INCREMENT,
+  `ProductId` INT NOT NULL,
+  `Register` INT NOT NULL,
+  `Type` INT NOT NULL,
+  `Qty` DECIMAL(18,3) NOT NULL,
+  `UnitCost` DECIMAL(18,2) NOT NULL,
+  `BatchId` INT NULL,
+  `SaleId` INT NULL,
+  `ReturnId` INT NULL,
+  `ReservationId` INT NULL,
+  `CreatedAt` DATETIME(6) NOT NULL,
+  `CreatedBy` VARCHAR(64) NULL,
+  `Note` VARCHAR(512) NULL,
+  PRIMARY KEY (`Id`),
+  INDEX `IX_InvTr_Product_Register_CreatedAt` (`ProductId` ASC, `Register` ASC, `CreatedAt` ASC),
+  INDEX `IX_InvTr_SaleId` (`SaleId` ASC),
+  INDEX `IX_InvTr_ReturnId` (`ReturnId` ASC),
+  INDEX `IX_InvTr_ReservationId` (`ReservationId` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                await db.Database.ExecuteSqlRawAsync(sql);
+            }
+
+            // Ensure InventoryConsumptions table exists
+            var invConsExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'InventoryConsumptions'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                invConsExists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!invConsExists)
+            {
+                var sql = @"CREATE TABLE `InventoryConsumptions` (
+  `Id` BIGINT NOT NULL AUTO_INCREMENT,
+  `ProductId` INT NOT NULL,
+  `BatchId` INT NOT NULL,
+  `Register` INT NOT NULL,
+  `Qty` DECIMAL(18,3) NOT NULL,
+  `SaleItemId` INT NULL,
+  `ReturnItemId` INT NULL,
+  `CreatedAt` DATETIME(6) NOT NULL,
+  `CreatedBy` VARCHAR(64) NULL,
+  PRIMARY KEY (`Id`),
+  INDEX `IX_InvCons_Product_Batch` (`ProductId` ASC, `BatchId` ASC),
+  INDEX `IX_InvCons_SaleItemId` (`SaleItemId` ASC),
+  INDEX `IX_InvCons_ReturnItemId` (`ReturnItemId` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                await db.Database.ExecuteSqlRawAsync(sql);
+            }
+
+            // Ensure ProductCostHistories table exists
+            var pchExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ProductCostHistories'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                pchExists = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!pchExists)
+            {
+                var sql = @"CREATE TABLE `ProductCostHistories` (
+  `Id` BIGINT NOT NULL AUTO_INCREMENT,
+  `ProductId` INT NOT NULL,
+  `UnitCost` DECIMAL(18,2) NOT NULL,
+  `SnapshotAt` DATETIME(6) NOT NULL,
+  `Note` VARCHAR(256) NULL,
+  PRIMARY KEY (`Id`),
+  INDEX `IX_PCH_Product_SnapshotAt` (`ProductId` ASC, `SnapshotAt` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                await db.Database.ExecuteSqlRawAsync(sql);
+            }
         }
         else if (provider2.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
@@ -1006,6 +1187,160 @@ await using (var scope = app.Services.CreateAsyncScope())
             if (!hasSalesResNotes)
             {
                 await db.Database.ExecuteSqlRawAsync("ALTER TABLE Sales ADD COLUMN ReservationNotes TEXT NULL;");
+            }
+
+            // Ensure Products.GtdCode exists
+            var hasProdGtd = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info('Products');";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "GtdCode", StringComparison.OrdinalIgnoreCase)) { hasProdGtd = true; break; }
+                }
+            }
+            if (!hasProdGtd)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Products ADD COLUMN GtdCode TEXT NULL;");
+            }
+
+            // Ensure Batches.GtdCode exists
+            var hasBGtd = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info('Batches');";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "GtdCode", StringComparison.OrdinalIgnoreCase)) { hasBGtd = true; break; }
+                }
+            }
+            if (!hasBGtd)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Batches ADD COLUMN GtdCode TEXT NULL;");
+            }
+
+            // Ensure Batches.ArchivedAt exists
+            var hasBArchivedAt = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info('Batches');";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "ArchivedAt", StringComparison.OrdinalIgnoreCase)) { hasBArchivedAt = true; break; }
+                }
+            }
+            if (!hasBArchivedAt)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE Batches ADD COLUMN ArchivedAt TEXT NULL;");
+            }
+
+            // Ensure StockSnapshots.TotalValue exists
+            var hasSSTotalValue = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info('StockSnapshots');";
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "TotalValue", StringComparison.OrdinalIgnoreCase)) { hasSSTotalValue = true; break; }
+                }
+            }
+            if (!hasSSTotalValue)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE StockSnapshots ADD COLUMN TotalValue DECIMAL(18,2) NOT NULL DEFAULT 0;");
+            }
+
+            // Ensure InventoryTransactions table exists
+            var hasInvTr = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='InventoryTransactions'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                hasInvTr = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!hasInvTr)
+            {
+                var sql = @"CREATE TABLE InventoryTransactions (
+  Id INTEGER NOT NULL CONSTRAINT PK_InventoryTransactions PRIMARY KEY AUTOINCREMENT,
+  ProductId INTEGER NOT NULL,
+  Register INTEGER NOT NULL,
+  Type INTEGER NOT NULL,
+  Qty DECIMAL(18,3) NOT NULL,
+  UnitCost DECIMAL(18,2) NOT NULL,
+  BatchId INTEGER NULL,
+  SaleId INTEGER NULL,
+  ReturnId INTEGER NULL,
+  ReservationId INTEGER NULL,
+  CreatedAt TEXT NOT NULL,
+  CreatedBy TEXT NULL,
+  Note TEXT NULL
+);";
+                await db.Database.ExecuteSqlRawAsync(sql);
+            }
+
+            // Ensure InventoryConsumptions table exists
+            var hasInvCons = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='InventoryConsumptions'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                hasInvCons = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!hasInvCons)
+            {
+                var sql = @"CREATE TABLE InventoryConsumptions (
+  Id INTEGER NOT NULL CONSTRAINT PK_InventoryConsumptions PRIMARY KEY AUTOINCREMENT,
+  ProductId INTEGER NOT NULL,
+  BatchId INTEGER NOT NULL,
+  Register INTEGER NOT NULL,
+  Qty DECIMAL(18,3) NOT NULL,
+  SaleItemId INTEGER NULL,
+  ReturnItemId INTEGER NULL,
+  CreatedAt TEXT NOT NULL,
+  CreatedBy TEXT NULL
+);";
+                await db.Database.ExecuteSqlRawAsync(sql);
+            }
+
+            // Ensure ProductCostHistories table exists
+            var hasPch = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ProductCostHistories'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                hasPch = scalar != null && scalar != DBNull.Value && Convert.ToInt64(scalar) > 0;
+            }
+            if (!hasPch)
+            {
+                var sql = @"CREATE TABLE ProductCostHistories (
+  Id INTEGER NOT NULL CONSTRAINT PK_ProductCostHistories PRIMARY KEY AUTOINCREMENT,
+  ProductId INTEGER NOT NULL,
+  UnitCost DECIMAL(18,2) NOT NULL,
+  SnapshotAt TEXT NOT NULL,
+  Note TEXT NULL
+);";
+                await db.Database.ExecuteSqlRawAsync(sql);
             }
         }
     }

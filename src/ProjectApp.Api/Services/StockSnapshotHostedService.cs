@@ -64,6 +64,14 @@ public class StockSnapshotHostedService : BackgroundService
                 })
                 .ToListAsync(ct);
 
+            // Preload batch values to compute TotalValue = SUM(QtyRemaining * UnitCost)
+            var productIds = stocks.Select(s => s.ProductId).ToArray();
+            var batchAgg = await db.Batches.AsNoTracking()
+                .Where(b => productIds.Contains(b.ProductId) && b.Qty > 0)
+                .GroupBy(b => b.ProductId)
+                .Select(g => new { ProductId = g.Key, TotalValue = g.Sum(x => x.Qty * x.UnitCost) })
+                .ToDictionaryAsync(x => x.ProductId, x => x.TotalValue, ct);
+
             var createdAt = DateTime.UtcNow;
             int rows = 0;
             foreach (var s in stocks)
@@ -76,6 +84,7 @@ public class StockSnapshotHostedService : BackgroundService
                     NdQty = s.Nd,
                     ImQty = s.Im,
                     TotalQty = total,
+                    TotalValue = batchAgg.TryGetValue(s.ProductId, out var tv) ? tv : 0m,
                     CreatedAt = createdAt
                 });
                 rows++;

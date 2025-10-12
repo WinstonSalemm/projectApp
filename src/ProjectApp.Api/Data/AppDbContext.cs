@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Models;
+using ProjectApp.Api.Modules.Finance.Models;
 
 namespace ProjectApp.Api.Data;
 
@@ -27,6 +28,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ReservationItem> ReservationItems => Set<ReservationItem>();
     public DbSet<ReservationLog> ReservationLogs => Set<ReservationLog>();
     public DbSet<StockSnapshot> StockSnapshots => Set<StockSnapshot>();
+    public DbSet<Expense> Expenses => Set<Expense>();
+    public DbSet<TaxPayment> TaxPayments => Set<TaxPayment>();
+    public DbSet<FinanceSnapshot> FinanceSnapshots => Set<FinanceSnapshot>();
+    public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
+    public DbSet<InventoryConsumption> InventoryConsumptions => Set<InventoryConsumption>();
+    public DbSet<ProductCostHistory> ProductCostHistories => Set<ProductCostHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,6 +63,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(p => p.Name).IsRequired().HasMaxLength(256);
             b.Property(p => p.Unit).IsRequired().HasMaxLength(16);
             b.Property(p => p.Price).HasColumnType("decimal(18,2)");
+            b.Property(p => p.GtdCode).HasMaxLength(64);
             b.HasIndex(p => p.Sku).IsUnique(false);
             b.HasData(seedProducts);
         });
@@ -190,6 +198,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(x => x.Qty).HasColumnType("decimal(18,3)");
             b.Property(x => x.UnitCost).HasColumnType("decimal(18,2)");
             b.Property(x => x.CreatedAt).IsRequired();
+            b.Property(x => x.GtdCode).HasMaxLength(64);
+            b.Property(x => x.ArchivedAt);
             b.HasIndex(x => new { x.ProductId, x.Register, x.CreatedAt, x.Id });
         });
 
@@ -296,9 +306,75 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(x => x.NdQty).HasColumnType("decimal(18,3)");
             b.Property(x => x.ImQty).HasColumnType("decimal(18,3)");
             b.Property(x => x.TotalQty).HasColumnType("decimal(18,3)");
+            b.Property(x => x.TotalValue).HasColumnType("decimal(18,2)");
             b.Property(x => x.CreatedAt).IsRequired();
             b.HasIndex(x => x.CreatedAt);
             b.HasIndex(x => x.ProductId);
+        });
+
+        modelBuilder.Entity<InventoryTransaction>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Qty).HasColumnType("decimal(18,3)");
+            b.Property(x => x.UnitCost).HasColumnType("decimal(18,2)");
+            b.Property(x => x.CreatedAt).IsRequired();
+            b.HasIndex(x => new { x.ProductId, x.Register, x.CreatedAt });
+            b.HasIndex(x => x.SaleId);
+            b.HasIndex(x => x.ReturnId);
+            b.HasIndex(x => x.ReservationId);
+        });
+
+        modelBuilder.Entity<InventoryConsumption>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Qty).HasColumnType("decimal(18,3)");
+            b.Property(x => x.CreatedAt).IsRequired();
+            b.HasIndex(x => new { x.ProductId, x.BatchId });
+            b.HasIndex(x => x.SaleItemId);
+            b.HasIndex(x => x.ReturnItemId);
+        });
+
+        modelBuilder.Entity<ProductCostHistory>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.UnitCost).HasColumnType("decimal(18,2)");
+            b.Property(x => x.SnapshotAt).IsRequired();
+            b.HasIndex(x => new { x.ProductId, x.SnapshotAt });
+        });
+
+        modelBuilder.Entity<Expense>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Category).HasMaxLength(64).IsRequired();
+            b.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+            b.Property(x => x.Date).IsRequired();
+            b.Property(x => x.Note).HasMaxLength(512);
+            b.HasIndex(x => x.Date);
+            b.HasIndex(x => x.Category);
+        });
+
+        modelBuilder.Entity<TaxPayment>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Type).HasMaxLength(64);
+            b.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+            b.Property(x => x.PaidAt).IsRequired();
+            b.Property(x => x.Note).HasMaxLength(256);
+            b.HasIndex(x => x.PaidAt);
+            b.HasIndex(x => x.Type);
+        });
+
+        modelBuilder.Entity<FinanceSnapshot>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Date).IsRequired();
+            b.Property(x => x.Revenue).HasColumnType("decimal(18,2)");
+            b.Property(x => x.Cogs).HasColumnType("decimal(18,2)");
+            b.Property(x => x.GrossProfit).HasColumnType("decimal(18,2)");
+            b.Property(x => x.Expenses).HasColumnType("decimal(18,2)");
+            b.Property(x => x.TaxesPaid).HasColumnType("decimal(18,2)");
+            b.Property(x => x.NetProfit).HasColumnType("decimal(18,2)");
+            b.HasIndex(x => x.Date);
         });
     }
 }

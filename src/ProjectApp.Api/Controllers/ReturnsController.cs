@@ -1,9 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Dtos;
 using ProjectApp.Api.Models;
+using ProjectApp.Api.Integrations.Telegram;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
 using System;
  using System.Linq;
  using System.Collections.Generic;
@@ -17,12 +22,16 @@ public class ReturnsController : ControllerBase
     private readonly AppDbContext _db;
     private readonly ILogger<ReturnsController> _logger;
     private readonly ProjectApp.Api.Integrations.Telegram.IReturnsNotifier _retNotifier;
+    private readonly ITelegramService _tg;
+    private readonly TelegramSettings _tgSettings;
 
-    public ReturnsController(AppDbContext db, ILogger<ReturnsController> logger, ProjectApp.Api.Integrations.Telegram.IReturnsNotifier retNotifier)
+    public ReturnsController(AppDbContext db, ILogger<ReturnsController> logger, ProjectApp.Api.Integrations.Telegram.IReturnsNotifier retNotifier, ITelegramService tg, IOptions<TelegramSettings> tgOptions)
     {
         _db = db;
         _logger = logger;
         _retNotifier = retNotifier;
+        _tg = tg;
+        _tgSettings = tgOptions.Value;
     }
 
     [HttpGet("{id:int}")]
@@ -83,10 +92,12 @@ public class ReturnsController : ControllerBase
                 await RestockFullReturnByBatchesAsync(sale, retFull, ct);
                 await _db.SaveChangesAsync(ct);
 
-                _logger.LogInformation("Return created {ReturnId} for sale {SaleId} client {ClientId} sum {Sum} payment {PaymentType}",
-                    retFull.Id, sale.Id, retFull.ClientId, retFull.Sum, sale.PaymentType);
-                // notify
-                await _retNotifier.NotifyReturnAsync(retFull, sale, ct);
+                _logger.LogInformation("Return created {ReturnId} for sale {SaleId} client {ClientId} sum {Sum} payment {PaymentType}", retFull.Id, sale.Id, retFull.ClientId, retFull.Sum, sale.PaymentType);
+                // notify (defer if waiting for photo from client)
+                if (!(dto.WaitForPhoto ?? false))
+                {
+                    await _retNotifier.NotifyReturnAsync(retFull, sale, ct);
+                }
                 return CreatedAtAction(nameof(GetById), new { id = retFull.Id }, retFull);
             }
 
@@ -147,8 +158,11 @@ public class ReturnsController : ControllerBase
             await _db.SaveChangesAsync(ct); // ensure ReturnItemIds
             await RestockPartialReturnByBatchesAsync(sale, retPartial.Items, ct);
             await _db.SaveChangesAsync(ct);
-            // notify
-            await _retNotifier.NotifyReturnAsync(retPartial, sale, ct);
+            // notify (defer if waiting for photo from client)
+            if (!(dto.WaitForPhoto ?? false))
+            {
+                await _retNotifier.NotifyReturnAsync(retPartial, sale, ct);
+            }
             _logger.LogInformation("Partial return {ReturnId} for sale {SaleId} client {ClientId} sum {Sum}", retPartial.Id, sale.Id, retPartial.ClientId, retPartial.Sum);
             return CreatedAtAction(nameof(GetById), new { id = retPartial.Id }, retPartial);
         }
@@ -156,6 +170,88 @@ public class ReturnsController : ControllerBase
         {
             return ValidationProblem(detail: ex.Message);
         }
+    }
+
+    [HttpPost("{id:int}/photo")]
+    [Authorize(Policy = "ManagerOnly")]
+    [RequestSizeLimit(20_000_000)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UploadPhoto([FromRoute] int id, CancellationToken ct)
+    {
+        if (!Request.HasFormContentType) return ValidationProblem(detail: "Expected multipart/form-data");
+        var form = await Request.ReadFormAsync(ct);
+        var file = form.Files["file"] ?? form.Files.FirstOrDefault();
+        if (file is null || file.Length == 0) return ValidationProblem(detail: "Photo file is required");
+
+        var ret = await _db.Returns.Include(r => r.Items).FirstOrDefaultAsync(r => r.Id == id, ct);
+        if (ret is null) return ValidationProblem(detail: $"Return not found: {id}");
+        var sale = await _db.Sales.Include(s => s.Items).FirstOrDefaultAsync(s => s.Id == ret.RefSaleId, ct);
+        if (sale is null) return ValidationProblem(detail: $"Sale not found for return {id}");
+
+        // Recompress to JPEG
+        await using var inStream = file.OpenReadStream();
+        using var image = await Image.LoadAsync(inStream, ct);
+        var longSide = Math.Max(image.Width, image.Height);
+        if (longSide > 1600) // reuse a sane limit
+        {
+            var scale = 1600.0 / longSide;
+            var newW = (int)Math.Round(image.Width * scale);
+            var newH = (int)Math.Round(image.Height * scale);
+            image.Mutate(x => x.Resize(newW, newH));
+        }
+        using var outMs = new MemoryStream();
+        var enc = new JpegEncoder { Quality = 85 };
+        await image.SaveAsJpegAsync(outMs, enc, ct);
+        outMs.Position = 0;
+
+        var caption = await BuildReturnCaptionHtmlAsync(ret, sale, ct);
+        var ids = _tgSettings.ParseAllowedChatIds();
+        foreach (var chatId in ids)
+        {
+            outMs.Position = 0;
+            var ok = await _tg.SendPhotoAsync(chatId, outMs, file.FileName ?? $"return_{id}.jpg", caption, "HTML", ct);
+            if (!ok) _logger.LogWarning("Failed to send return photo to chat {ChatId} for return {Id}", chatId, id);
+        }
+
+        return NoContent();
+    }
+
+    private async Task<string> BuildReturnCaptionHtmlAsync(Return ret, Sale sale, CancellationToken ct)
+    {
+        string Html(string? s) => string.IsNullOrEmpty(s) ? string.Empty : s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+        var localTime = ret.CreatedAt.AddMinutes(_tgSettings.TimeZoneOffsetMinutes);
+        var clientName = string.IsNullOrWhiteSpace(sale.ClientName) ? "Посетитель" : sale.ClientName;
+        var safeClient = Html(clientName);
+
+        var pids = sale.Items?.Select(i => i.ProductId).Distinct().ToList() ?? new List<int>();
+        var prodMap = await _db.Products.AsNoTracking()
+            .Where(p => pids.Contains(p.Id))
+            .Select(p => new { p.Id, p.Sku, p.Name })
+            .ToDictionaryAsync(p => p.Id, p => p, ct);
+
+        var lines = new List<string>();
+        int itemsCount = ret.Items?.Count ?? 0;
+        decimal totalQty = 0m;
+        decimal totalSum = 0m;
+        foreach (var ri in ret.Items ?? new List<ReturnItem>())
+        {
+            var si = sale.Items.FirstOrDefault(x => x.Id == ri.SaleItemId);
+            var pid = si?.ProductId ?? 0;
+            prodMap.TryGetValue(pid, out var p);
+            var name = p?.Name ?? $"#{pid}";
+            var sum = ri.Qty * ri.UnitPrice;
+            totalQty += ri.Qty;
+            totalSum += sum;
+            var nameShort = name.Length > 28 ? name.Substring(0, 28) + "…" : name;
+            var safeNameShort = Html(nameShort);
+            lines.Add($"{safeNameShort,-30} {ri.Qty,5:N0} x {ri.UnitPrice,9:N0} = {sum,10:N0}");
+        }
+
+        var title = $"<b>Возврат #{ret.Id}</b>";
+        var header = $"По продаже: #{sale.Id}\nДата: {localTime:yyyy-MM-dd HH:mm}\nКлиент: {safeClient}\nПозиции: {itemsCount} (шт: {totalQty:N0})\nИтого: {totalSum:N0} сум";
+        var itemsBlock = lines.Count > 0 ? ("\n<pre>" + string.Join("\n", lines) + "</pre>") : string.Empty;
+        return title + "\n" + header + itemsBlock;
     }
 
     [HttpPost("/api/sales/{saleId:int}/return/cancel")]
@@ -250,6 +346,19 @@ public class ReturnsController : ControllerBase
                 batch.Qty += avail;
                 await AdjustStockAsync(si.ProductId, batch.Register, +avail, ct);
                 _db.ReturnItemRestocks.Add(new ReturnItemRestock { ReturnItemId = ri.Id, SaleItemId = si.Id, BatchId = batch.Id, Qty = avail });
+                // Log inventory transaction (ReturnIn)
+                _db.InventoryTransactions.Add(new InventoryTransaction
+                {
+                    ProductId = si.ProductId,
+                    Register = batch.Register,
+                    Type = InventoryTransactionType.ReturnIn,
+                    Qty = avail,
+                    UnitCost = batch.UnitCost,
+                    BatchId = batch.Id,
+                    ReturnId = ret.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    Note = $"return full sale #{sale.Id}"
+                });
             }
         }
     }
@@ -280,6 +389,19 @@ public class ReturnsController : ControllerBase
                 batch.Qty += take;
                 await AdjustStockAsync(si.ProductId, batch.Register, +take, ct);
                 _db.ReturnItemRestocks.Add(new ReturnItemRestock { ReturnItemId = ri.Id, SaleItemId = si.Id, BatchId = batch.Id, Qty = take });
+                // Log inventory transaction (ReturnIn)
+                _db.InventoryTransactions.Add(new InventoryTransaction
+                {
+                    ProductId = si.ProductId,
+                    Register = batch.Register,
+                    Type = InventoryTransactionType.ReturnIn,
+                    Qty = take,
+                    UnitCost = batch.UnitCost,
+                    BatchId = batch.Id,
+                    ReturnId = ret.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    Note = $"partial return saleItem #{si.Id}"
+                });
                 toReturn -= take;
             }
 
@@ -300,6 +422,19 @@ public class ReturnsController : ControllerBase
                 _db.Batches.Add(newBatch);
                 await _db.SaveChangesAsync(ct);
                 _db.ReturnItemRestocks.Add(new ReturnItemRestock { ReturnItemId = ri.Id, SaleItemId = si.Id, BatchId = newBatch.Id, Qty = toReturn });
+                // Log inventory transaction (ReturnIn, fallback batch)
+                _db.InventoryTransactions.Add(new InventoryTransaction
+                {
+                    ProductId = si.ProductId,
+                    Register = register,
+                    Type = InventoryTransactionType.ReturnIn,
+                    Qty = toReturn,
+                    UnitCost = newBatch.UnitCost,
+                    BatchId = newBatch.Id,
+                    ReturnId = ret.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    Note = $"partial return fallback saleItem #{si.Id}"
+                });
             }
         }
     }
@@ -327,6 +462,19 @@ public class ReturnsController : ControllerBase
             // Decrement batch quantity and stock by the restocked amount
             batch.Qty -= rs.Qty;
             await AdjustStockAsync(si.ProductId, batch.Register, -rs.Qty, ct);
+            // Log inventory transaction (ReturnOut - reverse)
+            _db.InventoryTransactions.Add(new InventoryTransaction
+            {
+                ProductId = si.ProductId,
+                Register = batch.Register,
+                Type = InventoryTransactionType.ReturnOut,
+                Qty = -rs.Qty,
+                UnitCost = batch.UnitCost,
+                BatchId = batch.Id,
+                ReturnId = ret.Id,
+                CreatedAt = DateTime.UtcNow,
+                Note = $"reverse restock for return #{ret.Id}"
+            });
         }
     }
 

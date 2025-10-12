@@ -8,4 +8,6 @@ public class ReturnCreateDto
     public string? Reason { get; set; }
     // If null or empty -> full return
     public List<ReturnItemCreateDto>? Items { get; set; }
+    // If true, API will NOT send text notification immediately; client will upload a photo and caption will be sent with the photo
+    public bool? WaitForPhoto { get; set; }
 }

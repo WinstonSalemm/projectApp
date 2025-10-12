@@ -12,4 +12,12 @@ public class Batch
     public DateTime CreatedAt { get; set; }
     public string? Code { get; set; }
     public string? Note { get; set; }
+    // Finance analytics enrichment
+    public string? SupplierName { get; set; }
+    public string? InvoiceNumber { get; set; }
+    public DateTime? PurchaseDate { get; set; }
+    public decimal? VatRate { get; set; }
+    public string? PurchaseSource { get; set; } // e.g., SupplyId/code
+    public string? GtdCode { get; set; }
+    public DateTime? ArchivedAt { get; set; }
 }

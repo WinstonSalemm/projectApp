@@ -6,7 +6,7 @@ namespace ProjectApp.Client.Maui.Converters;
 public class QtyToAvailabilityColorConverter : IValueConverter
 {
     // parameter: bg | border | text
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var qty = 0m;
         try { if (value is IConvertible c) qty = System.Convert.ToDecimal(c, CultureInfo.InvariantCulture); } catch { }
@@ -31,6 +31,6 @@ public class QtyToAvailabilityColorConverter : IValueConverter
         };
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }

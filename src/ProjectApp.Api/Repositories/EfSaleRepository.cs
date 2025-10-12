@@ -123,6 +123,19 @@ public class EfSaleRepository : ISaleRepository
                         RegisterAtSale = e.reg,
                         Qty = e.qty
                     });
+                    _db.InventoryTransactions.Add(new InventoryTransaction
+                    {
+                        ProductId = si.ProductId,
+                        Register = e.reg,
+                        Type = InventoryTransactionType.Sale,
+                        Qty = -e.qty,
+                        UnitCost = si.Cost,
+                        BatchId = e.batchId,
+                        SaleId = sale.Id,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = sale.CreatedBy,
+                        Note = $"saleItem #{si.Id}"
+                    });
                 }
             }
             _pendingConsumptionMap = null;

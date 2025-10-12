@@ -6,7 +6,7 @@ namespace ProjectApp.Client.Maui.Converters;
 // Formats money as: 12 345 сум (always Uzbek sum text, no decimals)
 public class CurrencyConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value == null) return string.Empty;
         try
@@ -19,6 +19,6 @@ public class CurrencyConverter : IValueConverter
         catch { return value?.ToString() + " сум" ?? string.Empty; }
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }

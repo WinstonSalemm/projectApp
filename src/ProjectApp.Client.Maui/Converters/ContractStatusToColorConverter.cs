@@ -6,7 +6,7 @@ namespace ProjectApp.Client.Maui.Converters;
 public class ContractStatusToColorConverter : IValueConverter
 {
     // ConverterParameter: "bg" | "border" | "text"
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var status = (value?.ToString() ?? string.Empty).Trim();
         var kind = (parameter?.ToString() ?? "bg").ToLowerInvariant();
@@ -42,6 +42,6 @@ public class ContractStatusToColorConverter : IValueConverter
         };
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }

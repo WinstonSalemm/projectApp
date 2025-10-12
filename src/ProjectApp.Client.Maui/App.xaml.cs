@@ -8,20 +8,28 @@ namespace ProjectApp.Client.Maui;
 public partial class App : Application
 {
     public static IServiceProvider Services { get; private set; } = default!;
+    private readonly IServiceProvider _services;
+    private readonly AuthService _auth;
+
     public App(IServiceProvider services, AuthService auth)
     {
         InitializeComponent();
+        _services = services;
+        _auth = auth;
         Services = services;
-        if (auth.IsAuthenticated)
+    }
+
+    protected override Window CreateWindow(IActivationState? activationState)
+    {
+        if (_auth.IsAuthenticated)
         {
-            // After auth, force user to choose sale type and category first
-            var start = services.GetRequiredService<SaleStartPage>();
-            MainPage = new NavigationPage(start);
+            var start = _services.GetRequiredService<SaleStartPage>();
+            return new Window(new NavigationPage(start));
         }
         else
         {
-            var select = services.GetRequiredService<UserSelectPage>();
-            MainPage = new NavigationPage(select);
+            var select = _services.GetRequiredService<UserSelectPage>();
+            return new Window(new NavigationPage(select));
         }
     }
 }

@@ -1,0 +1,257 @@
+# ProjectApp – Technical Mission Checklist (AH)
+
+## A. General Concept and Goals
+### A1. System Purpose
+**Requirement:** Unified ERP for inventory, sales, customers, and analytics.  
+**Acceptance Criteria:**  
+- Centralized database synchronizes across Windows & Android.  
+- Real-time updates of stock, sales, and finance.  
+**Priority:** P0
+
+### A2. Objectives
+**Requirement:** Automate key business processes, increase transparency and control.  
+**Acceptance Criteria:**  
+- Users manage full sales lifecycle (stock → sale → report).  
+- Integration with Telegram for alerts and reports.  
+**Priority:** P0
+
+---
+
+## B. Inventory Management (Warehouse)
+### B1. Dual stock bases
+**Requirement:** Maintain two stock modes: ND-40 (temporary, cash only) and IM-40 (legal, full ops).  
+**Acceptance Criteria:**  
+- System differentiates sale permissions by base.  
+- Items move ND→IM automatically when legalized.  
+**Priority:** P0
+
+### B2. Unified product catalog
+**Requirement:** Shared SKU across all systems (based on GTD or unique import ID).  
+**Acceptance Criteria:**  
+- No duplicates across ND/IM.  
+- Same article number traceable through both modes.  
+**Priority:** P0
+
+### B3. Auto-removal of zero stock
+**Requirement:** Delete SKUs when quantity = 0.  
+**Acceptance Criteria:**  
+- Removed items no longer appear in search/UI.  
+**Priority:** P1
+
+### B4. Grouping and classification
+**Requirement:** Items grouped by categories for analysis.  
+**Acceptance Criteria:**  
+- Reports available by category and article.  
+**Priority:** P1
+
+### B5. Real-time updates
+**Requirement:** All inventory operations instantly sync to DB.  
+**Acceptance Criteria:**  
+- Snapshot report created at end of each day.  
+**Priority:** P0
+
+### B6. Reservation and returns
+**Requirement:** Support reservation per deal, return flow with base correction.  
+**Acceptance Criteria:**  
+- Reserve auto-expires after 3 days.  
+- Returns restore stock and adjust analytics.  
+**Priority:** P0
+
+### B7. Responsible warehouse roles
+**Requirement:** Assign “Warehouse Admin” with rights to verify inventory.  
+**Acceptance Criteria:**  
+- Role permissions separated in user roles config.  
+**Priority:** P2
+
+### B8. Scheduled inventory checks
+**Requirement:** Plan & log inventory audits.  
+**Acceptance Criteria:**  
+- Reminders trigger per schedule; discrepancies logged.  
+**Priority:** P2
+
+---
+
+## C. Sales Management
+### C1. Sale types and logic
+**Requirement:** Implement coded sale types with distinct behavior.  
+**Types:**  
+1. Cashless (contract)  
+2. Fiscal (cash register)  
+3. Cash without receipt (“grey”)  
+4. Credit (delayed payment)  
+5. Prepayment (advance)  
+**Acceptance Criteria:**  
+- Each sale type affects warehouse and finance correctly.  
+- IM-40 used for legal; ND-40 for grey cash.  
+**Priority:** P0
+
+### C2. Deal registration
+**Requirement:** All sales recorded via app.  
+**Acceptance Criteria:**  
+- Each sale has client, goods, sum, payment type.  
+- No untracked sales.  
+**Priority:** P0
+
+### C3. Reservation integration
+**Requirement:** Sales trigger auto-reservation if pending payment.  
+**Acceptance Criteria:**  
+- Reserve shown as “pending” until payment.  
+**Priority:** P1
+
+---
+
+## D. Customer Database
+### D1. Centralized client registry
+**Requirement:** Store all clients with segmentation by type and turnover.  
+**Acceptance Criteria:**  
+- Each client has history of deals, debts, prepayments.  
+**Priority:** P0
+
+### D2. Activity analytics
+**Requirement:** Track purchase frequency and volume.  
+**Acceptance Criteria:**  
+- Auto-assign client status (“retail”, “wholesale”, “VIP”).  
+**Priority:** P1
+
+### D3. Responsible manager link
+**Requirement:** Each major client assigned a manager.  
+**Acceptance Criteria:**  
+- Bonus analytics linked to manager performance.  
+**Priority:** P1
+
+---
+
+## E. Commercial & Financial Analytics
+### E1. Multi-level pricing
+**Requirement:** Apply price tiers per sale type and client status.  
+**Acceptance Criteria:**  
+- Discounts/markups auto-applied per contract.  
+**Priority:** P0
+
+### E2. Profit & cost analysis
+**Requirement:** Calculate cost, margin, and profit by SKU/group.  
+**Acceptance Criteria:**  
+- Show ROI, turnover, and profitability by category.  
+**Priority:** P0
+
+### E3. Legal vs non-legal separation
+**Requirement:** Split legal (cashless/fiscal) vs grey (cash/card transfer) flows.  
+**Acceptance Criteria:**  
+- Separate financial totals visible in reports.  
+**Priority:** P0
+
+### E4. Discount validation
+**Requirement:** Prevent managers from exceeding max discount.  
+**Acceptance Criteria:**  
+- Block transactions violating discount limits.  
+**Priority:** P1
+
+### E5. Cash reserve control
+**Requirement:** Track cash “released” and “to be encashed”.  
+**Acceptance Criteria:**  
+- Daily summary includes both categories.  
+**Priority:** P1
+
+---
+
+## F. Telegram Notifications & Reports
+### F1. Real-time notifications
+**Requirement:** Send Telegram alerts on each sale, return, or major event.  
+**Acceptance Criteria:**  
+- Message includes manager, time, sale type, items, total.  
+**Priority:** P0
+
+### F2. Daily summary report
+**Requirement:** Auto-generate daily report at set time.  
+**Acceptance Criteria:**  
+- Lists all sales per manager, totals, and stock snapshot.  
+- Highlights “Top-1 Manager of the Day”.  
+**Priority:** P0
+
+### F3. Event-based alerts
+**Requirement:** Notify on new clients, deals, low stock, overdue debts.  
+**Acceptance Criteria:**  
+- Configurable event triggers in system settings.  
+**Priority:** P2
+
+---
+
+## G. User Roles and Access
+### G1. Role separation
+**Requirement:** Admin, Manager, Warehouse, Accountant roles.  
+**Acceptance Criteria:**  
+- Each role has clear permissions.  
+**Priority:** P0
+
+### G2. Admin capabilities
+**Requirement:** Full access to CRUD operations, user management, system params.  
+**Acceptance Criteria:**  
+- Minimum 6 admins; flexible addition supported.  
+**Priority:** P0
+
+### G3. Manager limitations
+**Requirement:** Limited to client, sales, reservation modules.  
+**Acceptance Criteria:**  
+- Cannot edit global settings or other users’ sales.  
+**Priority:** P0
+
+### G4. Logging
+**Requirement:** All critical actions logged (create, update, delete).  
+**Acceptance Criteria:**  
+- Log available in admin analytics.  
+**Priority:** P1
+
+---
+
+## H. Architecture, Platform & Deployment
+### H1. Platforms
+**Requirement:** Two clients – Android & Windows (or Web).  
+**Acceptance Criteria:**  
+- Identical API behavior across both platforms.  
+**Priority:** P0
+
+### H2. Backend architecture
+**Requirement:** REST API with MySQL DB (Railway or cloud).  
+**Acceptance Criteria:**  
+- API endpoints secured with JWT.  
+- CRUD for inventory, sales, clients.  
+**Priority:** P0
+
+### H3. Data synchronization
+**Requirement:** Unified DB; all clients share same data.  
+**Acceptance Criteria:**  
+- Changes from one client visible to all others immediately.  
+**Priority:** P0
+
+### H4. Deployment
+**Requirement:** Dockerized server, easy installation via setup (Windows) & APK.  
+**Acceptance Criteria:**  
+- Installer runs setup + DB connect in <10 min.  
+**Priority:** P1
+
+### H5. Extensibility
+**Requirement:** System can disable ND/IM split or unused sale types.  
+**Acceptance Criteria:**  
+- Config file toggles modules; no rebuild needed.  
+**Priority:** P2
+
+### H6. Update & Support
+**Requirement:** Updates deployed server-side; client auto-syncs.  
+**Acceptance Criteria:**  
+- Server patch instantly affects all connected clients.  
+**Priority:** P1
+
+---
+
+## Summary
+✅ 8 Major Modules (A–H)  
+✅ ~50 Acceptance Criteria  
+✅ Priority codes:  
+- **P0** – Must Have  
+- **P1** – Should Have  
+- **P2** – Optional/Future  
+
+---
+
+**Filename:** `docs/tz_checklist.md`  
+**Use:** Compare each implemented module or commit against this checklist for compliance and completeness.

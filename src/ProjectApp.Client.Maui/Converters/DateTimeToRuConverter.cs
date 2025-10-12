@@ -7,7 +7,7 @@ public class DateTimeToRuConverter : IValueConverter
 {
     // parameter: optional .NET format string, e.g. "g", "G", "d", or a custom pattern
     // default: "dd.MM.yyyy HH:mm"
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is null) return string.Empty;
         try
@@ -21,6 +21,6 @@ public class DateTimeToRuConverter : IValueConverter
         catch { return value?.ToString() ?? string.Empty; }
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }

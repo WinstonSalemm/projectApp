@@ -7,5 +7,6 @@ public class StockSnapshot
     public decimal NdQty { get; set; }
     public decimal ImQty { get; set; }
     public decimal TotalQty { get; set; }
+    public decimal TotalValue { get; set; }
     public DateTime CreatedAt { get; set; }
 }

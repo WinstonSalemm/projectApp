@@ -62,6 +62,19 @@ public class SuppliesController : ControllerBase
             };
             _db.Batches.Add(b);
             created.Add(b);
+
+            // Inventory transaction (purchase)
+            _db.InventoryTransactions.Add(new InventoryTransaction
+            {
+                ProductId = it.ProductId,
+                Register = StockRegister.ND40,
+                Type = InventoryTransactionType.Purchase,
+                Qty = it.Qty,
+                UnitCost = it.UnitCost,
+                BatchId = null, // will not have ID until save; acceptable for audit
+                CreatedAt = DateTime.UtcNow,
+                Note = string.IsNullOrWhiteSpace(it.Code) ? "supply" : $"supply code={it.Code}"
+            });
         }
 
         await _db.SaveChangesAsync(ct);
@@ -112,6 +125,19 @@ public class SuppliesController : ControllerBase
                 b.Qty -= take;
                 moved += take;
 
+                // Log ND40 move out
+                _db.InventoryTransactions.Add(new InventoryTransaction
+                {
+                    ProductId = it.ProductId,
+                    Register = StockRegister.ND40,
+                    Type = InventoryTransactionType.MoveNdToIm,
+                    Qty = -take,
+                    UnitCost = b.UnitCost,
+                    BatchId = b.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    Note = $"move ND->IM code={code}"
+                });
+
                 // increase IM40 stock and add IM40 batch with same cost and code
                 var stockIm = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == it.ProductId && s.Register == StockRegister.IM40, ct);
                 if (stockIm is null)
@@ -132,6 +158,19 @@ public class SuppliesController : ControllerBase
                     Note = $"move from ND40 code={code}"
                 };
                 _db.Batches.Add(imBatch);
+
+                // Log IM40 move in (batchId unknown until save)
+                _db.InventoryTransactions.Add(new InventoryTransaction
+                {
+                    ProductId = it.ProductId,
+                    Register = StockRegister.IM40,
+                    Type = InventoryTransactionType.MoveNdToIm,
+                    Qty = take,
+                    UnitCost = b.UnitCost,
+                    BatchId = null,
+                    CreatedAt = DateTime.UtcNow,
+                    Note = $"move ND->IM code={code}"
+                });
             }
 
             // decrease ND40 stock for moved qty

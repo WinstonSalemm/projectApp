@@ -6,7 +6,7 @@ namespace ProjectApp.Client.Maui.Converters;
 
 public class ClientTypeToRuConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is ClientType ct)
         {
@@ -20,6 +20,6 @@ public class ClientTypeToRuConverter : IValueConverter
         return value?.ToString() ?? string.Empty;
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }

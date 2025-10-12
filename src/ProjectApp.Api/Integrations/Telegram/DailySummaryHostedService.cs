@@ -97,13 +97,8 @@ public class DailySummaryHostedService : BackgroundService
             var periodStr = localToday.ToString("yyyy-MM-dd");
             var msg = $"Ежедневная сводка за {periodStr}\nОборот: {totalAmount}\nШтук: {totalQty}\nЧеки: {salesCount}\nТоп продавец: {top?.Seller ?? "нет"} ({top?.Amount ?? 0m})";
 
-            foreach (var chatId in ids)
-            {
-                _ = await tg.SendMessageAsync(chatId, msg, ct);
-            }
-            _logger.LogInformation("DailySummary: sent summary for {Date}", periodStr);
-
-            // Send top seller last photo (if any) next to the summary
+            // Try to find a top seller photo to attach as a single message with caption
+            bool sentAsPhoto = false;
             if (top != null && !string.IsNullOrWhiteSpace(top.Seller))
             {
                 try
@@ -119,17 +114,25 @@ public class DailySummaryHostedService : BackgroundService
                         foreach (var chatId in ids)
                         {
                             fs.Position = 0;
-                            var caption = $"Топ продавец: {top.Seller} ({top.Amount})";
-                            try { _ = await tg.SendPhotoAsync(chatId, fs, System.IO.Path.GetFileName(topPhoto.PathOrBlob), caption, null, ct); }
-                            catch { }
+                            try { _ = await tg.SendPhotoAsync(chatId, fs, System.IO.Path.GetFileName(topPhoto.PathOrBlob), msg, null, ct); } catch { }
                         }
+                        sentAsPhoto = true;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "DailySummary: failed to send top seller photo");
+                    _logger.LogWarning(ex, "DailySummary: failed to send top seller photo as caption");
                 }
             }
+
+            if (!sentAsPhoto)
+            {
+                foreach (var chatId in ids)
+                {
+                    try { _ = await tg.SendMessageAsync(chatId, msg, ct); } catch { }
+                }
+            }
+            _logger.LogInformation("DailySummary: sent summary for {Date}", periodStr);
 
             // After daily summary: delete all stored sale photos
             try

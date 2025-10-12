@@ -6,7 +6,7 @@ namespace ProjectApp.Client.Maui.Converters;
 public class PaymentTypeToColorConverter : IValueConverter
 {
     // ConverterParameter: "bg" | "border" | "text"
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var pt = (value?.ToString() ?? string.Empty).Trim();
         var kind = (parameter?.ToString() ?? "bg").ToLowerInvariant();
@@ -47,6 +47,6 @@ public class PaymentTypeToColorConverter : IValueConverter
         };
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
