@@ -10,6 +10,7 @@ using ProjectApp.Api.Modules.Finance.Taxes;
 using ProjectApp.Api.Modules.Finance.Export;
 using ProjectApp.Api.Modules.Finance.Clients;
 using ProjectApp.Api.Data;
+using ProjectApp.Api.Modules.Finance.Alerts;
 
 namespace ProjectApp.Api.Modules.Finance;
 

@@ -75,14 +75,12 @@
     <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Color.Card.Light}, Dark={StaticResource Color.Card.Dark}}" />
     <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Color.PrimaryText.Light}, Dark={StaticResource Color.PrimaryText.Dark}}" />
     <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource Color.MutedText.Light}, Dark={StaticResource Color.MutedText.Dark}}" />
-    <Setter Property="CornerRadius" Value="{StaticResource Radius.SM}" />
     <Setter Property="HeightRequest" Value="44" />
   </Style>
   <Style TargetType="Picker">
     <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Color.Card.Light}, Dark={StaticResource Color.Card.Dark}}" />
     <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Color.PrimaryText.Light}, Dark={StaticResource Color.PrimaryText.Dark}}" />
     <Setter Property="TitleColor" Value="{AppThemeBinding Light={StaticResource Color.MutedText.Light}, Dark={StaticResource Color.MutedText.Dark}}" />
-    <Setter Property="CornerRadius" Value="{StaticResource Radius.SM}" />
     <Setter Property="HeightRequest" Value="44" />
   </Style>
 

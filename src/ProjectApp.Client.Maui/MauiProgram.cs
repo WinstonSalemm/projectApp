@@ -68,11 +68,13 @@ public static class MauiProgram
         builder.Services.AddSingleton<ApiCatalogService>();
         builder.Services.AddSingleton<ApiSalesService>();
         builder.Services.AddSingleton<ApiSuppliesService>();
+        builder.Services.AddSingleton<ApiStocksService>();
         builder.Services.AddSingleton<MockCatalogService>();
         builder.Services.AddSingleton<MockSalesService>();
         // Routed services decide at runtime based on current AppSettings
         builder.Services.AddSingleton<ICatalogService, RoutedCatalogService>();
         builder.Services.AddSingleton<ISalesService, RoutedSalesService>();
+        builder.Services.AddSingleton<IStocksService>(sp => sp.GetRequiredService<ApiStocksService>());
         builder.Services.AddSingleton<ApiReturnsService>();
         builder.Services.AddSingleton<IReturnsService>(sp => sp.GetRequiredService<ApiReturnsService>());
         builder.Services.AddSingleton<ApiReservationsService>();
