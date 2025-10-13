@@ -37,6 +37,8 @@ public partial class SettingsViewModel : ObservableObject
         _settings.ApiBaseUrl = string.IsNullOrWhiteSpace(ApiBaseUrl) ? "http://localhost:5028" : ApiBaseUrl;
 
         // Brief feedback
-        await Application.Current!.MainPage!.DisplayAlert("Сохранено", "Настройки применены", "OK");
+        await NavigationHelper.DisplayAlert("Сохранено", "Настройки применены", "OK");
     }
 }
+
+

@@ -18,3 +18,4 @@ public class MockSalesService : ISalesService
         return true;
     }
 }
+

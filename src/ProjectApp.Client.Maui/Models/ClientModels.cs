@@ -32,3 +32,4 @@ public class ClientUpdateDraft
     public string? Inn { get; set; }
     public ClientType? Type { get; set; }
 }
+

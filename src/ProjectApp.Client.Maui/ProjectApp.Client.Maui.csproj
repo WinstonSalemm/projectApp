@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net9.0-windows10.0.19041.0</TargetFrameworks>
+    <TargetFrameworks>net9.0-windows10.0.19041.0;net9.0-android34.0</TargetFrameworks>
     <OutputType>WinExe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -12,7 +12,12 @@
     <RootNamespace>ProjectApp.Client.Maui</RootNamespace>
     <ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)'=='net9.0-windows10.0.19041.0'">
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)'=='net9.0-android34.0'">
+    <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
   </PropertyGroup>
   <ItemGroup>
     <None Include="appsettings.json" CopyToOutputDirectory="Always" />
@@ -50,5 +55,3 @@
     <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.82" />
   </ItemGroup>
 </Project>
-
-

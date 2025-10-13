@@ -10,3 +10,4 @@ public class SaleModel
     public DateTime CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
 }
+

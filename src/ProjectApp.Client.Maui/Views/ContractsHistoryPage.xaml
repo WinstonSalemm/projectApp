@@ -1,16 +1,17 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              xmlns:conv="clr-namespace:ProjectApp.Client.Maui.Converters"
              x:Class="ProjectApp.Client.Maui.Views.ContractsHistoryPage"
-             Title="Договоры">
+             Title="Р”РѕРіРѕРІРѕСЂС‹" x:DataType="viewModels:ContractsHistoryViewModel">
   <CollectionView ItemsSource="{Binding Items}">
     <CollectionView.Header>
-      <Frame Padding="16,16,16,8">
-        <HorizontalStackLayout Spacing="8">
-          <Label Text="Статус:" VerticalTextAlignment="Center"/>
+      <Frame Style="{StaticResource CardFrame}">
+        <HorizontalStackLayout Spacing="12">
+          <Label Text="РЎС‚Р°С‚СѓСЃ:" VerticalTextAlignment="Center"/>
           <Entry Text="{Binding StatusFilter}" Placeholder="Signed/Paid/Closed"/>
-          <Button Text="Обновить" Command="{Binding LoadCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8"/>
+          <Button Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding LoadCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8" Style="{StaticResource OutlinedButton}"/>
         </HorizontalStackLayout>
       </Frame>
     </CollectionView.Header>
@@ -18,7 +19,7 @@
         <DataTemplate>
           <Frame Style="{StaticResource CardFrame}">
             <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="6" ColumnSpacing="8">
-              <Label Grid.Row="0" Grid.ColumnSpan="2" Text="{Binding DisplayNo, StringFormat='Договор #{0}'}" FontAttributes="Bold"/>
+              <Label Grid.Row="0" Grid.ColumnSpan="2" Text="{Binding DisplayNo, StringFormat='Р”РѕРіРѕРІРѕСЂ #{0}'}" FontAttributes="Bold"/>
               <Label Grid.Row="1" Grid.Column="0" Text="{Binding CreatedAt, Converter={StaticResource DateTimeToRuConverter}}" FontSize="12" TextColor="Gray"/>
               <!-- Status badge -->
               <Frame Grid.Row="1" Grid.Column="1" Style="{StaticResource BadgeFrame}"
@@ -35,9 +36,10 @@
       </CollectionView.ItemTemplate>
       <CollectionView.EmptyView>
         <VerticalStackLayout Padding="12" Spacing="6">
-          <Label Text="Договоры не найдены" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
-          <Label Text="Измените фильтр статуса и обновите список" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+          <Label Text="Р”РѕРіРѕРІРѕСЂС‹ РЅРµ РЅР°Р№РґРµРЅС‹" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
+          <Label Text="РР·РјРµРЅРёС‚Рµ С„РёР»СЊС‚СЂ СЃС‚Р°С‚СѓСЃР° Рё РѕР±РЅРѕРІРёС‚Рµ СЃРїРёСЃРѕРє" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
         </VerticalStackLayout>
       </CollectionView.EmptyView>
   </CollectionView>
 </ContentPage>
+

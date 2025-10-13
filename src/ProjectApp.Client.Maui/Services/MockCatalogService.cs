@@ -42,3 +42,4 @@ public class MockCatalogService : ICatalogService
         return Task.FromResult<IEnumerable<string>>(cats);
     }
 }
+

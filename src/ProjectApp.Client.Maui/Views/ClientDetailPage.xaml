@@ -1,54 +1,57 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <TabbedPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
             x:Class="ProjectApp.Client.Maui.Views.ClientDetailPage"
             Title="{Binding Name}">
   <TabbedPage.ToolbarItems>
-    <ToolbarItem Text="Обновить" Command="{Binding RefreshAllCommand}" IconImageSource="{StaticResource IconRefresh}"/>
-    <ToolbarItem Text="Редактировать" Command="{Binding EditCommand}" IconImageSource="{StaticResource IconEdit}"/>
+    <ToolbarItem Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding RefreshAllCommand}" IconImageSource="{StaticResource IconRefresh}"/>
+    <ToolbarItem Text="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ" Command="{Binding EditCommand}" IconImageSource="{StaticResource IconEdit}"/>
   </TabbedPage.ToolbarItems>
 
-  <ContentPage Title="Карточка">
+  <ContentPage Title="РљР°СЂС‚РѕС‡РєР°" x:DataType="viewModels:ClientDetailViewModel">
     <ScrollView>
-      <VerticalStackLayout Padding="16" Spacing="10">
-        <Label Text="Основная информация" FontAttributes="Bold" FontSize="18"/>
-        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="6">
-          <Label Text="Имя/Компания:" Grid.Row="0"/>
-          <Label Text="{Binding Name}" Grid.Row="0" Grid.Column="1"/>
-          <Label Text="Телефон:" Grid.Row="1"/>
-          <Label Text="{Binding Phone}" Grid.Row="1" Grid.Column="1"/>
-          <Label Text="ИНН:" Grid.Row="2"/>
-          <Label Text="{Binding Inn}" Grid.Row="2" Grid.Column="1"/>
-          <Label Text="Тип:" Grid.Row="3"/>
-          <Label Text="{Binding Type, Converter={StaticResource ClientTypeToRuConverter}}" Grid.Row="3" Grid.Column="1"/>
-          <Label Text="Владелец:" Grid.Row="4"/>
-          <Label Text="{Binding OwnerUserName}" Grid.Row="4" Grid.Column="1"/>
-        </Grid>
-        <Label Text="Создан:"/>
-        <Label Text="{Binding CreatedAt, Converter={StaticResource DateTimeToRuConverter}}"/>
+      <VerticalStackLayout Padding="24" Spacing="16">
+        <Label Text="РћСЃРЅРѕРІРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ" Style="{StaticResource SectionTitle}"/>
+        <Frame Style="{StaticResource CardFrame}">
+          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="8">
+            <Label Text="РРјСЏ/РљРѕРјРїР°РЅРёСЏ:" Grid.Row="0"/>
+            <Label Text="{Binding Name}" Grid.Row="0" Grid.Column="1"/>
+            <Label Text="РўРµР»РµС„РѕРЅ:" Grid.Row="1"/>
+            <Label Text="{Binding Phone}" Grid.Row="1" Grid.Column="1"/>
+            <Label Text="РРќРќ:" Grid.Row="2"/>
+            <Label Text="{Binding Inn}" Grid.Row="2" Grid.Column="1"/>
+            <Label Text="РўРёРї:" Grid.Row="3"/>
+            <Label Text="{Binding Type, Converter={StaticResource ClientTypeToRuConverter}}" Grid.Row="3" Grid.Column="1"/>
+            <Label Text="Р’Р»Р°РґРµР»РµС†:" Grid.Row="4"/>
+            <Label Text="{Binding OwnerUserName}" Grid.Row="4" Grid.Column="1"/>
+            <Label Text="РЎРѕР·РґР°РЅ:" Grid.Row="5"/>
+            <Label Text="{Binding CreatedAt, Converter={StaticResource DateTimeToRuConverter}}" Grid.Row="5" Grid.Column="1"/>
+          </Grid>
+        </Frame>
       </VerticalStackLayout>
     </ScrollView>
   </ContentPage>
 
-  <ContentPage Title="Продажи">
+  <ContentPage Title="РџСЂРѕРґР°Р¶Рё" x:DataType="viewModels:ClientDetailViewModel">
     <ScrollView>
-      <VerticalStackLayout Padding="16" Spacing="10">
-        <HorizontalStackLayout Spacing="8">
-          <Label Text="От:" VerticalTextAlignment="Center"/>
+      <VerticalStackLayout Padding="24" Spacing="16">
+        <HorizontalStackLayout Spacing="12">
+          <Label Text="РћС‚:" VerticalTextAlignment="Center"/>
           <DatePicker Date="{Binding DateFrom}"/>
-          <Label Text="До:" VerticalTextAlignment="Center"/>
+          <Label Text="Р”Рѕ:" VerticalTextAlignment="Center"/>
           <DatePicker Date="{Binding DateTo}"/>
-          <Button Text="Обновить" Command="{Binding RefreshSalesCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8"/>
+          <Button Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding RefreshSalesCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8" Style="{StaticResource OutlinedButton}"/>
         </HorizontalStackLayout>
-        <CollectionView ItemsSource="{Binding Sales}">
+        <CollectionView ItemsSource="{Binding Sales}" Margin="0,4,0,0">
           <CollectionView.ItemTemplate>
             <DataTemplate>
-              <Frame Padding="10" HasShadow="False" CornerRadius="10">
+              <Frame Style="{StaticResource CardFrame}">
                 <VerticalStackLayout Spacing="6">
-                  <Label Text="{Binding Id, StringFormat='Продажа #{0}'}" FontAttributes="Bold"/>
+                  <Label Text="{Binding Id, StringFormat='РџСЂРѕРґР°Р¶Р° #{0}'}" FontAttributes="Bold"/>
                   <Label Text="{Binding CreatedAt, Converter={StaticResource DateTimeToRuConverter}}" FontSize="12" TextColor="Gray"/>
-                  <Label Text="{Binding PaymentType, Converter={StaticResource PaymentTypeToRuConverter}, StringFormat='Оплата: {0}'}"/>
-                  <Label Text="{Binding Total, Converter={StaticResource CurrencyConverter}, StringFormat='Сумма: {0}'}"/>
+                  <Label Text="{Binding PaymentType, Converter={StaticResource PaymentTypeToRuConverter}, StringFormat='РћРїР»Р°С‚Р°: {0}'}"/>
+                  <Label Text="{Binding Total, Converter={StaticResource CurrencyConverter}, StringFormat='РЎСѓРјРјР°: {0}'}"/>
                 </VerticalStackLayout>
               </Frame>
             </DataTemplate>
@@ -58,25 +61,25 @@
     </ScrollView>
   </ContentPage>
 
-  <ContentPage Title="Возвраты">
+  <ContentPage Title="Р’РѕР·РІСЂР°С‚С‹" x:DataType="viewModels:ClientDetailViewModel">
     <ScrollView>
-      <VerticalStackLayout Padding="16" Spacing="10">
-        <HorizontalStackLayout Spacing="8">
-          <Label Text="От:" VerticalTextAlignment="Center"/>
+      <VerticalStackLayout Padding="24" Spacing="16">
+        <HorizontalStackLayout Spacing="12">
+          <Label Text="РћС‚:" VerticalTextAlignment="Center"/>
           <DatePicker Date="{Binding DateFrom}"/>
-          <Label Text="До:" VerticalTextAlignment="Center"/>
+          <Label Text="Р”Рѕ:" VerticalTextAlignment="Center"/>
           <DatePicker Date="{Binding DateTo}"/>
-          <Button Text="Обновить" Command="{Binding RefreshReturnsCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8"/>
+          <Button Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding RefreshReturnsCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8" Style="{StaticResource OutlinedButton}"/>
         </HorizontalStackLayout>
-        <CollectionView ItemsSource="{Binding Returns}">
+        <CollectionView ItemsSource="{Binding Returns}" Margin="0,4,0,0">
           <CollectionView.ItemTemplate>
             <DataTemplate>
-              <Frame Padding="10" HasShadow="False" CornerRadius="10">
+              <Frame Style="{StaticResource CardFrame}">
                 <VerticalStackLayout Spacing="6">
-                  <Label Text="{Binding Id, StringFormat='Возврат #{0}'}" FontAttributes="Bold"/>
+                  <Label Text="{Binding Id, StringFormat='Р’РѕР·РІСЂР°С‚ #{0}'}" FontAttributes="Bold"/>
                   <Label Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}" FontSize="12" TextColor="Gray"/>
-                  <Label Text="{Binding Sum, Converter={StaticResource CurrencyConverter}, StringFormat='Сумма: {0}'}"/>
-                  <Label Text="{Binding Reason, StringFormat='Причина: {0}'}"/>
+                  <Label Text="{Binding Sum, Converter={StaticResource CurrencyConverter}, StringFormat='РЎСѓРјРјР°: {0}'}"/>
+                  <Label Text="{Binding Reason, StringFormat='РџСЂРёС‡РёРЅР°: {0}'}"/>
                 </VerticalStackLayout>
               </Frame>
             </DataTemplate>
@@ -86,18 +89,18 @@
     </ScrollView>
   </ContentPage>
 
-  <ContentPage Title="Долги">
+  <ContentPage Title="Р”РѕР»РіРё" x:DataType="viewModels:ClientDetailViewModel">
     <ScrollView>
-      <VerticalStackLayout Padding="16" Spacing="10">
-        <CollectionView ItemsSource="{Binding Debts}">
+      <VerticalStackLayout Padding="24" Spacing="16">
+        <CollectionView ItemsSource="{Binding Debts}" Margin="0,4,0,0">
           <CollectionView.ItemTemplate>
             <DataTemplate>
-              <Frame Padding="10" HasShadow="False" CornerRadius="10">
+              <Frame Style="{StaticResource CardFrame}">
                 <VerticalStackLayout Spacing="6">
-                  <Label Text="{Binding Id, StringFormat='Долг #{0}'}" FontAttributes="Bold"/>
+                  <Label Text="{Binding Id, StringFormat='Р”РѕР»Рі #{0}'}" FontAttributes="Bold"/>
                   <Label Text="{Binding DueDate, Converter={StaticResource DateTimeToRuConverter}, ConverterParameter='dd.MM.yyyy'}" FontSize="12" TextColor="Gray"/>
-                  <Label Text="{Binding Amount, Converter={StaticResource CurrencyConverter}, StringFormat='Сумма: {0}'}"/>
-                  <Label Text="{Binding Status, StringFormat='Статус: {0}'}"/>
+                  <Label Text="{Binding Amount, Converter={StaticResource CurrencyConverter}, StringFormat='РЎСѓРјРјР°: {0}'}"/>
+                  <Label Text="{Binding Status, StringFormat='РЎС‚Р°С‚СѓСЃ: {0}'}"/>
                 </VerticalStackLayout>
               </Frame>
             </DataTemplate>
@@ -107,3 +110,4 @@
     </ScrollView>
   </ContentPage>
 </TabbedPage>
+

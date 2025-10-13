@@ -1,12 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              xmlns:models="clr-namespace:ProjectApp.Client.Maui.Models"
              x:Class="ProjectApp.Client.Maui.Views.ClientEditPage"
-             Title="Редактировать клиента">
+             Title="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РєР»РёРµРЅС‚Р°" x:DataType="viewModels:ClientEditViewModel">
   <ScrollView>
     <VerticalStackLayout Padding="16" Spacing="12">
-      <Picker Title="Тип клиента" SelectedItem="{Binding Type}">
+      <Picker Title="РўРёРї РєР»РёРµРЅС‚Р°" SelectedItem="{Binding Type}">
         <Picker.ItemsSource>
           <x:Array Type="{x:Type models:ClientType}">
             <x:Static Member="models:ClientType.Individual" />
@@ -15,11 +16,12 @@
         </Picker.ItemsSource>
       </Picker>
 
-      <Entry Placeholder="Имя/Компания" Text="{Binding Name}"/>
-      <Entry Placeholder="Телефон" Text="{Binding Phone}"/>
-      <Entry Placeholder="ИНН (необязательно)" Text="{Binding Inn}"/>
+      <Entry Placeholder="РРјСЏ/РљРѕРјРїР°РЅРёСЏ" Text="{Binding Name}"/>
+      <Entry Placeholder="РўРµР»РµС„РѕРЅ" Text="{Binding Phone}"/>
+      <Entry Placeholder="РРќРќ (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)" Text="{Binding Inn}"/>
 
-      <Button Text="Сохранить" Command="{Binding SaveCommand}"/>
+      <Button Text="РЎРѕС…СЂР°РЅРёС‚СЊ" Command="{Binding SaveCommand}"/>
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>
+

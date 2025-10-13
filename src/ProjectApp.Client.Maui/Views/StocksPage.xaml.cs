@@ -11,3 +11,4 @@ public partial class StocksPage : ContentPage
         BindingContext = vm;
     }
 }
+

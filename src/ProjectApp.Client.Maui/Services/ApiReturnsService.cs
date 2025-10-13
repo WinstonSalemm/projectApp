@@ -125,3 +125,4 @@ namespace ProjectApp.Client.Maui.Services;
         return resp.IsSuccessStatusCode;
     }
 }
+

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Controls.TopAppBar"
+             x:Name="Root">
+  <Border Background="{DynamicResource Color.Surface}"
+          Stroke="{DynamicResource Color.Border}"
+          StrokeThickness="0"
+          Padding="{StaticResource Control.Padding.Secondary}"
+          HeightRequest="72"
+          Shadow="{StaticResource Shadow.Level1}">
+    <Border.StrokeShape>
+      <RoundRectangle CornerRadius="{StaticResource Radius.16}" />
+    </Border.StrokeShape>
+    <Grid ColumnDefinitions="*,Auto"
+          RowDefinitions="Auto,Auto"
+          ColumnSpacing="{StaticResource Space.4}"
+          RowSpacing="{StaticResource Space.1}">
+      <Label Text="{Binding Source={x:Reference Root}, Path=Title}"
+             FontSize="{StaticResource Font.Size.H2}"
+             FontAttributes="Bold"
+             TextColor="{DynamicResource Color.Text.Primary}"
+             SemanticProperties.HeadingLevel="Level1" />
+      <Label Grid.Row="1"
+             Text="{Binding Source={x:Reference Root}, Path=Subtitle}"
+             FontSize="{StaticResource Font.Size.Body.Small}"
+             TextColor="{DynamicResource Color.Text.Secondary}"
+             IsVisible="{Binding Source={x:Reference Root}, Path=HasSubtitle}" />
+      <ContentPresenter Grid.Column="1"
+                        Grid.RowSpan="2"
+                        VerticalOptions="Center"
+                        HorizontalOptions="End"
+                        Content="{Binding Source={x:Reference Root}, Path=ActionContent}"
+                        IsVisible="{Binding Source={x:Reference Root}, Path=HasActionContent}" />
+    </Grid>
+  </Border>
+</ContentView>

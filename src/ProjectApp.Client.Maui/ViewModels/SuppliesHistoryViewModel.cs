@@ -41,3 +41,4 @@ public partial class SuppliesHistoryViewModel : ObservableObject
         finally { IsLoading = false; }
     }
 }
+

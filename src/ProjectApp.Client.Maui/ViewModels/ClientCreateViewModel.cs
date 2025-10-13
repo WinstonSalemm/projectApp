@@ -1,9 +1,9 @@
+using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.Controls;
-using ProjectApp.Client.Maui.Models;
 using CommunityToolkit.Mvvm.Messaging;
 using ProjectApp.Client.Maui.Messages;
+using ProjectApp.Client.Maui.Models;
 using ProjectApp.Client.Maui.Services;
 
 namespace ProjectApp.Client.Maui.ViewModels;
@@ -35,22 +35,27 @@ public partial class ClientCreateViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveAsync()
     {
-        if (IsBusy) return;
+        if (IsBusy)
+            return;
+
         try
         {
             IsBusy = true;
             var draft = new ClientCreateDraft { Name = Name, Phone = Phone, Inn = Inn, Type = Type };
             var id = await _clients.CreateAsync(draft);
-            await Application.Current!.MainPage!.DisplayAlert("Успех", "Клиент создан", "OK");
-            // Broadcast pick so caller (e.g., quick sale) can auto-select
+
+            await NavigationHelper.DisplayAlert("Готово", "Клиент успешно создан", "OK");
             WeakReferenceMessenger.Default.Send(new ClientPickedMessage(id, draft.Name));
-            // Navigate to detail
-            await Application.Current!.MainPage!.Navigation.PopAsync();
+            await NavigationHelper.PopAsync();
         }
         catch (Exception ex)
         {
-            await Application.Current!.MainPage!.DisplayAlert("Ошибка", ex.Message, "OK");
+            await NavigationHelper.DisplayAlert("Ошибка", ex.Message, "OK");
         }
-        finally { IsBusy = false; }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 }
+

@@ -55,3 +55,4 @@ public partial class ConfirmAccountPage : ContentPage
         try { await Navigation.PopModalAsync(); } catch { }
     }
 }
+

@@ -107,3 +107,4 @@ public partial class ContractEditViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 }
+

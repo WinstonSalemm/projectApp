@@ -1,28 +1,97 @@
+using System.Linq;
 using Microsoft.Maui.Controls;
 
 namespace ProjectApp.Client.Maui.Services;
 
 public static class NavigationHelper
 {
-    private static Window? CurrentWindow => Application.Current?.Windows?.FirstOrDefault();
-    public static Page? CurrentPage => CurrentWindow?.Page;
-    public static INavigation? CurrentNavigation => CurrentPage?.Navigation;
+    private static Shell? CurrentShell => Shell.Current;
+
+    public static INavigation? Navigation => CurrentShell?.Navigation ?? GetWindowNavigation();
+
+    public static Page? GetCurrentPage()
+    {
+        if (CurrentShell?.CurrentPage is Page shellPage)
+            return shellPage;
+
+        return Application.Current?.Windows.FirstOrDefault()?.Page;
+    }
+
+    public static Task PushAsync(Page page)
+    {
+        var navigation = Navigation;
+        return navigation != null ? navigation.PushAsync(page) : Task.CompletedTask;
+    }
+
+    public static Task PopAsync()
+    {
+        var navigation = Navigation;
+        return navigation != null ? navigation.PopAsync() : Task.CompletedTask;
+    }
+
+    public static Task PushModalAsync(Page page, bool animated = true)
+    {
+        var navigation = Navigation;
+        return navigation != null ? navigation.PushModalAsync(page, animated) : Task.CompletedTask;
+    }
+
+    public static Task PopModalAsync(bool animated = true)
+    {
+        var navigation = Navigation;
+        return navigation != null ? navigation.PopModalAsync(animated) : Task.CompletedTask;
+    }
+
+    public static Task PopToRootAsync()
+    {
+        var navigation = Navigation;
+        return navigation != null ? navigation.PopToRootAsync() : Task.CompletedTask;
+    }
+
+    public static Task DisplayAlert(string title, string message, string cancel)
+    {
+        if (CurrentShell != null)
+        {
+            return CurrentShell.DisplayAlert(title, message, cancel);
+        }
+
+        var window = Application.Current?.Windows.FirstOrDefault();
+        if (window?.Page is Page page)
+        {
+            return page.DisplayAlert(title, message, cancel);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public static Task<bool> DisplayAlert(string title, string message, string accept, string cancel)
+    {
+        if (CurrentShell != null)
+        {
+            return CurrentShell.DisplayAlert(title, message, accept, cancel);
+        }
+
+        var window = Application.Current?.Windows.FirstOrDefault();
+        if (window?.Page is Page page)
+        {
+            return page.DisplayAlert(title, message, accept, cancel);
+        }
+
+        return Task.FromResult(false);
+    }
 
     public static void SetRoot(Page page)
     {
-        var win = CurrentWindow;
-        if (win is not null)
-            win.Page = page;
-        else if (Application.Current is Application app)
-            app.OpenWindow(new Window(page));
+        var window = Application.Current?.Windows.FirstOrDefault();
+        if (window != null)
+        {
+            window.Page = page;
+        }
     }
 
-    public static Task PushAsync(Page page) => CurrentNavigation?.PushAsync(page) ?? Task.CompletedTask;
-    public static Task<Page?> PopAsync() => CurrentNavigation != null ? CurrentNavigation.PopAsync() : Task.FromResult<Page?>(null);
-
-    public static Task DisplayAlert(string title, string message, string cancel)
-        => CurrentPage?.DisplayAlert(title, message, cancel) ?? Task.CompletedTask;
-
-    public static Task<bool> DisplayAlert(string title, string message, string accept, string cancel)
-        => CurrentPage?.DisplayAlert(title, message, accept, cancel) ?? Task.FromResult(false);
+    private static INavigation? GetWindowNavigation()
+    {
+        var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+        return page?.Navigation;
+    }
 }
+

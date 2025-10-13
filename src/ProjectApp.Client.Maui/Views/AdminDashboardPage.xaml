@@ -1,20 +1,90 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.AdminDashboardPage"
-             Title="Панель администратора">
+             Title="Dashboard" x:DataType="viewModels:AdminDashboardViewModel">
+
+  <VisualStateManager.VisualStateGroups>
+    <VisualStateGroup x:Name="AdaptiveStates">
+      <VisualState Name="Compact">
+        <VisualState.Setters>
+          <Setter TargetName="ActionsLayout" Property="FlexLayout.Direction" Value="Column" />
+          <Setter TargetName="ActionsLayout" Property="FlexLayout.AlignItems" Value="Stretch" />
+        </VisualState.Setters>
+      </VisualState>
+      <VisualState Name="Medium">
+        <VisualState.Setters>
+          <Setter TargetName="ActionsLayout" Property="FlexLayout.Direction" Value="Row" />
+          <Setter TargetName="ActionsLayout" Property="FlexLayout.AlignItems" Value="Stretch" />
+        </VisualState.Setters>
+      </VisualState>
+      <VisualState Name="Expanded">
+        <VisualState.Setters>
+          <Setter TargetName="ActionsLayout" Property="FlexLayout.Direction" Value="Row" />
+        </VisualState.Setters>
+      </VisualState>
+    </VisualStateGroup>
+  </VisualStateManager.VisualStateGroups>
+
   <ScrollView>
-    <VerticalStackLayout Padding="24" Spacing="16">
-      <Label Text="Администратор" FontAttributes="Bold" FontSize="26"/>
-      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="16">
-        <Button Text="История" Grid.Row="0" Grid.Column="0" Command="{Binding OpenHistoryCommand}" HeightRequest="84" FontSize="22"/>
-        <Button Text="Клиенты" Grid.Row="0" Grid.Column="1" Command="{Binding OpenClientsCommand}" HeightRequest="84" FontSize="22"/>
-        <Button Text="Возвраты" Grid.Row="1" Grid.Column="0" Command="{Binding OpenReturnsCommand}" HeightRequest="84" FontSize="22"/>
-        <Button Text="Поставки" Grid.Row="1" Grid.Column="1" Command="{Binding OpenSuppliesCommand}" HeightRequest="84" FontSize="22"/>
-        <Button Text="Склад" Grid.Row="2" Grid.Column="0" Command="{Binding OpenStocksCommand}" HeightRequest="84" FontSize="22"/>
-        <Button Text="Договоры" Grid.Row="2" Grid.Column="1" Command="{Binding OpenContractsCommand}" HeightRequest="84" FontSize="22"/>
-      </Grid>
-      <Button Text="Выйти" Command="{Binding LogoutCommand}"/>
+    <VerticalStackLayout Spacing="{StaticResource Space.5}">
+      <Border Style="{StaticResource Card.Container}">
+        <VerticalStackLayout Spacing="{StaticResource Space.2}">
+          <Label Text="Welcome back"
+                 FontSize="{StaticResource Font.Size.H1}"
+                 FontAttributes="Bold" />
+          <Label Text="Manage sales, inventory, contracts and finance from a single hub."
+                 TextColor="{DynamicResource Color.Text.Secondary}" />
+        </VerticalStackLayout>
+      </Border>
+
+      <FlexLayout x:Name="ActionsLayout"
+                  Wrap="Wrap"
+                  Direction="Row"
+                  AlignItems="Stretch">
+        <Button Text="Sales history"
+                Style="{StaticResource Button.Primary}"
+                Command="{Binding OpenHistoryCommand}"
+                HeightRequest="120"
+                FlexLayout.Basis="210"
+                SemanticProperties.Description="Navigate to full sales activity history" />
+        <Button Text="Clients"
+                Style="{StaticResource Button.Primary}"
+                Command="{Binding OpenClientsCommand}"
+                HeightRequest="120"
+                FlexLayout.Basis="210" />
+        <Button Text="Returns"
+                Style="{StaticResource Button.Primary}"
+                Command="{Binding OpenReturnsCommand}"
+                HeightRequest="120"
+                FlexLayout.Basis="210" />
+        <Button Text="Supplies"
+                Style="{StaticResource Button.Primary}"
+                Command="{Binding OpenSuppliesCommand}"
+                HeightRequest="120"
+                FlexLayout.Basis="210" />
+        <Button Text="Warehouse"
+                Style="{StaticResource Button.Primary}"
+                Command="{Binding OpenStocksCommand}"
+                HeightRequest="120"
+                FlexLayout.Basis="210" />
+        <Button Text="Contracts"
+                Style="{StaticResource Button.Primary}"
+                Command="{Binding OpenContractsCommand}"
+                HeightRequest="120"
+                FlexLayout.Basis="210" />
+        <Button Text="Finance dashboard"
+                Style="{StaticResource Button.Primary}"
+                Command="{Binding OpenFinanceCommand}"
+                HeightRequest="120"
+                FlexLayout.Basis="210" />
+      </FlexLayout>
+
+      <Button Text="Logout"
+              Style="{StaticResource Button.Secondary}"
+              Command="{Binding LogoutCommand}" />
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>
+

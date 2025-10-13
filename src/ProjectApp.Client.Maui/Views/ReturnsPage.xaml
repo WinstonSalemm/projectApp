@@ -1,41 +1,45 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.ReturnsPage"
              x:Name="Root"
-             Title="Возврат">
-  <Grid Padding="12" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" RowSpacing="12">
-    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-      <Label Text="Продажа #" VerticalTextAlignment="Center"/>
+             Title="Р’РѕР·РІСЂР°С‚" x:DataType="viewModels:ReturnsViewModel">
+  <Grid Padding="24" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" RowSpacing="16">
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+      <Label Text="РџСЂРѕРґР°Р¶Р° #" VerticalTextAlignment="Center"/>
       <Entry Grid.Column="1" Keyboard="Numeric" Text="{Binding RefSaleId}"/>
     </Grid>
-    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-      <Label Text="КлиентId" VerticalTextAlignment="Center"/>
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+      <Label Text="РљР»РёРµРЅС‚Id" VerticalTextAlignment="Center"/>
       <Entry Grid.Column="1" Keyboard="Numeric" Text="{Binding ClientId}"/>
     </Grid>
-    <Entry Grid.Row="2" Placeholder="Причина (необязательно)" Text="{Binding Reason}"/>
+    <Entry Grid.Row="2" Placeholder="РџСЂРёС‡РёРЅР° (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)" Text="{Binding Reason}"/>
 
-    <Label Grid.Row="3" Text="Позиции (оставьте пусто для полного возврата)" FontAttributes="Bold"/>
-    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,28,0,0">
+    <Label Grid.Row="3" Text="РџРѕР·РёС†РёРё (РѕСЃС‚Р°РІСЊС‚Рµ РїСѓСЃС‚Рѕ РґР»СЏ РїРѕР»РЅРѕРіРѕ РІРѕР·РІСЂР°С‚Р°)" Style="{StaticResource SectionTitle}"/>
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Margin="0,12,0,0">
       <Entry Placeholder="SaleItemId" Keyboard="Numeric" Text="{Binding NewSaleItemId}"/>
       <Entry Grid.Column="1" Placeholder="Qty" Keyboard="Numeric" Text="{Binding NewQty}"/>
-      <Button Grid.Column="2" Text="Добавить" Command="{Binding AddItemCommand}"/>
+      <Button Grid.Column="2" Text="Р”РѕР±Р°РІРёС‚СЊ" Command="{Binding AddItemCommand}" Style="{StaticResource OutlinedButton}"/>
     </Grid>
 
     <CollectionView Grid.Row="4" ItemsSource="{Binding Items}">
       <CollectionView.ItemTemplate>
         <DataTemplate>
-          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Padding="4">
-            <Label Text="{Binding SaleItemId}"/>
-            <Label Grid.Column="1" Text="{Binding Qty}"/>
-            <Button Grid.Column="2" Text="Удалить" Command="{Binding Source={x:Reference Root}, Path=BindingContext.RemoveItemCommand}" CommandParameter="{Binding .}"/>
-          </Grid>
+          <Frame Style="{StaticResource CardFrame}">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+              <Label Text="{Binding SaleItemId}"/>
+              <Label Grid.Column="1" Text="{Binding Qty}"/>
+              <Button Grid.Column="2" Text="РЈРґР°Р»РёС‚СЊ" Command="{Binding Source={x:Reference Root}, Path=BindingContext.RemoveItemCommand}" CommandParameter="{Binding .}" Style="{StaticResource OutlinedButton}"/>
+            </Grid>
+          </Frame>
         </DataTemplate>
       </CollectionView.ItemTemplate>
     </CollectionView>
 
-    <Button Grid.Row="5" Text="Создать возврат" Command="{Binding CreateReturnCommand}"/>
+    <Button Grid.Row="5" Text="РЎРѕР·РґР°С‚СЊ РІРѕР·РІСЂР°С‚" Command="{Binding CreateReturnCommand}" Style="{StaticResource CtaPrimary}"/>
 
     <Label Grid.Row="6" Text="{Binding StatusMessage}" TextColor="Red"/>
   </Grid>
 </ContentPage>
+

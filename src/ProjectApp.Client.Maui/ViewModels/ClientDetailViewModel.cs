@@ -95,7 +95,7 @@ public partial class ClientDetailViewModel : ObservableObject
         {
             await vm.LoadAsync(ClientId);
         }
-        await Application.Current!.MainPage!.Navigation.PushAsync(page);
+        await NavigationHelper.PushAsync(page);
     }
 
     [RelayCommand]
@@ -137,3 +137,5 @@ public partial class ClientDetailViewModel : ObservableObject
         });
     }
 }
+
+

@@ -66,7 +66,7 @@ public partial class ReturnsViewModel : ObservableObject
                 try
                 {
                     var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
-                    Application.Current!.MainPage = new NavigationPage(select);
+                    NavigationHelper.SetRoot(new NavigationPage(select));
                 }
                 catch { }
             }
@@ -78,3 +78,5 @@ public partial class ReturnsViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 }
+
+

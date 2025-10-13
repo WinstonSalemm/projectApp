@@ -11,3 +11,4 @@ public partial class ReturnForSalePage : ContentPage
         BindingContext = vm;
     }
 }
+

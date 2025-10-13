@@ -49,3 +49,4 @@ public class DecimalBehavior : Behavior<Entry>
         return decimal.TryParse(norm, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var d) ? d : 0m;
     }
 }
+

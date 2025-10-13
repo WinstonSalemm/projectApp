@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Controls.ListItemView"
+             x:Name="Root">
+  <Border Background="{DynamicResource Color.Surface}"
+          Stroke="{DynamicResource Color.Border}"
+          StrokeThickness="0"
+          Padding="{StaticResource Card.Padding.Dense}"
+          Shadow="{StaticResource Shadow.Level1}">
+    <Border.StrokeShape>
+      <RoundRectangle CornerRadius="{StaticResource Radius.16}" />
+    </Border.StrokeShape>
+    <Grid ColumnDefinitions="Auto,*,Auto"
+          ColumnSpacing="{StaticResource Space.4}"
+          RowDefinitions="Auto,Auto"
+          RowSpacing="{StaticResource Space.1}">
+      <ContentPresenter Grid.RowSpan="2"
+                        Content="{Binding Source={x:Reference Root}, Path=LeadingContent}"
+                        IsVisible="{Binding Source={x:Reference Root}, Path=HasLeading}" />
+
+      <StackLayout Grid.Column="1"
+                   Spacing="{StaticResource Space.1}">
+        <Label Text="{Binding Source={x:Reference Root}, Path=Title}"
+               FontAttributes="Bold"
+               FontSize="{StaticResource Font.Size.H3}"
+               TextColor="{DynamicResource Color.Text.Primary}" />
+        <Label Text="{Binding Source={x:Reference Root}, Path=Subtitle}"
+               FontSize="{StaticResource Font.Size.Body.Small}"
+               TextColor="{DynamicResource Color.Text.Secondary}"
+               IsVisible="{Binding Source={x:Reference Root}, Path=HasSubtitle}" />
+      </StackLayout>
+
+      <StackLayout Grid.Column="2"
+                   Spacing="{StaticResource Space.1}"
+                   HorizontalOptions="End"
+                   VerticalOptions="Center">
+        <Label Text="{Binding Source={x:Reference Root}, Path=Meta}"
+               FontSize="{StaticResource Font.Size.Caption}"
+               TextColor="{DynamicResource Color.Text.Tertiary}"
+               HorizontalTextAlignment="End"
+               IsVisible="{Binding Source={x:Reference Root}, Path=HasMeta}" />
+        <ContentPresenter Content="{Binding Source={x:Reference Root}, Path=TrailingContent}"
+                          IsVisible="{Binding Source={x:Reference Root}, Path=HasTrailing}"
+                          HorizontalOptions="End" />
+      </StackLayout>
+    </Grid>
+  </Border>
+
+  <ContentView.GestureRecognizers>
+    <TapGestureRecognizer Command="{Binding Source={x:Reference Root}, Path=Command}"
+                          CommandParameter="{Binding Source={x:Reference Root}, Path=CommandParameter}" />
+  </ContentView.GestureRecognizers>
+</ContentView>

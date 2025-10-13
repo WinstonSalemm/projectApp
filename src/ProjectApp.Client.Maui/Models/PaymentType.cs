@@ -14,3 +14,4 @@ public enum PaymentType
     ClickNoReceipt = 9,
     Contract = 10
 }
+

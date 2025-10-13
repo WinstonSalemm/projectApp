@@ -113,3 +113,4 @@ public partial class ContractsListViewModel : ObservableObject
         catch { }
     }
 }
+

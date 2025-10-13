@@ -10,3 +10,4 @@ public partial class CameraCapturePage : ContentPage
         // No runtime logic; placeholder page for future front camera auto-capture
     }
 }
+

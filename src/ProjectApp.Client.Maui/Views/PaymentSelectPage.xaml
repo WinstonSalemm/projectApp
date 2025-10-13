@@ -1,27 +1,29 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.PaymentSelectPage"
-             Title="Выбор вида продажи">
+             Title="Р’С‹Р±РѕСЂ РІРёРґР° РїСЂРѕРґР°Р¶Рё" x:DataType="viewModels:PaymentSelectViewModel">
   <ScrollView>
     <VerticalStackLayout Padding="24" Spacing="16">
-      <Label Text="Выберите вид продажи" FontAttributes="Bold" FontSize="24"/>
+      <Label Text="Р’С‹Р±РµСЂРёС‚Рµ РІРёРґ РїСЂРѕРґР°Р¶Рё" FontAttributes="Bold" FontSize="24"/>
       <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="16">
-        <!-- 1 ряд -->
-        <Button Text="Наличными с чеком" Grid.Row="0" Grid.Column="0" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="CashWithReceipt"/>
-        <Button Text="Наличными без чека" Grid.Row="0" Grid.Column="1" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="CashNoReceipt"/>
-        <Button Text="Картой с чеком" Grid.Row="0" Grid.Column="2" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="CardWithReceipt"/>
-        <!-- 2 ряд -->
-        <Button Text="Click с чеком" Grid.Row="1" Grid.Column="0" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="ClickWithReceipt"/>
-        <Button Text="Click без чека" Grid.Row="1" Grid.Column="1" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="ClickNoReceipt"/>
-        <Button Text="Сайт" Grid.Row="1" Grid.Column="2" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="Site"/>
-        <!-- 3 ряд -->
-        <Button Text="Возврат" Grid.Row="2" Grid.Column="0" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="Return"/>
-        <Button Text="Бронь" Grid.Row="2" Grid.Column="1" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="Reservation"/>
+        <!-- 1 СЂСЏРґ -->
+        <Button Text="РќР°Р»РёС‡РЅС‹РјРё СЃ С‡РµРєРѕРј" Grid.Row="0" Grid.Column="0" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="CashWithReceipt"/>
+        <Button Text="РќР°Р»РёС‡РЅС‹РјРё Р±РµР· С‡РµРєР°" Grid.Row="0" Grid.Column="1" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="CashNoReceipt"/>
+        <Button Text="РљР°СЂС‚РѕР№ СЃ С‡РµРєРѕРј" Grid.Row="0" Grid.Column="2" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="CardWithReceipt"/>
+        <!-- 2 СЂСЏРґ -->
+        <Button Text="Click СЃ С‡РµРєРѕРј" Grid.Row="1" Grid.Column="0" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="ClickWithReceipt"/>
+        <Button Text="Click Р±РµР· С‡РµРєР°" Grid.Row="1" Grid.Column="1" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="ClickNoReceipt"/>
+        <Button Text="РЎР°Р№С‚" Grid.Row="1" Grid.Column="2" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="Site"/>
+        <!-- 3 СЂСЏРґ -->
+        <Button Text="Р’РѕР·РІСЂР°С‚" Grid.Row="2" Grid.Column="0" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="Return"/>
+        <Button Text="Р‘СЂРѕРЅСЊ" Grid.Row="2" Grid.Column="1" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="Reservation"/>
         <Button Text="Payme" Grid.Row="2" Grid.Column="2" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="Payme"/>
-        <!-- 4 ряд -->
-        <Button Text="Договор" Grid.Row="3" Grid.Column="0" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="Contract"/>
+        <!-- 4 СЂСЏРґ -->
+        <Button Text="Р”РѕРіРѕРІРѕСЂ" Grid.Row="3" Grid.Column="0" HeightRequest="80" FontSize="18" Command="{Binding SelectCommand}" CommandParameter="Contract"/>
       </Grid>
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>
+

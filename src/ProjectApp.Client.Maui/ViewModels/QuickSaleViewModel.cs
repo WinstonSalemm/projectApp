@@ -188,7 +188,7 @@ public partial class QuickSaleViewModel : ObservableObject
                 // 1) Catalog is mandatory
                 var results = await _catalog.SearchAsync(searchText, cat, token);
                 // 2) Stocks are optional, fallback to public availability if secured API fails
-                IEnumerable<StockViewModel> stockList = Enumerable.Empty<StockViewModel>();
+                IEnumerable<StockViewModel>? stockList = null;
                 Dictionary<int, (decimal Total, decimal Im40, decimal Nd40)>? availability = null;
                 Dictionary<string, (decimal Total, decimal Im40, decimal Nd40)>? availabilityBySku = null;
                 try
@@ -199,7 +199,8 @@ public partial class QuickSaleViewModel : ObservableObject
                 {
                     // ignore here; we'll try fallback below
                 }
-                bool needsFallback = (!stockList?.Any() ?? true) || (stockList.Any() && stockList.All(s => s.TotalQty == 0m));
+                var safeStockList = stockList ?? Enumerable.Empty<StockViewModel>();
+                bool needsFallback = !safeStockList.Any() || safeStockList.All(s => s.TotalQty == 0m);
                 if (needsFallback && _settings.UseApi && _stocks is ProjectApp.Client.Maui.Services.ApiStocksService apiStocks1)
                 {
                     try
@@ -219,7 +220,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     }
                     catch { }
                 }
-                var stockMap = stockList.ToDictionary(s => s.ProductId, s => s);
+                var stockMap = safeStockList.ToDictionary(s => s.ProductId, s => s);
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
@@ -391,7 +392,7 @@ public partial class QuickSaleViewModel : ObservableObject
         {
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await Application.Current!.MainPage!.DisplayAlert("Действие недоступно", "Роль Админ не проводит продажи.", "OK");
+                await NavigationHelper.DisplayAlert("Действие недоступно", "Роль Админ не проводит продажи.", "OK");
             });
             return;
         }
@@ -424,11 +425,11 @@ public partial class QuickSaleViewModel : ObservableObject
                 if (!resId.HasValue)
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
-                        await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось создать резерв", "OK"));
+                        await NavigationHelper.DisplayAlert("Ошибка", "Не удалось создать резерв", "OK"));
                     return;
                 }
                 await MainThread.InvokeOnMainThreadAsync(async () =>
-                    await Application.Current!.MainPage!.DisplayAlert("Успех", $"Резерв создан #{resId}", "OK"));
+                    await NavigationHelper.DisplayAlert("Успех", $"Резерв создан #{resId}", "OK"));
                 Cart.Clear();
                 Total = 0m;
                 ReservationPaid = false;
@@ -437,7 +438,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     try
                     {
                         var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
-                        Application.Current!.MainPage = new NavigationPage(select);
+                        NavigationHelper.SetRoot(new NavigationPage(select));
                     }
                     catch { }
                 });
@@ -451,7 +452,7 @@ public partial class QuickSaleViewModel : ObservableObject
                 if (!resId.HasValue)
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
-                        await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось создать резерв", "OK"));
+                        await NavigationHelper.DisplayAlert("Ошибка", "Не удалось создать резерв", "OK"));
                     return;
                 }
 
@@ -461,7 +462,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     if (photo == null)
                     {
                         await MainThread.InvokeOnMainThreadAsync(async () =>
-                            await Application.Current!.MainPage!.DisplayAlert("Фото обязательно", "Для резерва требуется фото менеджера", "OK"));
+                            await NavigationHelper.DisplayAlert("Фото обязательно", "Для резерва требуется фото менеджера", "OK"));
                         return;
                     }
                     await using var stream = await photo.OpenReadAsync();
@@ -469,19 +470,19 @@ public partial class QuickSaleViewModel : ObservableObject
                     if (!okUp)
                     {
                         await MainThread.InvokeOnMainThreadAsync(async () =>
-                            await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось отправить фото в Telegram", "OK"));
+                            await NavigationHelper.DisplayAlert("Ошибка", "Не удалось отправить фото в Telegram", "OK"));
                         return;
                     }
                 }
                 catch
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
-                        await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось сделать фото. Повторите.", "OK"));
+                        await NavigationHelper.DisplayAlert("Ошибка", "Не удалось сделать фото. Повторите.", "OK"));
                     return;
                 }
 
                 await MainThread.InvokeOnMainThreadAsync(async () =>
-                    await Application.Current!.MainPage!.DisplayAlert("Успех", $"Резерв создан #{resId}", "OK"));
+                    await NavigationHelper.DisplayAlert("Успех", $"Резерв создан #{resId}", "OK"));
                 Cart.Clear();
                 Total = 0m;
                 ReservationPaid = false;
@@ -490,7 +491,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     try
                     {
                         var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
-                        Application.Current!.MainPage = new NavigationPage(select);
+                        NavigationHelper.SetRoot(new NavigationPage(select));
                     }
                     catch { }
                 });
@@ -502,11 +503,11 @@ public partial class QuickSaleViewModel : ObservableObject
             if (!resIdOther.HasValue)
             {
                 await MainThread.InvokeOnMainThreadAsync(async () =>
-                    await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось создать резерв", "OK"));
+                    await NavigationHelper.DisplayAlert("Ошибка", "Не удалось создать резерв", "OK"));
                 return;
             }
             await MainThread.InvokeOnMainThreadAsync(async () =>
-                await Application.Current!.MainPage!.DisplayAlert("Успех", $"Резерв создан #{resIdOther}", "OK"));
+                await NavigationHelper.DisplayAlert("Успех", $"Резерв создан #{resIdOther}", "OK"));
             Cart.Clear();
             Total = 0m;
             ReservationPaid = false;
@@ -515,7 +516,7 @@ public partial class QuickSaleViewModel : ObservableObject
                 try
                 {
                     var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
-                    Application.Current!.MainPage = new NavigationPage(select);
+                    NavigationHelper.SetRoot(new NavigationPage(select));
                 }
                 catch { }
             });
@@ -567,7 +568,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     {
                         await MainThread.InvokeOnMainThreadAsync(async () =>
                         {
-                            await Application.Current!.MainPage!.DisplayAlert("Фото обязательно", "Для подтверждения требуется фото", "OK");
+                            await NavigationHelper.DisplayAlert("Фото обязательно", "Для подтверждения требуется фото", "OK");
                         });
                         return;
                     }
@@ -575,7 +576,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     {
                         await MainThread.InvokeOnMainThreadAsync(async () =>
                         {
-                            await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось определить номер продажи для загрузки фото", "OK");
+                            await NavigationHelper.DisplayAlert("Ошибка", "Не удалось определить номер продажи для загрузки фото", "OK");
                         });
                         return;
                     }
@@ -585,7 +586,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     {
                         await MainThread.InvokeOnMainThreadAsync(async () =>
                         {
-                            await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось отправить фото в Telegram", "OK");
+                            await NavigationHelper.DisplayAlert("Ошибка", "Не удалось отправить фото в Telegram", "OK");
                         });
                         return;
                     }
@@ -594,14 +595,14 @@ public partial class QuickSaleViewModel : ObservableObject
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
-                        await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось сделать фото. Повторите.", "OK");
+                        await NavigationHelper.DisplayAlert("Ошибка", "Не удалось сделать фото. Повторите.", "OK");
                     });
                     return;
                 }
             }
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await Application.Current!.MainPage!.DisplayAlert("Успех", "Продажа проведена", "OK");
+                await NavigationHelper.DisplayAlert("Успех", "Продажа проведена", "OK");
             });
             Cart.Clear();
             Total = 0m;
@@ -612,7 +613,7 @@ public partial class QuickSaleViewModel : ObservableObject
                 try
                 {
                     var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
-                    Application.Current!.MainPage = new NavigationPage(select);
+                    NavigationHelper.SetRoot(new NavigationPage(select));
                 }
                 catch { }
             });
@@ -638,7 +639,7 @@ public partial class QuickSaleViewModel : ObservableObject
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
                     var msg = string.IsNullOrWhiteSpace(err) ? "Не удалось провести продажу" : err;
-                    await Application.Current!.MainPage!.DisplayAlert("Ошибка", msg, "OK");
+                    await NavigationHelper.DisplayAlert("Ошибка", msg, "OK");
                 });
             }
         }
@@ -650,9 +651,12 @@ public partial class QuickSaleViewModel : ObservableObject
         try
         {
             // Go back to category page then to payment type selection
-            var nav = Application.Current!.MainPage!.Navigation;
-            await nav.PopAsync();
-            await nav.PopAsync();
+            var nav = NavigationHelper.Navigation;
+            if (nav != null)
+            {
+                await nav.PopAsync();
+                await nav.PopAsync();
+            }
         }
         catch { }
     }
@@ -675,7 +679,7 @@ public partial class QuickSaleViewModel : ObservableObject
                         {
                             await MainThread.InvokeOnMainThreadAsync(async () =>
                             {
-                                await Application.Current!.MainPage!.DisplayAlert("Успех", "Продажа проведена", "OK");
+                                await NavigationHelper.DisplayAlert("Успех", "Продажа проведена", "OK");
                             });
                             Cart.Clear();
                             Total = 0m;
@@ -685,7 +689,7 @@ public partial class QuickSaleViewModel : ObservableObject
                                 try
                                 {
                                     var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
-                                    Application.Current!.MainPage = new NavigationPage(select);
+                                    NavigationHelper.SetRoot(new NavigationPage(select));
                                 }
                                 catch { }
                             });
@@ -704,3 +708,5 @@ public partial class QuickSaleViewModel : ObservableObject
         }
     }
 }
+
+

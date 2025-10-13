@@ -23,7 +23,9 @@ public static class MauiProgram
             .UseMauiCommunityToolkit()
             .ConfigureFonts(fonts =>
             {
-                // Add fonts if needed
+                fonts.AddFont("Resources/Fonts/Inter-Regular.ttf", "Inter");
+                fonts.AddFont("Resources/Fonts/Inter-SemiBold.ttf", "InterSemiBold");
+                fonts.AddFont("Resources/Fonts/Inter-Bold.ttf", "InterBold");
             });
 
 #if WINDOWS
@@ -86,6 +88,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<IProductsService>(sp => sp.GetRequiredService<ApiProductsService>());
         builder.Services.AddSingleton<ISuppliesService>(sp => sp.GetRequiredService<ApiSuppliesService>());
         builder.Services.AddSingleton<IReturnsService>(sp => sp.GetRequiredService<ApiReturnsService>());
+        // Finance
+        builder.Services.AddSingleton<ApiFinanceService>();
+        builder.Services.AddSingleton<IFinanceService>(sp => sp.GetRequiredService<ApiFinanceService>());
 
         // VM and Views
         builder.Services.AddTransient<QuickSaleViewModel>();
@@ -129,6 +134,8 @@ public static class MauiProgram
         builder.Services.AddTransient<ProductCreateViewModel>();
         builder.Services.AddTransient<ProductCreatePage>();
         builder.Services.AddTransient<HistoryTabsPage>();
+        builder.Services.AddTransient<FinanceDashboardViewModel>();
+        builder.Services.AddTransient<FinanceDashboardPage>();
         builder.Services.AddTransient<ClientsListViewModel>();
         builder.Services.AddTransient<ClientsListPage>();
         builder.Services.AddTransient<ClientCreateViewModel>();
@@ -142,6 +149,7 @@ public static class MauiProgram
         builder.Services.AddTransient<UnregisteredClientViewModel>();
         builder.Services.AddTransient<UnregisteredClientPage>();
         builder.Services.AddTransient<ConfirmAccountPage>();
+        builder.Services.AddTransient<AppShell>();
 
         return builder.Build();
     }
@@ -157,3 +165,4 @@ public static class MauiProgram
     private static void ApplyArrowCursor() { try { SetCursor(LoadCursor(IntPtr.Zero, IDC_ARROW)); } catch { } }
 #endif
 }
+

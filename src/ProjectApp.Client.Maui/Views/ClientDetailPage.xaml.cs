@@ -11,3 +11,4 @@ public partial class ClientDetailPage : TabbedPage
         BindingContext = vm;
     }
 }
+

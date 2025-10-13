@@ -11,3 +11,4 @@ public partial class ContractsHistoryPage : ContentPage
         BindingContext = vm;
     }
 }
+

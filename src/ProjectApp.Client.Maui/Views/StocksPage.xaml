@@ -1,42 +1,39 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              xmlns:converters="clr-namespace:ProjectApp.Client.Maui.Converters"
              x:Class="ProjectApp.Client.Maui.Views.StocksPage"
              x:Name="Root"
-             Title="Склад (только Админ)">
+             Title="РЎРєР»Р°Рґ (С‚РѕР»СЊРєРѕ РђРґРјРёРЅ)" x:DataType="viewModels:StocksViewModel">
   <ContentPage.Resources>
     <ResourceDictionary>
       <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
     </ResourceDictionary>
   </ContentPage.Resources>
   <ContentPage.ToolbarItems>
-    <ToolbarItem Text="Обновить" Command="{Binding RefreshCommand}" IconImageSource="{StaticResource IconRefresh}" />
+    <ToolbarItem Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding RefreshCommand}" IconImageSource="{StaticResource IconRefresh}" />
   </ContentPage.ToolbarItems>
-  <Grid Padding="12" RowDefinitions="*,Auto" RowSpacing="8">
+  <Grid Padding="24" RowDefinitions="*,Auto" RowSpacing="16">
     <!-- Summary mode (header + list share one scroll) -->
     <CollectionView Grid.Row="0" ItemsSource="{Binding Items}" IsVisible="{Binding ShowBatches, Converter={StaticResource InverseBoolConverter}}">
       <CollectionView.EmptyView>
         <VerticalStackLayout Padding="12" Spacing="6">
-          <Label Text="Нет данных" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
-          <Label Text="Измените запрос или категорию" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+          <Label Text="РќРµС‚ РґР°РЅРЅС‹С…" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
+          <Label Text="РР·РјРµРЅРёС‚Рµ Р·Р°РїСЂРѕСЃ РёР»Рё РєР°С‚РµРіРѕСЂРёСЋ" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
         </VerticalStackLayout>
       </CollectionView.EmptyView>
       <CollectionView.Header>
-        <VerticalStackLayout Spacing="8" Padding="0,0,0,8">
-          <Grid ColumnDefinitions="*,Auto,200" ColumnSpacing="8">
-            <HorizontalStackLayout Grid.Column="0" Spacing="8">
-              <Label Text="Поиск:" VerticalOptions="Center"/>
-              <Entry Placeholder="SKU или название" Text="{Binding Query}"/>
-            </HorizontalStackLayout>
-            <Label Grid.Column="1" Text="Категория:" VerticalTextAlignment="Center"/>
-            <Picker Grid.Column="2" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}"/>
+        <VerticalStackLayout Spacing="12" Padding="0,0,0,8">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <Entry Grid.Column="0" Placeholder="РџРѕРёСЃРє РїРѕ SKU РёР»Рё РЅР°Р·РІР°РЅРёСЋ" Text="{Binding Query}"/>
+            <Picker Grid.Column="1" WidthRequest="220" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}"/>
           </Grid>
           <HorizontalStackLayout Spacing="12">
-            <Label Text="Показывать партии" VerticalTextAlignment="Center"/>
+            <Label Text="РџРѕРєР°Р·С‹РІР°С‚СЊ РїР°СЂС‚РёРё" VerticalTextAlignment="Center"/>
             <Switch IsToggled="{Binding ShowBatches}"/>
+            <Button Text="РќР°Р№С‚Рё" Command="{Binding RefreshCommand}" Style="{StaticResource OutlinedButton}"/>
           </HorizontalStackLayout>
-          <Button Text="Найти" Command="{Binding RefreshCommand}"/>
         </VerticalStackLayout>
       </CollectionView.Header>
       <CollectionView.ItemTemplate>
@@ -64,7 +61,7 @@
                 <Frame Style="{StaticResource BadgeFrame}"
                        BackgroundColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=bg}"
                        BorderColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=border}">
-                  <Label Text="{Binding TotalQty, StringFormat='Итого: {0:N0}'}" FontSize="11"
+                  <Label Text="{Binding TotalQty, StringFormat='РС‚РѕРіРѕ: {0:N0}'}" FontSize="11"
                          TextColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}"/>
                 </Frame>
               </HorizontalStackLayout>
@@ -78,25 +75,21 @@
     <CollectionView Grid.Row="0" ItemsSource="{Binding BatchItems}" IsVisible="{Binding ShowBatches}">
       <CollectionView.EmptyView>
         <VerticalStackLayout Padding="12" Spacing="6">
-          <Label Text="Нет партий" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
-          <Label Text="Попробуйте другой фильтр или запрос" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+          <Label Text="РќРµС‚ РїР°СЂС‚РёР№" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
+          <Label Text="РџРѕРїСЂРѕР±СѓР№С‚Рµ РґСЂСѓРіРѕР№ С„РёР»СЊС‚СЂ РёР»Рё Р·Р°РїСЂРѕСЃ" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
         </VerticalStackLayout>
       </CollectionView.EmptyView>
       <CollectionView.Header>
-        <VerticalStackLayout Spacing="8" Padding="0,0,0,8">
-          <Grid ColumnDefinitions="*,Auto,200" ColumnSpacing="8">
-            <HorizontalStackLayout Grid.Column="0" Spacing="8">
-              <Label Text="Поиск:" VerticalOptions="Center"/>
-              <Entry Placeholder="SKU или название" Text="{Binding Query}"/>
-            </HorizontalStackLayout>
-            <Label Grid.Column="1" Text="Категория:" VerticalTextAlignment="Center"/>
-            <Picker Grid.Column="2" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}"/>
+        <VerticalStackLayout Spacing="12" Padding="0,0,0,8">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <Entry Grid.Column="0" Placeholder="РџРѕРёСЃРє РїРѕ SKU РёР»Рё РЅР°Р·РІР°РЅРёСЋ" Text="{Binding Query}"/>
+            <Picker Grid.Column="1" WidthRequest="220" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}"/>
           </Grid>
           <HorizontalStackLayout Spacing="12">
-            <Label Text="Показывать партии" VerticalTextAlignment="Center"/>
+            <Label Text="РџРѕРєР°Р·С‹РІР°С‚СЊ РїР°СЂС‚РёРё" VerticalTextAlignment="Center"/>
             <Switch IsToggled="{Binding ShowBatches}"/>
+            <Button Text="РќР°Р№С‚Рё" Command="{Binding RefreshCommand}" Style="{StaticResource OutlinedButton}"/>
           </HorizontalStackLayout>
-          <Button Text="Найти" Command="{Binding RefreshCommand}"/>
         </VerticalStackLayout>
       </CollectionView.Header>
       <CollectionView.ItemTemplate>
@@ -112,7 +105,7 @@
                 <Label Text="{Binding Register}" FontSize="11"/>
               </Frame>
               <Label Grid.Column="2" Text="{Binding Qty, StringFormat='Qty: {0:N3}'}" VerticalTextAlignment="Center"/>
-              <Label Grid.Column="3" Text="{Binding UnitCost, Converter={StaticResource CurrencyConverter}, StringFormat='Себестоимость: {0}'}" VerticalTextAlignment="Center"/>
+              <Label Grid.Column="3" Text="{Binding UnitCost, Converter={StaticResource CurrencyConverter}, StringFormat='РЎРµР±РµСЃС‚РѕРёРјРѕСЃС‚СЊ: {0}'}" VerticalTextAlignment="Center"/>
             </Grid>
           </Frame>
         </DataTemplate>
@@ -122,3 +115,4 @@
     <Label Grid.Row="1" Text="{Binding StatusMessage}" TextColor="Red"/>
   </Grid>
 </ContentPage>
+

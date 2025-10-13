@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+  <!-- Base palette for dark theme -->
+  <Color x:Key="Palette.Primary.Dark">#8AB4FF</Color>
+  <Color x:Key="Palette.PrimaryMuted.Dark">#1E3357</Color>
+  <Color x:Key="Palette.OnPrimary.Dark">#0B1220</Color>
+  <Color x:Key="Palette.Secondary.Dark">#CBD5F5</Color>
+  <Color x:Key="Palette.OnSecondary.Dark">#0B1220</Color>
+  <Color x:Key="Palette.Accent.Dark">#2DD4BF</Color>
+  <Color x:Key="Palette.OnAccent.Dark">#012524</Color>
+
+  <Color x:Key="Palette.Background.Dark">#0F172A</Color>
+  <Color x:Key="Palette.Surface.Dark">#111C30</Color>
+  <Color x:Key="Palette.SurfaceAlt.Dark">#15223A</Color>
+  <Color x:Key="Palette.SurfaceMuted.Dark">#1D2B45</Color>
+
+  <Color x:Key="Palette.Border.Dark">#2F3A55</Color>
+  <Color x:Key="Palette.BorderStrong.Dark">#3F4C6A</Color>
+  <Color x:Key="Palette.Outline.Dark">#26324B</Color>
+
+  <Color x:Key="Palette.Text.Primary.Dark">#E2E8F0</Color>
+  <Color x:Key="Palette.Text.Secondary.Dark">#A8B1C5</Color>
+  <Color x:Key="Palette.Text.Tertiary.Dark">#7B85A2</Color>
+  <Color x:Key="Palette.Text.Inverse.Dark">#0E1626</Color>
+
+  <Color x:Key="Palette.Success.Dark">#22D978</Color>
+  <Color x:Key="Palette.Warning.Dark">#FBBF24</Color>
+  <Color x:Key="Palette.Error.Dark">#F87171</Color>
+
+  <Color x:Key="Palette.Shadow.Dark">#00000088</Color>
+  <Color x:Key="Palette.Glass.Dark">#33121F3F</Color>
+</ResourceDictionary>

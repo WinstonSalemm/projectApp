@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:views="clr-namespace:ProjectApp.Client.Maui.Views"
+       xmlns:controls="clr-namespace:ProjectApp.Client.Maui.Controls"
+       x:Class="ProjectApp.Client.Maui.AppShell"
+       x:Name="RootShell"
+       Shell.BackgroundColor="{DynamicResource Color.Background}"
+       Shell.ForegroundColor="{DynamicResource Color.Text.Primary}"
+       Shell.TitleColor="{DynamicResource Color.Text.Primary}"
+       Shell.DisabledColor="{DynamicResource Color.Text.Tertiary}"
+       Shell.UnselectedColor="{DynamicResource Color.Text.Tertiary}"
+       Shell.TabBarForegroundColor="{DynamicResource Color.Text.Primary}"
+       Shell.TabBarBackgroundColor="{DynamicResource Color.Surface}"
+       Shell.NavBarIsVisible="False"
+       FlyoutWidth="280"
+       FlyoutBehavior="Disabled">
+
+  <Shell.Resources>
+    <Style x:Key="NavigationRailButtonStyle"
+           TargetType="Button"
+           BasedOn="{StaticResource GhostButton}">
+      <Setter Property="HorizontalOptions" Value="Fill" />
+      <Setter Property="ContentLayout" Value="Left,12" />
+      <Setter Property="Padding" Value="16,12" />
+      <Setter Property="TextColor" Value="{DynamicResource Color.Text.Secondary}" />
+    </Style>
+  </Shell.Resources>
+
+  <Shell.TitleView>
+    <controls:TopAppBar x:Name="TitleBar"
+                        Title="ProjectApp"
+                        Subtitle="Управление продажами"
+                        IsVisible="True" />
+  </Shell.TitleView>
+
+  <Shell.FlyoutContent>
+    <Grid Background="{DynamicResource Color.Surface}" Padding="20,28" RowSpacing="{StaticResource Space.6}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+      <VerticalStackLayout Spacing="{StaticResource Space.1}">
+        <Label Text="ProjectApp"
+               FontSize="{StaticResource Font.Size.H2}"
+               FontAttributes="Bold"
+               TextColor="{DynamicResource Color.Text.Primary}" />
+        <Label Text="Панель управления"
+               FontSize="{StaticResource Font.Size.Body.Small}"
+               TextColor="{DynamicResource Color.Text.Secondary}" />
+      </VerticalStackLayout>
+
+      <VerticalStackLayout Grid.Row="1" Spacing="{StaticResource Space.2}">
+        <Button x:Name="DashboardRailButton"
+                Text="Главная"
+                Style="{StaticResource NavigationRailButtonStyle}"
+                CommandParameter="dashboard"
+                Clicked="OnNavRailClicked"
+                SemanticProperties.Description="Перейти на главную панель" />
+        <Button Text="Продажи"
+                Style="{StaticResource NavigationRailButtonStyle}"
+                CommandParameter="sales"
+                Clicked="OnNavRailClicked"
+                SemanticProperties.Description="Открыть модуль продаж" />
+        <Button Text="Склад"
+                Style="{StaticResource NavigationRailButtonStyle}"
+                CommandParameter="inventory"
+                Clicked="OnNavRailClicked"
+                SemanticProperties.Description="Перейти к складу" />
+        <Button Text="Клиенты"
+                Style="{StaticResource NavigationRailButtonStyle}"
+                CommandParameter="clients"
+                Clicked="OnNavRailClicked"
+                SemanticProperties.Description="Перейти к клиентам" />
+        <Button Text="Финансы"
+                x:Name="FinanceRailButton"
+                Style="{StaticResource NavigationRailButtonStyle}"
+                CommandParameter="finance"
+                Clicked="OnNavRailClicked"
+                SemanticProperties.Description="Перейти к финансовой аналитике" />
+        <Button Text="Настройки"
+                Style="{StaticResource NavigationRailButtonStyle}"
+                CommandParameter="settings"
+                Clicked="OnNavRailClicked"
+                SemanticProperties.Description="Открыть настройки" />
+      </VerticalStackLayout>
+    </Grid>
+  </Shell.FlyoutContent>
+
+  <VisualStateManager.VisualStateGroups>
+    <VisualStateGroup x:Name="BreakpointStates">
+      <VisualState x:Name="Compact" />
+      <VisualState x:Name="Medium" />
+      <VisualState x:Name="Expanded" />
+    </VisualStateGroup>
+  </VisualStateManager.VisualStateGroups>
+
+  <TabBar x:Name="MainTabBar">
+    <ShellContent x:Name="DashboardTab"
+                  Route="dashboard"
+                  Title="Главная"
+                  Icon="{StaticResource IconSymbol.Home}"
+                  ContentTemplate="{DataTemplate views:AdminDashboardPage}" />
+    <ShellContent x:Name="SalesTab"
+                  Route="sales"
+                  Title="Продажи"
+                  Icon="{StaticResource IconSymbol.PointOfSale}"
+                  ContentTemplate="{DataTemplate views:SaleStartPage}" />
+    <ShellContent x:Name="InventoryTab"
+                  Route="inventory"
+                  Title="Склад"
+                  Icon="{StaticResource IconSymbol.Inventory}"
+                  ContentTemplate="{DataTemplate views:StocksPage}" />
+    <ShellContent x:Name="ClientsTab"
+                  Route="clients"
+                  Title="Клиенты"
+                  Icon="{StaticResource IconSymbol.People}"
+                  ContentTemplate="{DataTemplate views:ClientsListPage}" />
+    <ShellContent x:Name="FinanceTab"
+                  Route="finance"
+                  Title="Финансы"
+                  Icon="{StaticResource IconSymbol.Finance}"
+                  ContentTemplate="{DataTemplate views:FinanceDashboardPage}" />
+    <ShellContent x:Name="SettingsTab"
+                  Route="settings"
+                  Title="Настройки"
+                  Icon="{StaticResource IconSymbol.Settings}"
+                  ContentTemplate="{DataTemplate views:SettingsPage}" />
+  </TabBar>
+</Shell>

@@ -44,3 +44,4 @@ public partial class ReturnsHistoryViewModel : ObservableObject
         finally { IsLoading = false; }
     }
 }
+

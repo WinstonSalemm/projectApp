@@ -177,3 +177,4 @@ public class ApiSalesService : ISalesService
         return await client.GetFromJsonAsync<SaleDetailsDto>(url, ct);
     }
 }
+

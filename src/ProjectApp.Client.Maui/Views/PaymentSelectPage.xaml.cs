@@ -11,3 +11,4 @@ public partial class PaymentSelectPage : ContentPage
         BindingContext = vm;
     }
 }
+

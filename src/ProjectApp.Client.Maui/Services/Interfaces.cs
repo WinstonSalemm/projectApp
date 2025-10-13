@@ -287,3 +287,18 @@ public class ProductCreateDraft
     public decimal Price { get; set; }
     public string Category { get; set; } = string.Empty;
 }
+
+// ===== Finance client API (JSON-first for lightweight UI) =====
+public interface IFinanceService
+{
+    Task<string> GetSummaryJsonAsync(DateTime? from, DateTime? to, string? bucketBy = null, string? groupBy = null, CancellationToken ct = default);
+    Task<string> GetKpiJsonAsync(DateTime? from, DateTime? to, CancellationToken ct = default);
+    Task<string> GetCashFlowJsonAsync(DateTime? from, DateTime? to, CancellationToken ct = default);
+    Task<string> GetAbcJsonAsync(DateTime? from, DateTime? to, CancellationToken ct = default);
+    Task<string> GetXyzJsonAsync(DateTime? from, DateTime? to, string bucket = "month", CancellationToken ct = default);
+    Task<string> GetTrendsJsonAsync(DateTime? from, DateTime? to, string metric = "revenue", string interval = "month", CancellationToken ct = default);
+    Task<string> GetTaxesBreakdownJsonAsync(DateTime? from, DateTime? to, CancellationToken ct = default);
+    Task<string> GetClientsJsonAsync(DateTime? from, DateTime? to, CancellationToken ct = default);
+    Task<string> GetAlertsPreviewJsonAsync(DateTime? from, DateTime? to, CancellationToken ct = default);
+}
+

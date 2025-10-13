@@ -1,36 +1,40 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.SuppliesHistoryPage"
-             Title="Поставки">
-  <Grid Padding="16" RowDefinitions="Auto,*" RowSpacing="12">
-    <HorizontalStackLayout Grid.Row="0" Spacing="8">
-      <Label Text="Код партии:" VerticalTextAlignment="Center"/>
-      <Entry Text="{Binding CodeFilter}" Placeholder="например, 2025-10"/>
-      <Button Text="Обновить" Command="{Binding LoadCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8"/>
-    </HorizontalStackLayout>
+             Title="РџРѕСЃС‚Р°РІРєРё" x:DataType="viewModels:SuppliesHistoryViewModel">
+  <Grid Padding="24" RowDefinitions="Auto,*" RowSpacing="16">
+    <Frame Grid.Row="0" Style="{StaticResource CardFrame}">
+      <HorizontalStackLayout Spacing="12">
+        <Label Text="РљРѕРґ РїР°СЂС‚РёРё:" VerticalTextAlignment="Center"/>
+        <Entry Text="{Binding CodeFilter}" Placeholder="РЅР°РїСЂРёРјРµСЂ, 2025-10"/>
+        <Button Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding LoadCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8" Style="{StaticResource OutlinedButton}"/>
+      </HorizontalStackLayout>
+    </Frame>
 
     <CollectionView Grid.Row="1" ItemsSource="{Binding Items}">
       <CollectionView.ItemTemplate>
         <DataTemplate>
-          <Frame Padding="10" HasShadow="False" CornerRadius="10">
+          <Frame Style="{StaticResource CardFrame}">
             <VerticalStackLayout Spacing="6">
-              <Label Text="{Binding Code, StringFormat='Код: {0}'}" FontAttributes="Bold"/>
+              <Label Text="{Binding Code, StringFormat='РљРѕРґ: {0}'}" FontAttributes="Bold"/>
               <Label Text="{Binding CreatedAt, Converter={StaticResource DateTimeToRuConverter}}" FontSize="12" TextColor="Gray"/>
-              <Label Text="{Binding ProductId, StringFormat='Товар: #{0}'}"/>
-              <Label Text="{Binding Register, StringFormat='Регистр: {0}'}" FontSize="12"/>
-              <Label Text="{Binding Qty, StringFormat='Кол-во: {0}'}"/>
-              <Label Text="{Binding UnitCost, Converter={StaticResource CurrencyConverter}, StringFormat='Себестоимость: {0}'}"/>
+              <Label Text="{Binding ProductId, StringFormat='РўРѕРІР°СЂ: #{0}'}"/>
+              <Label Text="{Binding Register, StringFormat='Р РµРіРёСЃС‚СЂ: {0}'}" FontSize="12"/>
+              <Label Text="{Binding Qty, StringFormat='РљРѕР»-РІРѕ: {0}'}"/>
+              <Label Text="{Binding UnitCost, Converter={StaticResource CurrencyConverter}, StringFormat='РЎРµР±РµСЃС‚РѕРёРјРѕСЃС‚СЊ: {0}'}"/>
             </VerticalStackLayout>
           </Frame>
         </DataTemplate>
       </CollectionView.ItemTemplate>
       <CollectionView.EmptyView>
         <VerticalStackLayout Padding="12" Spacing="6">
-          <Label Text="Поставки не найдены" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
-          <Label Text="Уточните код партии и обновите список" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+          <Label Text="РџРѕСЃС‚Р°РІРєРё РЅРµ РЅР°Р№РґРµРЅС‹" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
+          <Label Text="РЈС‚РѕС‡РЅРёС‚Рµ РєРѕРґ РїР°СЂС‚РёРё Рё РѕР±РЅРѕРІРёС‚Рµ СЃРїРёСЃРѕРє" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
         </VerticalStackLayout>
       </CollectionView.EmptyView>
     </CollectionView>
   </Grid>
 </ContentPage>
+

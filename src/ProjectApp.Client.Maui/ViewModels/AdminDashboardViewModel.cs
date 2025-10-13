@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.Controls;
 using ProjectApp.Client.Maui.Services;
 using System.Threading.Tasks;
 
@@ -22,49 +21,56 @@ public partial class AdminDashboardViewModel : ObservableObject
     private async Task OpenHistoryAsync()
     {
         var page = _services.GetService<ProjectApp.Client.Maui.Views.HistoryTabsPage>();
-        if (page != null) await Application.Current!.MainPage!.Navigation.PushAsync(page);
+        if (page != null) await NavigationHelper.PushAsync(page);
     }
 
     [RelayCommand]
     private async Task OpenSalesHistoryAsync()
     {
         var page = _services.GetService<ProjectApp.Client.Maui.Views.SalesHistoryPage>();
-        if (page != null) await Application.Current!.MainPage!.Navigation.PushAsync(page);
+        if (page != null) await NavigationHelper.PushAsync(page);
     }
 
     [RelayCommand]
     private async Task OpenClientsAsync()
     {
         var page = _services.GetService<ProjectApp.Client.Maui.Views.ClientsListPage>();
-        if (page != null) await Application.Current!.MainPage!.Navigation.PushAsync(page);
+        if (page != null) await NavigationHelper.PushAsync(page);
     }
 
     [RelayCommand]
     private async Task OpenReturnsAsync()
     {
         var page = _services.GetService<ProjectApp.Client.Maui.Views.ReturnsPage>();
-        if (page != null) await Application.Current!.MainPage!.Navigation.PushAsync(page);
+        if (page != null) await NavigationHelper.PushAsync(page);
     }
 
     [RelayCommand]
     private async Task OpenSuppliesAsync()
     {
         var page = _services.GetService<ProjectApp.Client.Maui.Views.SuppliesPage>();
-        if (page != null) await Application.Current!.MainPage!.Navigation.PushAsync(page);
+        if (page != null) await NavigationHelper.PushAsync(page);
     }
 
     [RelayCommand]
     private async Task OpenStocksAsync()
     {
         var page = _services.GetService<ProjectApp.Client.Maui.Views.StocksPage>();
-        if (page != null) await Application.Current!.MainPage!.Navigation.PushAsync(page);
+        if (page != null) await NavigationHelper.PushAsync(page);
     }
 
     [RelayCommand]
     private async Task OpenContractsAsync()
     {
         var page = _services.GetService<ProjectApp.Client.Maui.Views.ContractsListPage>();
-        if (page != null) await Application.Current!.MainPage!.Navigation.PushAsync(page);
+        if (page != null) await NavigationHelper.PushAsync(page);
+    }
+
+    [RelayCommand]
+    private async Task OpenFinanceAsync()
+    {
+        var page = _services.GetService<ProjectApp.Client.Maui.Views.FinanceDashboardPage>();
+        if (page != null) await NavigationHelper.PushAsync(page);
     }
 
     [RelayCommand]
@@ -72,6 +78,7 @@ public partial class AdminDashboardViewModel : ObservableObject
     {
         await _auth.LogoutAsync();
         var select = _services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
-        Application.Current!.MainPage = new NavigationPage(select);
+        NavigationHelper.SetRoot(new NavigationPage(select));
     }
 }
+

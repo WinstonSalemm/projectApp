@@ -76,6 +76,8 @@ public partial class SalesHistoryViewModel : ObservableObject
         {
             await vm.LoadAsync(sale.Id);
         }
-        await Application.Current!.MainPage!.Navigation.PushAsync(page);
+        await NavigationHelper.PushAsync(page);
     }
 }
+
+

@@ -18,3 +18,4 @@ public class InverseBoolConverter : IValueConverter
         return !b;
     }
 }
+

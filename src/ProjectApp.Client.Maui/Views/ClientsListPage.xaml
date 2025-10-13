@@ -1,20 +1,103 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              xmlns:models="clr-namespace:ProjectApp.Client.Maui.Models"
+             xmlns:controls="clr-namespace:ProjectApp.Client.Maui.Controls"
              x:Class="ProjectApp.Client.Maui.Views.ClientsListPage"
              x:Name="Page"
-             Title="Клиенты">
-  <Grid Padding="16" RowDefinitions="Auto,Auto, *" RowSpacing="12">
-    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-      <Entry Grid.Column="0" Placeholder="Поиск по имени/телефону" Text="{Binding Query}"/>
-      <Button Grid.Column="1" Text="Найти" Command="{Binding LoadCommand}" Style="{StaticResource OutlinedButton}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8"/>
-    </Grid>
+             Title="Clients" x:DataType="viewModels:ClientsListViewModel">
+  <ContentPage.Resources>
+    <ResourceDictionary>
+      <GridItemsLayout x:Key="ItemsLayout.Compact"
+                       Orientation="Vertical"
+                       Span="1"
+                       HorizontalItemSpacing="{StaticResource Space.3}"
+                       VerticalItemSpacing="{StaticResource Space.3}" />
+      <GridItemsLayout x:Key="ItemsLayout.Medium"
+                       Orientation="Vertical"
+                       Span="2"
+                       HorizontalItemSpacing="{StaticResource Space.3}"
+                       VerticalItemSpacing="{StaticResource Space.3}" />
+      <GridItemsLayout x:Key="ItemsLayout.Expanded"
+                       Orientation="Vertical"
+                       Span="3"
+                       HorizontalItemSpacing="{StaticResource Space.4}"
+                       VerticalItemSpacing="{StaticResource Space.4}" />
+    </ResourceDictionary>
+  </ContentPage.Resources>
 
-    <Grid Grid.Row="1" ColumnDefinitions="*,*,Auto,Auto" ColumnSpacing="8">
-      <HorizontalStackLayout Grid.Column="0" Spacing="8">
-        <Label Text="Тип:" VerticalTextAlignment="Center"/>
-        <Picker Title="Все" SelectedItem="{Binding SelectedType}">
+  <VisualStateManager.VisualStateGroups>
+    <VisualStateGroup x:Name="AdaptiveStates">
+      <VisualState Name="Compact">
+        <VisualState.Setters>
+          <Setter TargetName="ActionBar" Property="FlexLayout.Direction" Value="Column" />
+          <Setter TargetName="ActionBar" Property="FlexLayout.AlignItems" Value="Stretch" />
+          <Setter TargetName="FiltersLayout" Property="FlexLayout.Direction" Value="Column" />
+          <Setter TargetName="FiltersLayout" Property="FlexLayout.AlignItems" Value="Stretch" />
+          <Setter TargetName="ClientsCollection" Property="CollectionView.ItemsLayout" Value="{StaticResource ItemsLayout.Compact}" />
+        </VisualState.Setters>
+      </VisualState>
+      <VisualState Name="Medium">
+        <VisualState.Setters>
+          <Setter TargetName="ActionBar" Property="FlexLayout.Direction" Value="Row" />
+          <Setter TargetName="ActionBar" Property="FlexLayout.AlignItems" Value="Center" />
+          <Setter TargetName="FiltersLayout" Property="FlexLayout.Direction" Value="Row" />
+          <Setter TargetName="FiltersLayout" Property="FlexLayout.AlignItems" Value="Center" />
+          <Setter TargetName="ClientsCollection" Property="CollectionView.ItemsLayout" Value="{StaticResource ItemsLayout.Medium}" />
+        </VisualState.Setters>
+      </VisualState>
+      <VisualState Name="Expanded">
+        <VisualState.Setters>
+          <Setter TargetName="ActionBar" Property="FlexLayout.Direction" Value="Row" />
+          <Setter TargetName="FiltersLayout" Property="FlexLayout.Direction" Value="Row" />
+          <Setter TargetName="ClientsCollection" Property="CollectionView.ItemsLayout" Value="{StaticResource ItemsLayout.Expanded}" />
+        </VisualState.Setters>
+      </VisualState>
+    </VisualStateGroup>
+  </VisualStateManager.VisualStateGroups>
+
+  <Grid x:Name="Root"
+        RowDefinitions="Auto,Auto,*"
+        RowSpacing="{StaticResource Space.4}">
+
+    <FlexLayout x:Name="ActionBar"
+                Grid.Row="0"
+                Direction="Row"
+                Wrap="Wrap"
+                AlignItems="Center"
+                JustifyContent="SpaceBetween">
+      <SearchBar Placeholder="Search by name or phone"
+                 Text="{Binding Query}"
+                 FlexLayout.Grow="1"
+                 SemanticProperties.Description="Search clients by name, phone or company" />
+      <Button Text="Refresh"
+              Style="{StaticResource Button.Secondary}"
+              Command="{Binding LoadCommand}"
+              Margin="0,0,0,8"
+              ContentLayout="Left,8"
+              ImageSource="{StaticResource IconRefresh}" />
+      <Button Text="Add client"
+              Style="{StaticResource Button.Primary}"
+              Command="{Binding OpenCreateCommand}"
+              Margin="0,0,0,8"
+              ContentLayout="Left,8"
+              ImageSource="{StaticResource IconAdd}"
+              SemanticProperties.Description="Create new client" />
+    </FlexLayout>
+
+    <Border Grid.Row="1"
+            Style="{StaticResource Card.Container}">
+      <FlexLayout x:Name="FiltersLayout"
+                  Direction="Row"
+                  Wrap="Wrap"
+                  AlignItems="Center">
+        <Label Text="Type"
+               FontAttributes="Bold"
+               SemanticProperties.Description="Client type filter label" />
+        <Picker Title="Select type"
+                SelectedItem="{Binding SelectedType}"
+                WidthRequest="200">
           <Picker.ItemsSource>
             <x:Array Type="{x:Type models:ClientType}">
               <x:Static Member="models:ClientType.Individual" />
@@ -22,41 +105,53 @@
             </x:Array>
           </Picker.ItemsSource>
         </Picker>
-      </HorizontalStackLayout>
-      <HorizontalStackLayout Grid.Column="1" Spacing="8">
-        <Label Text="Только мои" VerticalTextAlignment="Center"/>
-        <Switch IsToggled="{Binding ShowOnlyMine}"/>
-      </HorizontalStackLayout>
-      <Button Grid.Column="2" Text="Добавить" Command="{Binding OpenCreateCommand}" Style="{StaticResource OutlinedButton}" ImageSource="{StaticResource IconAdd}" ContentLayout="Left,8"/>
-      <Button Grid.Column="3" Text="Незаписанные" Command="{Binding OpenUnregisteredCommand}" Style="{StaticResource OutlinedButton}"/>
-    </Grid>
 
-    <CollectionView Grid.Row="2" ItemsSource="{Binding Items}">
+        <Border Style="{StaticResource Chip.Standard}">
+          <HorizontalStackLayout Spacing="{StaticResource Space.2}" VerticalOptions="Center">
+            <Label Text="Only mine"
+                   VerticalTextAlignment="Center" />
+            <Switch IsToggled="{Binding ShowOnlyMine}"
+                    SemanticProperties.Description="Show only clients created by me" />
+          </HorizontalStackLayout>
+        </Border>
+
+        <Button Text="Unregistered"
+                Style="{StaticResource Button.Tertiary}"
+                Command="{Binding OpenUnregisteredCommand}"
+                Margin="0,0,0,8" />
+      </FlexLayout>
+    </Border>
+
+    <CollectionView x:Name="ClientsCollection"
+                    Grid.Row="2"
+                    Margin="0,0,0,24"
+                    ItemsSource="{Binding Items}"
+                    SelectionMode="None">
       <CollectionView.ItemTemplate>
-        <DataTemplate>
-          <Frame Style="{StaticResource CardFrame}">
-            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
-              <Label Grid.Row="0" Grid.ColumnSpan="2" Text="{Binding Name}" FontAttributes="Bold"/>
-              <Label Grid.Row="1" Grid.Column="0" Text="{Binding Phone}"/>
-              <!-- Client type badge -->
-              <Frame Grid.Row="1" Grid.Column="1" Style="{StaticResource BadgeFrame}">
-                <Label Text="{Binding Type, Converter={StaticResource ClientTypeToRuConverter}}" FontSize="12"/>
-              </Frame>
-              <Label Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding OwnerUserName, StringFormat='Владелец: {0}'}" FontSize="12" TextColor="Gray"/>
-              <Grid.GestureRecognizers>
-                <TapGestureRecognizer Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenDetailCommand}"
-                                       CommandParameter="{Binding .}"/>
-              </Grid.GestureRecognizers>
-            </Grid>
-          </Frame>
+        <DataTemplate x:DataType="models:ClientListItem">
+          <controls:ListItemView Title="{Binding Name}"
+                                 Subtitle="{Binding Phone}"
+                                 Meta="{Binding OwnerUserName, StringFormat='Owner: {0}'}"
+                                 Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenDetailCommand}"
+                                 CommandParameter="{Binding .}">
+            <controls:ListItemView.TrailingContent>
+              <Border Style="{StaticResource Chip.Standard}">
+                <Label Text="{Binding Type, Converter={StaticResource ClientTypeToRuConverter}}"
+                       FontSize="{StaticResource Font.Size.Caption}" />
+              </Border>
+            </controls:ListItemView.TrailingContent>
+          </controls:ListItemView>
         </DataTemplate>
       </CollectionView.ItemTemplate>
       <CollectionView.EmptyView>
-        <VerticalStackLayout Padding="12" Spacing="6">
-          <Label Text="Клиенты не найдены" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
-          <Label Text="Измените запрос, фильтры или добавьте клиента" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
-        </VerticalStackLayout>
+        <controls:EmptyStateView Title="No clients yet"
+                                 Description="Create a new client card to populate the list."
+                                 ActionText="Create client"
+                                 ActionCommand="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCreateCommand}" />
       </CollectionView.EmptyView>
     </CollectionView>
   </Grid>
 </ContentPage>
+
+
+

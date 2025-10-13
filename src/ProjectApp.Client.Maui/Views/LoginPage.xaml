@@ -1,20 +1,22 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.LoginPage"
-             Title="Вход">
+             Title="Р’С…РѕРґ" x:DataType="viewModels:LoginViewModel">
   <ContentPage.Content>
     <ScrollView>
       <VerticalStackLayout Padding="24" Spacing="16">
-        <Label Text="Вход" FontAttributes="Bold" FontSize="24"/>
+        <Label Text="Р’С…РѕРґ" FontAttributes="Bold" FontSize="24"/>
         <Frame>
           <VerticalStackLayout Spacing="12">
-            <Entry Placeholder="Логин" Text="{Binding UserName}"/>
-            <Entry Placeholder="Пароль (для Админа)" IsPassword="True" Text="{Binding Password}" IsVisible="{Binding IsPasswordVisible}"/>
-            <Button Text="Войти" Command="{Binding LoginCommand}"/>
+            <Entry Placeholder="Р›РѕРіРёРЅ" Text="{Binding UserName}"/>
+            <Entry Placeholder="РџР°СЂРѕР»СЊ (РґР»СЏ РђРґРјРёРЅР°)" IsPassword="True" Text="{Binding Password}" IsVisible="{Binding IsPasswordVisible}"/>
+            <Button Text="Р’РѕР№С‚Рё" Command="{Binding LoginCommand}"/>
           </VerticalStackLayout>
         </Frame>
       </VerticalStackLayout>
     </ScrollView>
   </ContentPage.Content>
 </ContentPage>
+

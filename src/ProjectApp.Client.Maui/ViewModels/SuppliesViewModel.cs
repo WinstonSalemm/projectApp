@@ -95,7 +95,7 @@ public partial class SuppliesViewModel : ObservableObject
                 try
                 {
                     var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
-                    Application.Current!.MainPage = new NavigationPage(select);
+                    NavigationHelper.SetRoot(new NavigationPage(select));
                 }
                 catch { }
             }
@@ -139,7 +139,7 @@ public partial class SuppliesViewModel : ObservableObject
                 try
                 {
                     var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
-                    Application.Current!.MainPage = new NavigationPage(select);
+                    NavigationHelper.SetRoot(new NavigationPage(select));
                 }
                 catch { }
             }
@@ -151,3 +151,5 @@ public partial class SuppliesViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 }
+
+

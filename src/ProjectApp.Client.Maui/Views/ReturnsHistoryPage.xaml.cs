@@ -11,3 +11,4 @@ public partial class ReturnsHistoryPage : ContentPage
         BindingContext = vm;
     }
 }
+

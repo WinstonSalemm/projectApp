@@ -88,3 +88,4 @@ public partial class SuppliesPage : ContentPage
         }
     }
 }
+

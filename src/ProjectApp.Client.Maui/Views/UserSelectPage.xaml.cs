@@ -20,3 +20,4 @@ public partial class UserSelectPage : ContentPage
             await Navigation.PushAsync(settings);
     }
 }
+

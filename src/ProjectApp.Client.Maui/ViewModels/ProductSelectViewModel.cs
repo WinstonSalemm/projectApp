@@ -85,3 +85,4 @@ public partial class ProductSelectViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 }
+

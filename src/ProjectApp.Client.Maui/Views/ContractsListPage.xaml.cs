@@ -97,3 +97,4 @@ public partial class ContractsListPage : ContentPage
         }
     }
 }
+

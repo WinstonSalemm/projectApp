@@ -1,9 +1,10 @@
+using System;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.Controls;
+using Microsoft.Maui.ApplicationModel;
 using ProjectApp.Client.Maui.Services;
-using System.Threading.Tasks;
 
 namespace ProjectApp.Client.Maui.ViewModels;
 
@@ -21,31 +22,28 @@ public partial class UserSelectViewModel : ObservableObject
     [RelayCommand]
     private async Task LoginManagerAsync(string userName)
     {
-        if (string.IsNullOrWhiteSpace(userName)) return;
+        if (string.IsNullOrWhiteSpace(userName))
+            return;
+
         var ok = await _auth.LoginAsync(userName, null);
         if (!ok)
         {
             var detail = string.IsNullOrWhiteSpace(_auth.LastErrorMessage) ? string.Empty : $"\n{_auth.LastErrorMessage}";
-            await Application.Current!.MainPage!.DisplayAlert("Ошибка входа", $"Пользователь: {userName}.{detail}", "OK");
+            await NavigationHelper.DisplayAlert("Ошибка авторизации", $"Не удалось войти: {userName}.{detail}", "OK");
             return;
         }
-        var auth = _auth;
-        if (string.Equals(auth.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+
+        var targetRoute = string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase)
+            ? "dashboard"
+            : "sales";
+
+        var shell = _services.GetRequiredService<AppShell>();
+        await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            var admin = _services.GetRequiredService<ProjectApp.Client.Maui.Views.AdminDashboardPage>();
-            await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                Application.Current!.MainPage = new NavigationPage(admin);
-            });
-        }
-        else
-        {
-            var pay = _services.GetRequiredService<ProjectApp.Client.Maui.Views.PaymentSelectPage>();
-            await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                Application.Current!.MainPage = new NavigationPage(pay);
-            });
-        }
+            NavigationHelper.SetRoot(shell);
+            shell.RefreshRoleState();
+            await shell.EnsureRouteAsync(targetRoute);
+        });
     }
 
     [RelayCommand]
@@ -54,13 +52,14 @@ public partial class UserSelectViewModel : ObservableObject
     [RelayCommand]
     private async Task LoginAdminAsync()
     {
-        // Navigate to LoginPage with pre-filled admin username
         var login = _services.GetRequiredService<ProjectApp.Client.Maui.Views.LoginPage>();
         if (login.BindingContext is ProjectApp.Client.Maui.ViewModels.LoginViewModel lvm)
         {
             lvm.UserName = "admin";
             lvm.IsPasswordVisible = true;
         }
-        await Application.Current!.MainPage!.Navigation.PushAsync(login);
+
+        await NavigationHelper.PushAsync(login);
     }
 }
+

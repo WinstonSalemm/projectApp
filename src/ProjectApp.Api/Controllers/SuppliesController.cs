@@ -40,6 +40,12 @@ public class SuppliesController : ControllerBase
             var exists = await _db.Products.AnyAsync(p => p.Id == it.ProductId, ct);
             if (!exists) return ValidationProblem(detail: $"Product not found: {it.ProductId}");
 
+            // Pull product-level GTD code if available
+            var prodGtd = await _db.Products
+                .Where(p => p.Id == it.ProductId)
+                .Select(p => p.GtdCode)
+                .FirstOrDefaultAsync(ct);
+
             // Increase ND40 stock
             var stockNd = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == it.ProductId && s.Register == StockRegister.ND40, ct);
             if (stockNd is null)
@@ -58,7 +64,13 @@ public class SuppliesController : ControllerBase
                 UnitCost = it.UnitCost,
                 CreatedAt = DateTime.UtcNow,
                 Code = string.IsNullOrWhiteSpace(it.Code) ? null : it.Code.Trim(),
-                Note = it.Note
+                Note = it.Note,
+                SupplierName = dto.SupplierName,
+                InvoiceNumber = dto.InvoiceNumber,
+                PurchaseDate = dto.PurchaseDate ?? DateTime.UtcNow,
+                VatRate = it.VatRate ?? dto.VatRate,
+                PurchaseSource = string.IsNullOrWhiteSpace(it.Code) ? "supply" : $"supply:{it.Code}",
+                GtdCode = string.IsNullOrWhiteSpace(prodGtd) ? null : prodGtd
             };
             _db.Batches.Add(b);
             created.Add(b);
@@ -73,7 +85,7 @@ public class SuppliesController : ControllerBase
                 UnitCost = it.UnitCost,
                 BatchId = null, // will not have ID until save; acceptable for audit
                 CreatedAt = DateTime.UtcNow,
-                Note = string.IsNullOrWhiteSpace(it.Code) ? "supply" : $"supply code={it.Code}"
+                Note = $"supply code={(string.IsNullOrWhiteSpace(it.Code) ? "-" : it.Code)} supplier={(dto.SupplierName ?? "-")} invoice={(dto.InvoiceNumber ?? "-" )}"
             });
         }
 

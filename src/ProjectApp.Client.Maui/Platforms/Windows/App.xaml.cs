@@ -1,4 +1,4 @@
-﻿using Microsoft.Maui;
+using Microsoft.Maui;
 
 namespace ProjectApp.Client.Maui.WinUI;
 
@@ -11,3 +11,4 @@ public partial class App : MauiWinUIApplication
 
     protected override MauiApp CreateMauiApp() => ProjectApp.Client.Maui.MauiProgram.CreateMauiApp();
 }
+

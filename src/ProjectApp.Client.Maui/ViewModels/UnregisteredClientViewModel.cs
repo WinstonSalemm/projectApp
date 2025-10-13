@@ -66,3 +66,4 @@ public partial class UnregisteredClientViewModel : ObservableObject
         });
     }
 }
+

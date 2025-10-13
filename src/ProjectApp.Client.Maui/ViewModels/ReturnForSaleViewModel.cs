@@ -122,7 +122,7 @@ public partial class ReturnForSaleViewModel : ObservableObject
             IsBusy = true; StatusMessage = string.Empty;
             if (HasReturn)
             {
-                var confirm = await Application.Current!.MainPage!.DisplayAlert("Отмена возврата", "Отменить возврат по этой продаже?", "Да", "Нет");
+                var confirm = await NavigationHelper.DisplayAlert("Отмена возврата", "Отменить возврат по этой продаже?", "Да", "Нет");
                 if (!confirm) return;
                 var okCancel = await _returns.CancelBySaleAsync(SaleId);
                 StatusMessage = okCancel ? "Возврат отменён" : "Не удалось отменить возврат";
@@ -152,7 +152,7 @@ public partial class ReturnForSaleViewModel : ObservableObject
                 if (ok)
                 {
                     HasReturn = true;
-                    await Application.Current!.MainPage!.DisplayAlert("OK", "Возврат создан", "OK");
+                    await NavigationHelper.DisplayAlert("OK", "Возврат создан", "OK");
                 }
             }
         }
@@ -163,3 +163,5 @@ public partial class ReturnForSaleViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 }
+
+

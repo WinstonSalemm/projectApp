@@ -1,7 +1,7 @@
+using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using Microsoft.Maui.Controls;
 using ProjectApp.Client.Maui.Messages;
 using ProjectApp.Client.Maui.Models;
 using ProjectApp.Client.Maui.Services;
@@ -51,21 +51,39 @@ public partial class ClientEditViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveAsync()
     {
-        if (IsBusy) return;
+        if (IsBusy)
+            return;
+
         try
         {
             IsBusy = true;
-            var draft = new ClientUpdateDraft { Name = Name, Phone = Phone, Inn = Inn, Type = Type };
+            var draft = new ClientUpdateDraft
+            {
+                Name = Name,
+                Phone = Phone,
+                Inn = Inn,
+                Type = Type
+            };
+
             var ok = await _clients.UpdateAsync(ClientId, draft);
-            if (!ok) { await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось сохранить", "OK"); return; }
+            if (!ok)
+            {
+                await NavigationHelper.DisplayAlert("Ошибка", "Не удалось сохранить изменения", "OK");
+                return;
+            }
+
             WeakReferenceMessenger.Default.Send(new ClientUpdatedMessage(ClientId, Name, Phone, Inn, Type ?? ClientType.Individual));
-            await Application.Current!.MainPage!.DisplayAlert("Сохранено", "Изменения сохранены", "OK");
-            await Application.Current!.MainPage!.Navigation.PopAsync();
+            await NavigationHelper.DisplayAlert("Сохранено", "Изменения успешно сохранены", "OK");
+            await NavigationHelper.PopAsync();
         }
         catch (Exception ex)
         {
-            await Application.Current!.MainPage!.DisplayAlert("Ошибка", ex.Message, "OK");
+            await NavigationHelper.DisplayAlert("Ошибка", ex.Message, "OK");
         }
-        finally { IsBusy = false; }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 }
+

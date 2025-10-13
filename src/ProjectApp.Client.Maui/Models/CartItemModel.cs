@@ -28,3 +28,4 @@ public partial class CartItemModel : ObservableObject
         OnPropertyChanged(nameof(Subtotal));
     }
 }
+

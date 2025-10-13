@@ -1,20 +1,21 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              xmlns:conv="clr-namespace:ProjectApp.Client.Maui.Converters"
              x:Class="ProjectApp.Client.Maui.Views.ContractsListPage"
              x:Name="Root"
-             Title="Договоры">
+             Title="Р”РѕРіРѕРІРѕСЂС‹" x:DataType="viewModels:ContractsListViewModel">
   <ContentPage.Content>
-    <VerticalStackLayout Padding="12" Spacing="12">
+    <VerticalStackLayout Padding="24" Spacing="16">
       <CollectionView ItemsSource="{Binding Items}">
         <CollectionView.Header>
           <VerticalStackLayout Spacing="12" Padding="0,0,0,8">
             <HorizontalStackLayout Spacing="12">
-              <Label Text="Статус:" VerticalTextAlignment="Center"/>
+              <Label Text="РЎС‚Р°С‚СѓСЃ:" VerticalTextAlignment="Center"/>
               <Picker ItemsSource="{Binding Statuses}" SelectedItem="{Binding SelectedStatus}" WidthRequest="180"/>
-              <Button Text="Обновить" Command="{Binding RefreshAsyncCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8"/>
-              <Button Text="Создать" Clicked="OnCreateClicked" IsVisible="{Binding IsAdmin}" ImageSource="{StaticResource IconAdd}" ContentLayout="Left,8"/>
+              <Button Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding RefreshAsyncCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8" Style="{StaticResource OutlinedButton}"/>
+              <Button Text="РЎРѕР·РґР°С‚СЊ" Clicked="OnCreateClicked" IsVisible="{Binding IsAdmin}" ImageSource="{StaticResource IconAdd}" ContentLayout="Left,8" Style="{StaticResource CtaPrimary}"/>
             </HorizontalStackLayout>
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"/>
           </VerticalStackLayout>
@@ -29,7 +30,7 @@
                   <Label Text="{Binding OrgName}" FontAttributes="Bold"/>
                   <Label Text="{Binding Inn}" FontSize="12"/>
                   <Label Text="{Binding Phone}" FontSize="12"/>
-                  <Label Text="{Binding CreatedAt, Converter={conv:DateTimeToRuConverter}, StringFormat='Создан: {0}'}" FontSize="12"/>
+                  <Label Text="{Binding CreatedAt, Converter={conv:DateTimeToRuConverter}, StringFormat='РЎРѕР·РґР°РЅ: {0}'}" FontSize="12"/>
                   <Label Text="{Binding Note}" FontSize="12"/>
                 </VerticalStackLayout>
                 <!-- Status badge -->
@@ -39,14 +40,14 @@
                   <Label Text="{Binding Status, Converter={conv:ContractStatusToTextConverter}}" FontSize="12"
                          TextColor="{Binding Status, Converter={conv:ContractStatusToColorConverter}, ConverterParameter=text}"/>
                 </Frame>
-                <Button Grid.Column="2" Text="Оплачен" Style="{StaticResource OutlinedButton}"
+                <Button Grid.Column="2" Text="РћРїР»Р°С‡РµРЅ" Style="{StaticResource OutlinedButton}"
                         Clicked="OnPaidClicked"/>
-                <Button Grid.Column="3" Text="Частично" Style="{StaticResource OutlinedButton}"
+                <Button Grid.Column="3" Text="Р§Р°СЃС‚РёС‡РЅРѕ" Style="{StaticResource OutlinedButton}"
                         Clicked="OnPartialClicked"/>
-                <Button Grid.Column="4" Text="Отмена" Style="{StaticResource OutlinedButton}"
+                <Button Grid.Column="4" Text="РћС‚РјРµРЅР°" Style="{StaticResource OutlinedButton}"
                         Clicked="OnCancelClicked"/>
-                <Button Grid.Column="5" Text="Закрыт" Clicked="OnClosedClicked"/>
-                <Button Grid.Column="6" Text="Изменить" Clicked="OnEditClicked" CommandParameter="{Binding Id}" ImageSource="{StaticResource IconEdit}" ContentLayout="Left,8"
+                <Button Grid.Column="5" Text="Р—Р°РєСЂС‹С‚" Clicked="OnClosedClicked"/>
+                <Button Grid.Column="6" Text="РР·РјРµРЅРёС‚СЊ" Clicked="OnEditClicked" CommandParameter="{Binding Id}" ImageSource="{StaticResource IconEdit}" ContentLayout="Left,8"
                         IsVisible="{Binding Source={x:Reference Name=Root}, Path=BindingContext.IsAdmin}"/>
               </Grid>
             </Frame>
@@ -54,11 +55,12 @@
         </CollectionView.ItemTemplate>
         <CollectionView.EmptyView>
           <VerticalStackLayout Padding="12" Spacing="6">
-            <Label Text="Нет договоров по выбранному фильтру" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
-            <Label Text="Измените фильтр статуса или обновите список" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+            <Label Text="РќРµС‚ РґРѕРіРѕРІРѕСЂРѕРІ РїРѕ РІС‹Р±СЂР°РЅРЅРѕРјСѓ С„РёР»СЊС‚СЂСѓ" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
+            <Label Text="РР·РјРµРЅРёС‚Рµ С„РёР»СЊС‚СЂ СЃС‚Р°С‚СѓСЃР° РёР»Рё РѕР±РЅРѕРІРёС‚Рµ СЃРїРёСЃРѕРє" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
           </VerticalStackLayout>
         </CollectionView.EmptyView>
       </CollectionView>
     </VerticalStackLayout>
   </ContentPage.Content>
 </ContentPage>
+

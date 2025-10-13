@@ -11,3 +11,4 @@ public partial class ClientCreatePage : ContentPage
         BindingContext = vm;
     }
 }
+

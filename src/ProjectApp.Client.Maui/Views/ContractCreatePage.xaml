@@ -1,34 +1,35 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.ContractCreatePage"
              x:Name="Root"
-             Title="Создать договор">
+             Title="РЎРѕР·РґР°С‚СЊ РґРѕРіРѕРІРѕСЂ" x:DataType="viewModels:ContractCreateViewModel">
   <ScrollView>
     <VerticalStackLayout Padding="12" Spacing="12">
-      <Entry Placeholder="Организация" Text="{Binding OrgName}"/>
-      <Entry Placeholder="ИНН" Text="{Binding Inn}"/>
-      <Entry Placeholder="Телефон" Text="{Binding Phone}"/>
+      <Entry Placeholder="РћСЂРіР°РЅРёР·Р°С†РёСЏ" Text="{Binding OrgName}"/>
+      <Entry Placeholder="РРќРќ" Text="{Binding Inn}"/>
+      <Entry Placeholder="РўРµР»РµС„РѕРЅ" Text="{Binding Phone}"/>
       <HorizontalStackLayout Spacing="12">
-        <Label Text="Статус:" VerticalTextAlignment="Center"/>
+        <Label Text="РЎС‚Р°С‚СѓСЃ:" VerticalTextAlignment="Center"/>
         <Picker ItemsSource="{Binding Statuses}" SelectedItem="{Binding Status}" WidthRequest="180"/>
       </HorizontalStackLayout>
-      <Editor Placeholder="Заметка" Text="{Binding Note}" HeightRequest="80"/>
+      <Editor Placeholder="Р—Р°РјРµС‚РєР°" Text="{Binding Note}" HeightRequest="80"/>
 
-      <Label Text="Позиции" FontAttributes="Bold"/>
+      <Label Text="РџРѕР·РёС†РёРё" FontAttributes="Bold"/>
       <Grid ColumnDefinitions="Auto,*,80,100,auto" ColumnSpacing="8" RowDefinitions="Auto,Auto">
-        <Button Grid.Column="0" Text="Выбрать товар" Clicked="OnPickProductClicked"/>
-        <Entry Grid.Column="1" Placeholder="Название" Text="{Binding NewName}"/>
-        <Entry Grid.Column="2" Placeholder="Ед." Text="{Binding NewUnit}"/>
-        <Entry Grid.Column="3" Placeholder="Кол-во" Keyboard="Numeric" Text="{Binding NewQty}"/>
-        <Entry Grid.Column="4" Placeholder="Цена" Keyboard="Numeric" Text="{Binding NewUnitPrice}"/>
+        <Button Grid.Column="0" Text="Р’С‹Р±СЂР°С‚СЊ С‚РѕРІР°СЂ" Clicked="OnPickProductClicked"/>
+        <Entry Grid.Column="1" Placeholder="РќР°Р·РІР°РЅРёРµ" Text="{Binding NewName}"/>
+        <Entry Grid.Column="2" Placeholder="Р•Рґ." Text="{Binding NewUnit}"/>
+        <Entry Grid.Column="3" Placeholder="РљРѕР»-РІРѕ" Keyboard="Numeric" Text="{Binding NewQty}"/>
+        <Entry Grid.Column="4" Placeholder="Р¦РµРЅР°" Keyboard="Numeric" Text="{Binding NewUnitPrice}"/>
       </Grid>
       <HorizontalStackLayout Spacing="12">
         <Label Text="{Binding SelectedNd40Qty, StringFormat='ND-40: {0}'}" FontSize="11"/>
         <Label Text="{Binding SelectedIm40Qty, StringFormat='IM-40: {0}'}" FontSize="11"/>
-        <Label Text="{Binding SelectedTotalQty, StringFormat='Всего: {0}'}" FontSize="11"/>
+        <Label Text="{Binding SelectedTotalQty, StringFormat='Р’СЃРµРіРѕ: {0}'}" FontSize="11"/>
       </HorizontalStackLayout>
-      <Button Text="Добавить позицию" Command="{Binding AddItemCommand}"/>
+      <Button Text="Р”РѕР±Р°РІРёС‚СЊ РїРѕР·РёС†РёСЋ" Command="{Binding AddItemCommand}"/>
       <Label TextColor="Red" Text="{Binding EditorMessage}"/>
 
       <CollectionView ItemsSource="{Binding Items}">
@@ -39,15 +40,16 @@
               <Label Grid.Column="1" Text="{Binding Unit}"/>
               <Label Grid.Column="2" Text="{Binding Qty}"/>
               <Label Grid.Column="3" Text="{Binding UnitPrice}"/>
-              <Button Grid.Column="4" Text="Удалить" Command="{Binding Source={x:Reference Name=Root}, Path=BindingContext.RemoveItemCommand}" CommandParameter="{Binding .}"/>
+              <Button Grid.Column="4" Text="РЈРґР°Р»РёС‚СЊ" Command="{Binding Source={x:Reference Name=Root}, Path=BindingContext.RemoveItemCommand}" CommandParameter="{Binding .}"/>
             </Grid>
           </DataTemplate>
         </CollectionView.ItemTemplate>
       </CollectionView>
 
-      <Button Text="Создать договор" Command="{Binding CreateCommand}"/>
+      <Button Text="РЎРѕР·РґР°С‚СЊ РґРѕРіРѕРІРѕСЂ" Command="{Binding CreateCommand}"/>
       <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"/>
       <Label TextColor="Red" Text="{Binding StatusMessage}"/>
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>
+

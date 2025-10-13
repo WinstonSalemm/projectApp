@@ -1,9 +1,11 @@
+﻿using System;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls;
+using ProjectApp.Client.Maui;
 using ProjectApp.Client.Maui.Services;
-using System.Threading.Tasks;
 
 namespace ProjectApp.Client.Maui.ViewModels;
 
@@ -19,7 +21,7 @@ public partial class LoginViewModel : ObservableObject
     private string password = string.Empty;
 
     [ObservableProperty]
-    private bool isPasswordVisible = true; // покажем поле, но оно опционально
+    private bool isPasswordVisible = true;
 
     public LoginViewModel(AuthService auth, IServiceProvider services)
     {
@@ -30,23 +32,23 @@ public partial class LoginViewModel : ObservableObject
     [RelayCommand]
     private async Task LoginAsync()
     {
-        // Если пароль пустой — отправим null (для менеджера)
         var ok = await _auth.LoginAsync(UserName, string.IsNullOrWhiteSpace(Password) ? null : Password);
         if (!ok)
         {
-            await Application.Current!.MainPage!.DisplayAlert("Ошибка", "Не удалось войти", "OK");
+            await NavigationHelper.DisplayAlert("Error", "Unable to sign in", "OK");
             return;
         }
-        // Роутинг по роли
+
         if (string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase))
         {
-            var admin = _services.GetRequiredService<ProjectApp.Client.Maui.Views.AdminDashboardPage>();
-            Application.Current!.MainPage = new NavigationPage(admin);
+            var shell = _services.GetRequiredService<AppShell>();
+            shell.RefreshRoleState();
+            NavigationHelper.SetRoot(shell);
         }
         else
         {
             var pay = _services.GetRequiredService<ProjectApp.Client.Maui.Views.PaymentSelectPage>();
-            Application.Current!.MainPage = new NavigationPage(pay);
+            NavigationHelper.SetRoot(new NavigationPage(pay));
         }
     }
 }

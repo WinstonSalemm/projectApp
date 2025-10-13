@@ -73,3 +73,4 @@ public partial class StocksViewModel : ObservableObject
         _ = RefreshAsync();
     }
 }
+

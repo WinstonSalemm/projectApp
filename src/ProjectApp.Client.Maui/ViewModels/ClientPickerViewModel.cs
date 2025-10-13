@@ -61,6 +61,8 @@ public partial class ClientPickerViewModel : ObservableObject
     {
         if (item == null) return;
         WeakReferenceMessenger.Default.Send(new ClientPickedMessage(item.Id, item.Name));
-        try { await Application.Current!.MainPage!.Navigation.PopAsync(); } catch { }
+        try { await NavigationHelper.PopAsync(); } catch { }
     }
 }
+
+

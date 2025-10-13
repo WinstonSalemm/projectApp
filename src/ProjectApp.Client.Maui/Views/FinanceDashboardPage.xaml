@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             x:Class="ProjectApp.Client.Maui.Views.FinanceDashboardPage"
+             Title="Р¤РёРЅР°РЅСЃС‹" x:DataType="viewModels:FinanceDashboardViewModel">
+  <ScrollView>
+    <VerticalStackLayout Padding="24" Spacing="16">
+      <!-- Period controls -->
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="12">
+        <Label Text="РћС‚:" VerticalTextAlignment="Center"/>
+        <DatePicker Grid.Column="1" Date="{Binding From}"/>
+        <Label Grid.Column="2" Text="Р”Рѕ:" VerticalTextAlignment="Center"/>
+        <DatePicker Grid.Column="3" Date="{Binding To}"/>
+        <Button Grid.Column="4" Text="7Рґ" Command="{Binding SetPresetDaysCommand}" CommandParameter="7" Style="{StaticResource OutlinedButton}"/>
+        <Button Grid.Column="5" Text="30Рґ" Command="{Binding SetPresetDaysCommand}" CommandParameter="30" Style="{StaticResource OutlinedButton}"/>
+        <Button Grid.Column="6" Text="90Рґ" Command="{Binding SetPresetDaysCommand}" CommandParameter="90" Style="{StaticResource OutlinedButton}"/>
+      </Grid>
+      <Button Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding RefreshAllCommand}" Style="{StaticResource CtaPrimary}"/>
+
+      <!-- Key metrics -->
+      <Label Text="РљР»СЋС‡РµРІС‹Рµ РјРµС‚СЂРёРєРё" Style="{StaticResource SectionTitle}"/>
+      <FlexLayout Direction="Row" Wrap="Wrap" JustifyContent="Start" AlignItems="Start" AlignContent="Start" >
+        <!-- Revenue -->
+        <Frame Style="{StaticResource CardFrame}" Margin="0,0,12,12" WidthRequest="320">
+          <VerticalStackLayout Spacing="6">
+            <Label Text="Р’С‹СЂСѓС‡РєР°" FontAttributes="Bold"/>
+            <Label Text="{Binding Revenue, Converter={StaticResource CurrencyConverter}}" FontSize="20"/>
+            <Label Text="{Binding RevenueDeltaPercent, StringFormat='О” {0:N1}% vs prev'}" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+          </VerticalStackLayout>
+        </Frame>
+        <!-- COGS -->
+        <Frame Style="{StaticResource CardFrame}" Margin="0,0,12,12" WidthRequest="320">
+          <VerticalStackLayout Spacing="6">
+            <Label Text="РЎРµР±РµСЃС‚РѕРёРјРѕСЃС‚СЊ" FontAttributes="Bold"/>
+            <Label Text="{Binding Cogs, Converter={StaticResource CurrencyConverter}}" FontSize="20"/>
+          </VerticalStackLayout>
+        </Frame>
+        <!-- Gross Profit -->
+        <Frame Style="{StaticResource CardFrame}" Margin="0,0,12,12" WidthRequest="320">
+          <VerticalStackLayout Spacing="6">
+            <Label Text="Р’Р°Р»РѕРІР°СЏ РїСЂРёР±С‹Р»СЊ" FontAttributes="Bold"/>
+            <Label Text="{Binding GrossProfit, Converter={StaticResource CurrencyConverter}}" FontSize="20"/>
+          </VerticalStackLayout>
+        </Frame>
+        <!-- Net Profit -->
+        <Frame Style="{StaticResource CardFrame}" Margin="0,0,12,12" WidthRequest="320">
+          <VerticalStackLayout Spacing="6">
+            <Label Text="Р§РёСЃС‚Р°СЏ РїСЂРёР±С‹Р»СЊ" FontAttributes="Bold"/>
+            <Label Text="{Binding NetProfit, Converter={StaticResource CurrencyConverter}}" FontSize="20"/>
+            <Label Text="{Binding NetProfitDeltaPercent, StringFormat='О” {0:N1}% vs prev'}" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+          </VerticalStackLayout>
+        </Frame>
+        <!-- Margin -->
+        <Frame Style="{StaticResource CardFrame}" Margin="0,0,12,12" WidthRequest="320">
+          <VerticalStackLayout Spacing="6">
+            <Label Text="РњР°СЂР¶Р°, %" FontAttributes="Bold"/>
+            <Label Text="{Binding MarginPercent, StringFormat='{0:N1} %'}" FontSize="20"/>
+          </VerticalStackLayout>
+        </Frame>
+        <!-- Expenses -->
+        <Frame Style="{StaticResource CardFrame}" Margin="0,0,12,12" WidthRequest="320">
+          <VerticalStackLayout Spacing="6">
+            <Label Text="Р Р°СЃС…РѕРґС‹" FontAttributes="Bold"/>
+            <Label Text="{Binding Expenses, Converter={StaticResource CurrencyConverter}}" FontSize="20"/>
+          </VerticalStackLayout>
+        </Frame>
+        <!-- Taxes -->
+        <Frame Style="{StaticResource CardFrame}" Margin="0,0,12,12" WidthRequest="320">
+          <VerticalStackLayout Spacing="6">
+            <Label Text="РќР°Р»РѕРіРё" FontAttributes="Bold"/>
+            <Label Text="{Binding TaxesPaid, Converter={StaticResource CurrencyConverter}}" FontSize="20"/>
+          </VerticalStackLayout>
+        </Frame>
+        <!-- Sales Count -->
+        <Frame Style="{StaticResource CardFrame}" Margin="0,0,12,12" WidthRequest="320">
+          <VerticalStackLayout Spacing="6">
+            <Label Text="РљРѕР»-РІРѕ РїСЂРѕРґР°Р¶" FontAttributes="Bold"/>
+            <Label Text="{Binding SalesCount}" FontSize="20"/>
+          </VerticalStackLayout>
+        </Frame>
+        <!-- Unique Clients -->
+        <Frame Style="{StaticResource CardFrame}" Margin="0,0,12,12" WidthRequest="320">
+          <VerticalStackLayout Spacing="6">
+            <Label Text="РЈРЅРёРєР°Р»СЊРЅС‹Рµ РєР»РёРµРЅС‚С‹" FontAttributes="Bold"/>
+            <Label Text="{Binding UniqueClients}" FontSize="20"/>
+          </VerticalStackLayout>
+        </Frame>
+        <!-- Avg Inventory -->
+        <Frame Style="{StaticResource CardFrame}" Margin="0,0,12,12" WidthRequest="320">
+          <VerticalStackLayout Spacing="6">
+            <Label Text="РЎСЂРµРґРЅСЏСЏ СЃС‚РѕРёРјРѕСЃС‚СЊ СЃРєР»Р°РґР°" FontAttributes="Bold"/>
+            <Label Text="{Binding AverageInventory, Converter={StaticResource CurrencyConverter}}" FontSize="20"/>
+          </VerticalStackLayout>
+        </Frame>
+      </FlexLayout>
+
+      <!-- РўРµС…РЅРёС‡РµСЃРєРёРµ РґРµС‚Р°Р»Рё (РїРѕ Р¶РµР»Р°РЅРёСЋ РјРѕР¶РЅРѕ СЃРєСЂС‹С‚СЊ) -->
+      <Label Text="РўРµС…РЅРёС‡РµСЃРєРёРµ РґР°РЅРЅС‹Рµ (JSON)" Style="{StaticResource SectionTitle}"/>
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+        <Editor Grid.ColumnSpan="2" Text="{Binding SummaryJson}" AutoSize="TextChanges" IsReadOnly="True" HeightRequest="120"/>
+        <Editor Grid.Column="0" Text="{Binding KpiJson}" AutoSize="TextChanges" IsReadOnly="True" HeightRequest="110"/>
+        <Editor Grid.Column="1" Text="{Binding CashflowJson}" AutoSize="TextChanges" IsReadOnly="True" HeightRequest="110"/>
+      </Grid>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>
+

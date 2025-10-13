@@ -20,3 +20,4 @@ public partial class HistoryTabsPage : TabbedPage
         Children.Add(contracts);
     }
 }
+

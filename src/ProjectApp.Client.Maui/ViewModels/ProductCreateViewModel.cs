@@ -106,3 +106,4 @@ public partial class ProductCreateViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 }
+

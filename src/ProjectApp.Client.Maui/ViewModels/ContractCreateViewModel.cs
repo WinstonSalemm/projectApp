@@ -104,7 +104,7 @@ public partial class ContractCreateViewModel : ObservableObject
                 try
                 {
                     var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
-                    Application.Current!.MainPage = new NavigationPage(select);
+                    NavigationHelper.SetRoot(new NavigationPage(select));
                 }
                 catch { }
             }
@@ -117,3 +117,5 @@ public partial class ContractCreateViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 }
+
+

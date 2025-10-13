@@ -74,3 +74,4 @@ public partial class ContractsHistoryViewModel : ObservableObject
         finally { IsLoading = false; }
     }
 }
+

@@ -1,7 +1,18 @@
 {
   "profiles": {
     "ProjectApp.Client.Maui": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "targetFramework": "net9.0-windows10.0.19041.0"
+    },
+    "ProjectApp.Client.Maui (Windows)": {
+      "commandName": "MsixPackage",
+      "nativeDebugging": false,
+      "targetFramework": "net9.0-windows10.0.19041.0"
+    },
+    "ProjectApp.Client.Maui (Android Tablet)": {
+      "commandName": "Project",
+      "targetFramework": "net9.0-android34.0",
+      "dotnetRunMessages": true
     },
     "WSL": {
       "commandName": "WSL2",

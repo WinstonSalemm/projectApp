@@ -1,71 +1,74 @@
 # ProjectApp.Client.Maui
 
-A minimal .NET MAUI client for quick sales with mock/API switch.
+Modern adaptive client for ProjectApp, built with .NET MAUI.
 
-## Features
-- QuickSalePage (MVVM):
-  - Search by SKU/Name with 300ms debounce
-  - Add items to cart, quantity Stepper, totals
-  - PaymentType selection (CashWithReceipt, CashNoReceipt, CardWithReceipt, Click)
-  - "Провести" button (mock success)
-- Services with DI: ICatalogService/ISalesService
-  - Mock* (default)
-  - Api* (calls ProjectApp.Api: GET /api/products, POST /api/sales)
-- Offline banner when using mocks (UseApi=false)
+## Highlights
+- Unified design system with light/dark themes, Inter font family, and tokenised spacing/radius scales.
+- Adaptive navigation:
+  - Windows desktop: left navigation rail + content pane.
+  - Android tablet (Samsung Galaxy Tab class): bottom tab bar + top app bar.
+- Responsive pages with Compact / Medium / Expanded breakpoints and CollectionView grid layouts.
+- Reusable UI components (`TopAppBar`, `ListItemView`, `EmptyStateView`) wired into the design tokens.
+- Dual service routing (mock vs API) configured via DI and `appsettings.json`.
 
-## Structure
-- `Models/` — basic models (ProductModel, CartItemModel, PaymentType)
-- `Services/` — interfaces and implementations (Mock*, Api*)
-- `ViewModels/` — `QuickSaleViewModel`
-- `Views/` — `QuickSalePage`
+## Project Layout
+| Folder | Purpose |
+|--------|---------|
+| `Controls/` | Reusable composite controls used across pages. |
+| `Resources/Styles/` | Token dictionaries (`DesignSystem`, `ThemeLight`, `ThemeDark`, `Controls`, `Components`). |
+| `ViewModels/` | MVVM view-models using CommunityToolkit.MVVM. |
+| `Views/` | XAML pages updated for the adaptive design language. |
+| `Services/` | DI-registered API, mock, and routed services. |
 
-## Build & Run (Windows)
-Prerequisites:
-- .NET 9 SDK
-- Visual Studio 2022 with .NET Multi-platform App UI (MAUI) workload
+## Build & Run
 
-Steps:
-1. Open terminal in repo and restore/build:
+### Prerequisites
+- .NET 9 SDK with the MAUI workloads you plan to target:
+  ```powershell
+  dotnet workload install maui maui-windows maui-android
+  ```
+- Visual Studio 2022 17.11+ with MAUI tooling (optional but recommended).
+
+### Windows (desktop)
+```powershell
+cd C:\projectApp\src
+dotnet restore
+dotnet build ProjectApp.Client.Maui/ProjectApp.Client.Maui.csproj -f net9.0-windows10.0.19041.0
+dotnet build ProjectApp.Client.Maui/ProjectApp.Client.Maui.csproj -t:Run -f net9.0-windows10.0.19041.0
+```
+Or select **ProjectApp.Client.Maui (Windows)** launch profile in Visual Studio and run (F5).
+
+### Android Tablet (Samsung Galaxy Tab 7 class)
+1. Install Android SDK platform 34 and create an emulator that matches Samsung Galaxy Tab 7:
+   - Device: **Pixel Tablet** (or create a custom device 2560x1600, 8 GB RAM).
+   - Orientation: Landscape by default.
+   - Target: Android 14 (API 34).
+2. Ensure AVD is running.
+3. Build & deploy:
    ```powershell
    cd C:\projectApp\src
-   dotnet restore
-   dotnet build ProjectApp.Client.Maui/ProjectApp.Client.Maui.csproj
+   dotnet build ProjectApp.Client.Maui/ProjectApp.Client.Maui.csproj -f net9.0-android34.0
+   dotnet build ProjectApp.Client.Maui/ProjectApp.Client.Maui.csproj -t:Run -f net9.0-android34.0
    ```
-2. Run MAUI Windows target:
-   ```powershell
-   dotnet build -t:Run -f net9.0-windows10.0.19041.0 ProjectApp.Client.Maui/ProjectApp.Client.Maui.csproj
-   ```
-   Or start `ProjectApp.Client.Maui` from Visual Studio (F5) with Windows as target.
+   In Visual Studio, pick **ProjectApp.Client.Maui (Android Tablet)** and press F5. The adaptive layout switches to bottom tabs automatically.
 
-## API Mode (UseApi=true)
-The client defaults to mock services. To switch to API:
-1. Edit `ProjectApp.Client.Maui/appsettings.json`:
-   ```json
-   {
-     "UseApi": true,
-     "ApiBaseUrl": "http://localhost:5028"
-   }
-   ```
-   - Recommended base URL uses `launchSettings.json` in `ProjectApp.Api`:
-     - http: `http://localhost:5028`
-     - https: `https://localhost:7289`
-2. Start the API in another terminal:
-   ```powershell
-   cd C:\projectApp\src\ProjectApp.Api
-   dotnet run --launch-profile http
-   ```
-3. Run the MAUI client (see above). The yellow banner disappears in API mode. Search pulls data from `/api/products`, and "Провести" posts to `/api/sales`.
+## API vs Mock Services
+`appsettings.json` controls the service layer. Set `UseApi` to `true` and point `ApiBaseUrl` to the running backend (see `ProjectApp.Api` project) to consume live endpoints. Otherwise the client stays in mock mode with offline-ready data.
 
-## Verify mock → API
-- Mock mode (`UseApi=false`):
-  - Banner "Оффлайн режим (моки)"
-  - Search returns 2–3 seeded mock products.
-  - Провести always shows success.
-- API mode (`UseApi=true` with Api running):
-  - Banner hidden.
-  - Search results come from server seed (`AppDbContext` `HasData`).
-  - Провести posts sale and shows success if HTTP 201.
+## Design Tokens Cheat-Sheet
+- Breakpoints:
+  - `Breakpoint.Compact` = 800 px
+  - `Breakpoint.Medium` = 1200 px
+- Typography: `Font.Size.Display`, `Font.Size.H1/H2/H3`, `Font.Size.Body`, etc.
+- Spacing: `Space.0` … `Space.10`
+- Radii: `Radius.4` … `Radius.24`
+- Buttons: `Button.Primary`, `Button.Secondary`, `Button.Tertiary`, `Button.Destructive`
+- Cards: `Card.Container`, `Chip.Standard`
 
-## Notes
-- Enum `PaymentType` is sent as string to API (API uses `JsonStringEnumConverter`).
-- Stepper binds to double `Qty` in `CartItemModel` for smoother UX; values are converted to decimal for API.
+## Change Log
+See `CHANGELOG.md` for the complete list of redesign updates.
+
+## Troubleshooting
+- **Missing workloads**: ensure `dotnet workload list` shows `maui`, `maui-windows`, and `maui-android`.
+- **Android emulator not visible**: restart the Android Emulator Manager and ensure Hyper-V / HAXM is enabled.
+- **Design resources not applied**: clean the solution (`dotnet clean`) and rebuild to force MAUI resource regeneration.

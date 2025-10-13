@@ -1,73 +1,75 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <TabbedPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
             x:Class="ProjectApp.Client.Maui.Views.UnregisteredClientPage"
-            Title="Незаписанные">
+            Title="РќРµР·Р°РїРёСЃР°РЅРЅС‹Рµ">
   <TabbedPage.ToolbarItems>
-    <ToolbarItem Text="Обновить" Command="{Binding RefreshAllCommand}" IconImageSource="{StaticResource IconRefresh}"/>
+    <ToolbarItem Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding RefreshAllCommand}" IconImageSource="{StaticResource IconRefresh}"/>
   </TabbedPage.ToolbarItems>
 
-  <ContentPage Title="Продажи">
+  <ContentPage Title="РџСЂРѕРґР°Р¶Рё" x:DataType="viewModels:UnregisteredClientViewModel">
     <Grid Padding="16" RowDefinitions="Auto,*" RowSpacing="10">
       <HorizontalStackLayout Grid.Row="0" Spacing="8">
-        <Label Text="От:" VerticalTextAlignment="Center"/>
+        <Label Text="РћС‚:" VerticalTextAlignment="Center"/>
         <DatePicker Date="{Binding DateFrom}"/>
-        <Label Text="До:" VerticalTextAlignment="Center"/>
+        <Label Text="Р”Рѕ:" VerticalTextAlignment="Center"/>
         <DatePicker Date="{Binding DateTo}"/>
-        <Button Text="Обновить" Command="{Binding RefreshSalesCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8"/>
+        <Button Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding RefreshSalesCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8"/>
       </HorizontalStackLayout>
       <CollectionView Grid.Row="1" ItemsSource="{Binding Sales}">
         <CollectionView.ItemTemplate>
           <DataTemplate>
             <Frame Padding="10" HasShadow="False" CornerRadius="10">
               <VerticalStackLayout Spacing="6">
-                <Label Text="{Binding Id, StringFormat='Продажа #{0}'}" FontAttributes="Bold"/>
+                <Label Text="{Binding Id, StringFormat='РџСЂРѕРґР°Р¶Р° #{0}'}" FontAttributes="Bold"/>
                 <Label Text="{Binding CreatedAt, Converter={StaticResource DateTimeToRuConverter}}" FontSize="12" TextColor="Gray"/>
-                <Label Text="{Binding PaymentType, Converter={StaticResource PaymentTypeToRuConverter}, StringFormat='Оплата: {0}'}"/>
-                <Label Text="{Binding Total, Converter={StaticResource CurrencyConverter}, StringFormat='Сумма: {0}'}"/>
+                <Label Text="{Binding PaymentType, Converter={StaticResource PaymentTypeToRuConverter}, StringFormat='РћРїР»Р°С‚Р°: {0}'}"/>
+                <Label Text="{Binding Total, Converter={StaticResource CurrencyConverter}, StringFormat='РЎСѓРјРјР°: {0}'}"/>
               </VerticalStackLayout>
             </Frame>
           </DataTemplate>
         </CollectionView.ItemTemplate>
         <CollectionView.EmptyView>
           <VerticalStackLayout Padding="12" Spacing="6">
-            <Label Text="Нет продаж" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
-            <Label Text="Измените даты и обновите список" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+            <Label Text="РќРµС‚ РїСЂРѕРґР°Р¶" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
+            <Label Text="РР·РјРµРЅРёС‚Рµ РґР°С‚С‹ Рё РѕР±РЅРѕРІРёС‚Рµ СЃРїРёСЃРѕРє" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
           </VerticalStackLayout>
         </CollectionView.EmptyView>
       </CollectionView>
     </Grid>
   </ContentPage>
 
-  <ContentPage Title="Возвраты">
+  <ContentPage Title="Р’РѕР·РІСЂР°С‚С‹" x:DataType="viewModels:UnregisteredClientViewModel">
     <Grid Padding="16" RowDefinitions="Auto,*" RowSpacing="10">
       <HorizontalStackLayout Grid.Row="0" Spacing="8">
-        <Label Text="От:" VerticalTextAlignment="Center"/>
+        <Label Text="РћС‚:" VerticalTextAlignment="Center"/>
         <DatePicker Date="{Binding DateFrom}"/>
-        <Label Text="До:" VerticalTextAlignment="Center"/>
+        <Label Text="Р”Рѕ:" VerticalTextAlignment="Center"/>
         <DatePicker Date="{Binding DateTo}"/>
-        <Button Text="Обновить" Command="{Binding RefreshReturnsCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8"/>
+        <Button Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding RefreshReturnsCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8"/>
       </HorizontalStackLayout>
       <CollectionView Grid.Row="1" ItemsSource="{Binding Returns}">
         <CollectionView.ItemTemplate>
           <DataTemplate>
             <Frame Padding="10" HasShadow="False" CornerRadius="10">
               <VerticalStackLayout Spacing="6">
-                <Label Text="{Binding Id, StringFormat='Возврат #{0}'}" FontAttributes="Bold"/>
+                <Label Text="{Binding Id, StringFormat='Р’РѕР·РІСЂР°С‚ #{0}'}" FontAttributes="Bold"/>
                 <Label Text="{Binding CreatedAt, Converter={StaticResource DateTimeToRuConverter}}" FontSize="12" TextColor="Gray"/>
-                <Label Text="{Binding Sum, Converter={StaticResource CurrencyConverter}, StringFormat='Сумма: {0}'}"/>
-                <Label Text="{Binding Reason, StringFormat='Причина: {0}'}"/>
+                <Label Text="{Binding Sum, Converter={StaticResource CurrencyConverter}, StringFormat='РЎСѓРјРјР°: {0}'}"/>
+                <Label Text="{Binding Reason, StringFormat='РџСЂРёС‡РёРЅР°: {0}'}"/>
               </VerticalStackLayout>
             </Frame>
           </DataTemplate>
         </CollectionView.ItemTemplate>
         <CollectionView.EmptyView>
           <VerticalStackLayout Padding="12" Spacing="6">
-            <Label Text="Нет возвратов" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
-            <Label Text="Измените даты и обновите список" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+            <Label Text="РќРµС‚ РІРѕР·РІСЂР°С‚РѕРІ" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
+            <Label Text="РР·РјРµРЅРёС‚Рµ РґР°С‚С‹ Рё РѕР±РЅРѕРІРёС‚Рµ СЃРїРёСЃРѕРє" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
           </VerticalStackLayout>
         </CollectionView.EmptyView>
       </CollectionView>
     </Grid>
   </ContentPage>
 </TabbedPage>
+

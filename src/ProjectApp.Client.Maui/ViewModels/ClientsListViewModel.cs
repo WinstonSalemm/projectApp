@@ -60,7 +60,7 @@ public partial class ClientsListViewModel : ObservableObject
     private async Task OpenCreateAsync()
     {
         var page = _services.GetService<ProjectApp.Client.Maui.Views.ClientCreatePage>();
-        if (page != null) await Application.Current!.MainPage!.Navigation.PushAsync(page);
+        if (page != null) await NavigationHelper.PushAsync(page);
     }
 
     [RelayCommand]
@@ -73,7 +73,7 @@ public partial class ClientsListViewModel : ObservableObject
         {
             await vm.LoadAsync(item.Id);
         }
-        await Application.Current!.MainPage!.Navigation.PushAsync(page);
+        await NavigationHelper.PushAsync(page);
     }
 
     [RelayCommand]
@@ -85,6 +85,8 @@ public partial class ClientsListViewModel : ObservableObject
         {
             await vm.LoadAsync();
         }
-        await Application.Current!.MainPage!.Navigation.PushAsync(page);
+        await NavigationHelper.PushAsync(page);
     }
 }
+
+

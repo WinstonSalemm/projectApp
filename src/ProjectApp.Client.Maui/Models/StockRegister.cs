@@ -5,3 +5,4 @@ public enum StockRegister
     ND40 = 0,
     IM40 = 1
 }
+

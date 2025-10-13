@@ -1,33 +1,34 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.UserSelectPage"
-             Title="Выбор пользователя">
+             Title="Р’С‹Р±РѕСЂ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ" x:DataType="viewModels:UserSelectViewModel">
   <ContentPage.ToolbarItems>
-    <ToolbarItem Text="Настройки" Clicked="OnSettingsClicked" />
+    <ToolbarItem Text="РќР°СЃС‚СЂРѕР№РєРё" Clicked="OnSettingsClicked" />
   </ContentPage.ToolbarItems>
   <ScrollView>
     <VerticalStackLayout Padding="24" Spacing="16">
-      <Label Text="Кто работает сейчас?" FontAttributes="Bold" FontSize="22"/>
+      <Label Text="РљС‚Рѕ СЂР°Р±РѕС‚Р°РµС‚ СЃРµР№С‡Р°СЃ?" FontAttributes="Bold" FontSize="22"/>
 
       <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="16">
-        <!-- 6 менеджеров -->
-        <Button Text="Лилия" Grid.Row="0" Grid.Column="0" Command="{Binding LoginManagerCommand}" CommandParameter="liliya" HeightRequest="64" FontSize="18" />
-        <Button Text="Тимур"  Grid.Row="0" Grid.Column="1" Command="{Binding LoginManagerCommand}" CommandParameter="timur" HeightRequest="64" FontSize="18" />
+        <!-- 6 РјРµРЅРµРґР¶РµСЂРѕРІ -->
+        <Button Text="Р›РёР»РёСЏ" Grid.Row="0" Grid.Column="0" Command="{Binding LoginManagerCommand}" CommandParameter="liliya" HeightRequest="64" FontSize="18" />
+        <Button Text="РўРёРјСѓСЂ"  Grid.Row="0" Grid.Column="1" Command="{Binding LoginManagerCommand}" CommandParameter="timur" HeightRequest="64" FontSize="18" />
 
-        <Button Text="Валерий" Grid.Row="1" Grid.Column="0" Command="{Binding LoginManagerCommand}" CommandParameter="valeriy" HeightRequest="64" FontSize="18" />
-        <Button Text="Альберт" Grid.Row="1" Grid.Column="1" Command="{Binding LoginManagerCommand}" CommandParameter="albert" HeightRequest="64" FontSize="18" />
+        <Button Text="Р’Р°Р»РµСЂРёР№" Grid.Row="1" Grid.Column="0" Command="{Binding LoginManagerCommand}" CommandParameter="valeriy" HeightRequest="64" FontSize="18" />
+        <Button Text="РђР»СЊР±РµСЂС‚" Grid.Row="1" Grid.Column="1" Command="{Binding LoginManagerCommand}" CommandParameter="albert" HeightRequest="64" FontSize="18" />
 
-        <Button Text="Расим" Grid.Row="2" Grid.Column="0" Command="{Binding LoginManagerCommand}" CommandParameter="rasim" HeightRequest="64" FontSize="18" />
-        <Button Text="Алишер" Grid.Row="2" Grid.Column="1" Command="{Binding LoginManagerCommand}" CommandParameter="alisher" HeightRequest="64" FontSize="18" />
+        <Button Text="Р Р°СЃРёРј" Grid.Row="2" Grid.Column="0" Command="{Binding LoginManagerCommand}" CommandParameter="rasim" HeightRequest="64" FontSize="18" />
+        <Button Text="РђР»РёС€РµСЂ" Grid.Row="2" Grid.Column="1" Command="{Binding LoginManagerCommand}" CommandParameter="alisher" HeightRequest="64" FontSize="18" />
 
-        <!-- Магазин и Админ (увеличенные кнопки) -->
-        <Button Text="МАГАЗИН"
+        <!-- РњР°РіР°Р·РёРЅ Рё РђРґРјРёРЅ (СѓРІРµР»РёС‡РµРЅРЅС‹Рµ РєРЅРѕРїРєРё) -->
+        <Button Text="РњРђР“РђР—РРќ"
                 Grid.Row="3" Grid.Column="0"
                 Command="{Binding LoginShopCommand}"
                 HeightRequest="84"
                 FontSize="22" />
-        <Button Text="АДМИН"
+        <Button Text="РђР”РњРРќ"
                 Grid.Row="3" Grid.Column="1"
                 Command="{Binding LoginAdminCommand}"
                 HeightRequest="84"
@@ -36,3 +37,4 @@
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>
+

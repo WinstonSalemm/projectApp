@@ -11,3 +11,4 @@ public partial class SuppliesHistoryPage : ContentPage
         BindingContext = vm;
     }
 }
+
