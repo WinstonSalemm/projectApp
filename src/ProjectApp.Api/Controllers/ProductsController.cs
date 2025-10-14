@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ProjectApp.Api.Models;
 using ProjectApp.Api.Repositories;
 using ProjectApp.Api.Dtos;
@@ -14,57 +15,87 @@ public class ProductsController : ControllerBase
 {
     private readonly IProductRepository _repository;
     private readonly AppDbContext _db;
+    private readonly ILogger<ProductsController> _logger;
 
-    public ProductsController(IProductRepository repository, AppDbContext db)
+    public ProductsController(IProductRepository repository, AppDbContext db, ILogger<ProductsController> logger)
     {
         _repository = repository;
         _db = db;
+        _logger = logger;
     }
 
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<ProductDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<ProductDto>>> Get([FromQuery] string? query = null, [FromQuery] int page = 1, [FromQuery] int size = 50, [FromQuery] string? category = null, CancellationToken ct = default)
     {
-        if (page < 1) page = 1;
-        if (size < 1) size = 50;
-
-        var total = await _repository.CountAsync(query, category, ct);
-        var items = await _repository.SearchAsync(query, page, size, category, ct);
-        var dtoItems = items.Select(p => new ProductDto
+        try
         {
-            Id = p.Id,
-            Name = p.Name,
-            Sku = p.Sku,
-            UnitPrice = p.Price,
-            Category = p.Category
-        }).ToList();
+            _logger.LogInformation("[ProductsController] Get: query={Query}, page={Page}, size={Size}, category={Category}", query, page, size, category);
+            if (page < 1) page = 1;
+            if (size < 1) size = 50;
 
-        var result = new PagedResult<ProductDto>
+            var total = await _repository.CountAsync(query, category, ct);
+            _logger.LogInformation("[ProductsController] CountAsync returned: {Total}", total);
+            
+            var items = await _repository.SearchAsync(query, page, size, category, ct);
+            _logger.LogInformation("[ProductsController] SearchAsync returned: {Count} items", items?.Count() ?? 0);
+            
+            var dtoItems = items.Select(p => new ProductDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Sku = p.Sku,
+                UnitPrice = p.Price,
+                Category = p.Category
+            }).ToList();
+
+            var result = new PagedResult<ProductDto>
+            {
+                Items = dtoItems,
+                Total = total,
+                Page = page,
+                Size = size
+            };
+
+            _logger.LogInformation("[ProductsController] Returning {Count} items", dtoItems.Count);
+            return Ok(result);
+        }
+        catch (Exception ex)
         {
-            Items = dtoItems,
-            Total = total,
-            Page = page,
-            Size = size
-        };
-
-        return Ok(result);
+            _logger.LogError(ex, "[ProductsController] Get failed: {Message}", ex.Message);
+            throw;
+        }
     }
 
     [HttpGet("categories")]
     [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<string>>> GetCategories(CancellationToken ct)
     {
-        // Merge directory categories with those coming from existing products
-        var repoCats = await _repository.GetCategoriesAsync(ct);
-        var dirCats = await _db.Categories.AsNoTracking().Select(c => c.Name)
-            .Where(n => n != null && n != "")
-            .ToListAsync(ct);
-        var all = repoCats.Concat(dirCats)
-            .Where(c => !string.IsNullOrWhiteSpace(c))
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(c => c)
-            .ToList();
-        return Ok(all);
+        try
+        {
+            _logger.LogInformation("[ProductsController] GetCategories started");
+            // Merge directory categories with those coming from existing products
+            var repoCats = await _repository.GetCategoriesAsync(ct);
+            _logger.LogInformation("[ProductsController] Repository categories: {Count}", repoCats?.Count() ?? 0);
+            
+            var dirCats = await _db.Categories.AsNoTracking().Select(c => c.Name)
+                .Where(n => n != null && n != "")
+                .ToListAsync(ct);
+            _logger.LogInformation("[ProductsController] Directory categories: {Count}", dirCats.Count);
+            
+            var all = repoCats.Concat(dirCats)
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(c => c)
+                .ToList();
+            _logger.LogInformation("[ProductsController] Returning {Count} categories", all.Count);
+            return Ok(all);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ProductsController] GetCategories failed: {Message}", ex.Message);
+            throw;
+        }
     }
 
     [HttpGet("lookup")]
