@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using ProjectApp.Client.Maui.Models;
 using ProjectApp.Client.Maui.Services;
 using System.Collections.ObjectModel;
@@ -10,9 +11,12 @@ public partial class ProductSelectViewModel : ObservableObject
 {
     private readonly ICatalogService _catalog;
     private readonly IStocksService _stocks;
+    private readonly ILogger<ProductSelectViewModel> _logger;
 
     [ObservableProperty] private string? query;
     [ObservableProperty] private string? selectedCategory;
+    [ObservableProperty] private string? errorMessage;
+    [ObservableProperty] private bool hasError;
 
     public class ProductRow
     {
@@ -34,10 +38,11 @@ public partial class ProductSelectViewModel : ObservableObject
     // Explicit command for XAML binding (fixes design-time 'SearchAsyncCommand not found')
     public IAsyncRelayCommand SearchAsyncCommand { get; }
 
-    public ProductSelectViewModel(ICatalogService catalog, IStocksService stocks)
+    public ProductSelectViewModel(ICatalogService catalog, IStocksService stocks, ILogger<ProductSelectViewModel> logger)
     {
         _catalog = catalog;
         _stocks = stocks;
+        _logger = logger;
         SearchAsyncCommand = new AsyncRelayCommand(SearchAsync);
         _ = LoadCategoriesAsync();
         _ = SearchAsync();
@@ -49,9 +54,19 @@ public partial class ProductSelectViewModel : ObservableObject
         try
         {
             IsBusy = true;
+            HasError = false;
+            ErrorMessage = null;
+            _logger.LogInformation("[ProductSelectViewModel] LoadCategoriesAsync started");
             Categories.Clear();
             var cats = await _catalog.GetCategoriesAsync();
+            _logger.LogInformation("[ProductSelectViewModel] LoadCategoriesAsync received {Count} categories", cats?.Count() ?? 0);
             foreach (var c in cats) Categories.Add(c);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ProductSelectViewModel] LoadCategoriesAsync failed");
+            HasError = true;
+            ErrorMessage = $"Ошибка загрузки категорий: {ex.Message}";
         }
         finally { IsBusy = false; }
     }
@@ -62,9 +77,17 @@ public partial class ProductSelectViewModel : ObservableObject
         try
         {
             IsBusy = true;
+            HasError = false;
+            ErrorMessage = null;
             Results.Clear();
+            
+            _logger.LogInformation("[ProductSelectViewModel] SearchAsync started: query={Query}, category={Category}", Query, SelectedCategory);
             var list = await _catalog.SearchAsync(Query, SelectedCategory);
+            _logger.LogInformation("[ProductSelectViewModel] SearchAsync received {Count} products", list?.Count() ?? 0);
+            
             var stockList = await _stocks.GetStocksAsync(Query, SelectedCategory);
+            _logger.LogInformation("[ProductSelectViewModel] SearchAsync received {Count} stocks", stockList?.Count() ?? 0);
+            
             var stockMap = stockList.ToDictionary(s => s.ProductId, s => s);
             foreach (var p in list)
             {
@@ -81,6 +104,13 @@ public partial class ProductSelectViewModel : ObservableObject
                     TotalQty = stock?.TotalQty ?? 0
                 });
             }
+            _logger.LogInformation("[ProductSelectViewModel] SearchAsync completed: {Count} results", Results.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ProductSelectViewModel] SearchAsync failed");
+            HasError = true;
+            ErrorMessage = $"Ошибка поиска товаров: {ex.Message}";
         }
         finally { IsBusy = false; }
     }

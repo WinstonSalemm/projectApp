@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
 
 namespace ProjectApp.Client.Maui.Services;
 
@@ -7,12 +8,14 @@ public class ApiStocksService : IStocksService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly AppSettings _settings;
     private readonly AuthService _auth;
+    private readonly ILogger<ApiStocksService> _logger;
 
-    public ApiStocksService(IHttpClientFactory httpClientFactory, AppSettings settings, AuthService auth)
+    public ApiStocksService(IHttpClientFactory httpClientFactory, AppSettings settings, AuthService auth, ILogger<ApiStocksService> logger)
     {
         _httpClientFactory = httpClientFactory;
         _settings = settings;
         _auth = auth;
+        _logger = logger;
     }
 
     private class StockViewDto
@@ -28,10 +31,14 @@ public class ApiStocksService : IStocksService
 
     public async Task<IEnumerable<StockViewModel>> GetStocksAsync(string? query = null, string? category = null, CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
-        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
-        client.BaseAddress = new Uri(baseUrl);
-        _auth.ConfigureClient(client);
+        try
+        {
+            var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
+            var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+            client.BaseAddress = new Uri(baseUrl);
+            _auth.ConfigureClient(client);
+            
+            _logger.LogInformation("[ApiStocksService] GetStocksAsync: baseUrl={BaseUrl}, query={Query}, category={Category}", baseUrl, query, category);
         var parts = new List<string>();
         if (!string.IsNullOrWhiteSpace(query)) parts.Add($"query={Uri.EscapeDataString(query)}");
         if (!string.IsNullOrWhiteSpace(category)) parts.Add($"category={Uri.EscapeDataString(category)}");
@@ -65,17 +72,24 @@ public class ApiStocksService : IStocksService
             return new();
         }
 
-        var list = await fetchAsync(url);
-        return list.Select(d => new StockViewModel
+            var list = await fetchAsync(url);
+            _logger.LogInformation("[ApiStocksService] GetStocksAsync: received {Count} stocks", list.Count);
+            return list.Select(d => new StockViewModel
+            {
+                ProductId = d.ProductId,
+                Sku = d.Sku,
+                Name = ProjectApp.Client.Maui.Utils.TextEncodingHelper.Normalize(d.Name) ?? string.Empty,
+                Category = ProjectApp.Client.Maui.Utils.TextEncodingHelper.Normalize(d.Category) ?? string.Empty,
+                Nd40Qty = d.Nd40Qty,
+                Im40Qty = d.Im40Qty,
+                TotalQty = d.TotalQty
+            });
+        }
+        catch (Exception ex)
         {
-            ProductId = d.ProductId,
-            Sku = d.Sku,
-            Name = ProjectApp.Client.Maui.Utils.TextEncodingHelper.Normalize(d.Name) ?? string.Empty,
-            Category = ProjectApp.Client.Maui.Utils.TextEncodingHelper.Normalize(d.Category) ?? string.Empty,
-            Nd40Qty = d.Nd40Qty,
-            Im40Qty = d.Im40Qty,
-            TotalQty = d.TotalQty
-        });
+            _logger.LogError(ex, "[ApiStocksService] GetStocksAsync failed: baseUrl={BaseUrl}, query={Query}, category={Category}", _settings.ApiBaseUrl, query, category);
+            throw;
+        }
     }
 
     private class BatchStockViewDto
