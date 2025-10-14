@@ -99,32 +99,26 @@
     <ShellContent x:Name="DashboardTab"
                   Route="dashboard"
                   Title="Главная"
-                  Icon="{StaticResource IconSymbol.Home}"
                   ContentTemplate="{DataTemplate views:AdminDashboardPage}" />
     <ShellContent x:Name="SalesTab"
                   Route="sales"
                   Title="Продажи"
-                  Icon="{StaticResource IconSymbol.PointOfSale}"
                   ContentTemplate="{DataTemplate views:SaleStartPage}" />
     <ShellContent x:Name="InventoryTab"
                   Route="inventory"
                   Title="Склад"
-                  Icon="{StaticResource IconSymbol.Inventory}"
                   ContentTemplate="{DataTemplate views:StocksPage}" />
     <ShellContent x:Name="ClientsTab"
                   Route="clients"
                   Title="Клиенты"
-                  Icon="{StaticResource IconSymbol.People}"
                   ContentTemplate="{DataTemplate views:ClientsListPage}" />
     <ShellContent x:Name="FinanceTab"
                   Route="finance"
                   Title="Финансы"
-                  Icon="{StaticResource IconSymbol.Finance}"
                   ContentTemplate="{DataTemplate views:FinanceDashboardPage}" />
     <ShellContent x:Name="SettingsTab"
                   Route="settings"
                   Title="Настройки"
-                  Icon="{StaticResource IconSymbol.Settings}"
                   ContentTemplate="{DataTemplate views:SettingsPage}" />
   </TabBar>
 </Shell>

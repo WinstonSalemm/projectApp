@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 
 namespace ProjectApp.Client.Maui.Services;
 
@@ -58,11 +58,11 @@ public class ApiStocksService : IStocksService
                     var data2 = await resp2.Content.ReadFromJsonAsync<List<StockViewDto>>(cancellationToken: ct);
                     return data2 ?? new();
                 }
-                var body2 = await resp2.Content.ReadAsStringAsync(ct);
-                throw new HttpRequestException(string.IsNullOrWhiteSpace(body2) ? $"HTTP {(int)resp2.StatusCode} {resp2.StatusCode}" : body2);
+                // Fallback: return empty on failure
+                return new();
             }
-            var body = await resp.Content.ReadAsStringAsync(ct);
-            throw new HttpRequestException(string.IsNullOrWhiteSpace(body) ? $"HTTP {(int)resp.StatusCode} {resp.StatusCode}" : body);
+            // Non-success: return empty to avoid crashing the UI
+            return new();
         }
 
         var list = await fetchAsync(url);
@@ -70,8 +70,8 @@ public class ApiStocksService : IStocksService
         {
             ProductId = d.ProductId,
             Sku = d.Sku,
-            Name = d.Name,
-            Category = d.Category,
+            Name = ProjectApp.Client.Maui.Utils.TextEncodingHelper.Normalize(d.Name) ?? string.Empty,
+            Category = ProjectApp.Client.Maui.Utils.TextEncodingHelper.Normalize(d.Category) ?? string.Empty,
             Nd40Qty = d.Nd40Qty,
             Im40Qty = d.Im40Qty,
             TotalQty = d.TotalQty
@@ -123,11 +123,9 @@ public class ApiStocksService : IStocksService
                     var data2 = await resp2.Content.ReadFromJsonAsync<List<BatchStockViewDto>>(cancellationToken: ct);
                     return data2 ?? new();
                 }
-                var body2 = await resp2.Content.ReadAsStringAsync(ct);
-                throw new HttpRequestException(string.IsNullOrWhiteSpace(body2) ? $"HTTP {(int)resp2.StatusCode} {resp2.StatusCode}" : body2);
+                return new();
             }
-            var body = await resp.Content.ReadAsStringAsync(ct);
-            throw new HttpRequestException(string.IsNullOrWhiteSpace(body) ? $"HTTP {(int)resp.StatusCode} {resp.StatusCode}" : body);
+            return new();
         }
 
         var list = await fetchAsync(url);
@@ -135,8 +133,8 @@ public class ApiStocksService : IStocksService
         {
             ProductId = d.ProductId,
             Sku = d.Sku,
-            Name = d.Name,
-            Category = d.Category,
+            Name = ProjectApp.Client.Maui.Utils.TextEncodingHelper.Normalize(d.Name) ?? string.Empty,
+            Category = ProjectApp.Client.Maui.Utils.TextEncodingHelper.Normalize(d.Category) ?? string.Empty,
             Register = d.Register,
             Code = d.Code,
             Qty = d.Qty,

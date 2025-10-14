@@ -144,14 +144,21 @@ public partial class AppShell : Shell
 
     public void RefreshRoleState()
     {
-        bool isAdmin = string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
-        FinanceTab.IsVisible = isAdmin;
-        FinanceRailButton.IsVisible = isAdmin;
-        DashboardRailButton.IsVisible = isAdmin;
-        DashboardTab.IsVisible = isAdmin;
+        try
+        {
+            bool isAdmin = string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+            if (FinanceTab != null) FinanceTab.IsVisible = isAdmin;
+            if (FinanceRailButton != null) FinanceRailButton.IsVisible = isAdmin;
+            if (DashboardRailButton != null) DashboardRailButton.IsVisible = isAdmin;
+            if (DashboardTab != null) DashboardTab.IsVisible = isAdmin;
 
-        var defaultRoute = isAdmin ? "dashboard" : "sales";
-        NavigateToRoute(defaultRoute);
+            var defaultRoute = isAdmin ? "dashboard" : "sales";
+            NavigateToRoute(defaultRoute);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppShell] RefreshRoleState failed: {ex}");
+        }
     }
 
     private void OnNavRailClicked(object? sender, EventArgs e)
@@ -164,10 +171,19 @@ public partial class AppShell : Shell
         }
     }
 
-    public Task EnsureRouteAsync(string route)
+    public async Task EnsureRouteAsync(string route)
     {
-        NavigateToRoute(route);
-        return GoToAsync($"//{route}");
+        try
+        {
+            NavigateToRoute(route);
+            await GoToAsync($"//{route}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppShell] EnsureRouteAsync failed for '{route}': {ex}");
+            // Fallback to a safe tab
+            try { CurrentItem = SalesTab ?? CurrentItem; } catch { }
+        }
     }
 
     private static double GetResourceDouble(string key, double fallback)
@@ -182,32 +198,39 @@ public partial class AppShell : Shell
 
     private void NavigateToRoute(string route)
     {
-        _currentRoute = route;
-        switch (route)
+        try
         {
-            case "dashboard":
-                if (DashboardTab.IsVisible)
-                    CurrentItem = DashboardTab;
-                break;
-            case "sales":
-                CurrentItem = SalesTab;
-                break;
-            case "inventory":
-                CurrentItem = InventoryTab;
-                break;
-            case "clients":
-                CurrentItem = ClientsTab;
-                break;
-            case "finance":
-                if (FinanceTab.IsVisible)
-                    CurrentItem = FinanceTab;
-                break;
-            case "settings":
-                CurrentItem = SettingsTab;
-                break;
-        }
+            _currentRoute = route;
+            switch (route)
+            {
+                case "dashboard":
+                    if (DashboardTab?.IsVisible == true)
+                        CurrentItem = DashboardTab;
+                    break;
+                case "sales":
+                    if (SalesTab != null) CurrentItem = SalesTab;
+                    break;
+                case "inventory":
+                    if (InventoryTab != null) CurrentItem = InventoryTab;
+                    break;
+                case "clients":
+                    if (ClientsTab != null) CurrentItem = ClientsTab;
+                    break;
+                case "finance":
+                    if (FinanceTab?.IsVisible == true)
+                        CurrentItem = FinanceTab;
+                    break;
+                case "settings":
+                    if (SettingsTab != null) CurrentItem = SettingsTab;
+                    break;
+            }
 
-        UpdateTitleBar();
+            UpdateTitleBar();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppShell] NavigateToRoute failed: {ex}");
+        }
     }
 
     private void UpdateTitleBar()

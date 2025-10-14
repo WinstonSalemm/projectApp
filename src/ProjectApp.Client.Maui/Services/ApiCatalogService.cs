@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -34,13 +34,19 @@ public class ApiCatalogService : ICatalogService
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
 
-        // Treat placeholder as no filter
-        var categoryRaw = string.Equals(category, "(пїЅ'пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ'пїЅпїЅ?пїЅ?пїЅ?пїЅпїЅпїЅ)", StringComparison.Ordinal) ? null : category;
+        // Map UI placeholders to API filters
+        var categoryRaw = category?.Trim();
+        if (string.Equals(categoryRaw, "(Все)", StringComparison.Ordinal))
+            categoryRaw = null; // no filter
+        else if (string.Equals(categoryRaw, "(Без категории)", StringComparison.Ordinal))
+            categoryRaw = string.Empty; // explicit empty category
+
         var q = string.IsNullOrWhiteSpace(query) ? null : Uri.EscapeDataString(query);
         var cat = string.IsNullOrWhiteSpace(categoryRaw) ? null : Uri.EscapeDataString(categoryRaw);
         var parts = new List<string> { "page=1", "size=50" };
         if (!string.IsNullOrEmpty(q)) parts.Add($"query={q}");
         if (!string.IsNullOrEmpty(cat)) parts.Add($"category={cat}");
+
         var url = "/api/products?" + string.Join("&", parts);
 
         var result = await client.GetFromJsonAsync<PagedResultDto<ProductDto>>(url, ct);

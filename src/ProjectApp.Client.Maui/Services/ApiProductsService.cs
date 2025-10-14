@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using ProjectApp.Client.Maui.Services;
 
 namespace ProjectApp.Client.Maui.Services;
@@ -52,7 +52,7 @@ public class ApiProductsService : IProductsService
         {
             Sku = draft.Sku?.Trim() ?? string.Empty,
             Name = draft.Name?.Trim() ?? string.Empty,
-            Unit = draft.Unit?.Trim() ?? "С€С‚",
+            Unit = draft.Unit?.Trim() ?? "шт",
             Price = draft.Price,
             Category = draft.Category?.Trim() ?? string.Empty
         };

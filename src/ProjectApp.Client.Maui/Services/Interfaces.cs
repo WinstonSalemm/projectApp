@@ -1,4 +1,4 @@
-﻿using ProjectApp.Client.Maui.Models;
+using ProjectApp.Client.Maui.Models;
 using System.IO;
 
 namespace ProjectApp.Client.Maui.Services;
@@ -27,7 +27,7 @@ public class ContractItemDraft
 {
     public int? ProductId { get; set; }
     public string Name { get; set; } = string.Empty;
-    public string Unit { get; set; } = "С€С‚";
+    public string Unit { get; set; } = "шт";
     public decimal Qty { get; set; }
     public decimal UnitPrice { get; set; }
 }
@@ -283,7 +283,7 @@ public class ProductCreateDraft
 {
     public string Sku { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public string Unit { get; set; } = "С€С‚";
+    public string Unit { get; set; } = "шт";
     public decimal Price { get; set; }
     public string Category { get; set; } = string.Empty;
 }

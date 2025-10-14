@@ -74,18 +74,19 @@
       <conv:ClientTypeToRuConverter x:Key="ClientTypeToRuConverter" />
       <conv:DateTimeToRuConverter x:Key="DateTimeToRuConverter" />
 
-      <!-- Fluent/MDL2 icon resources (Windows) -->
-      <FontImageSource x:Key="IconAdd" Glyph="&#xE710;" Color="{DynamicResource Color.Primary}" FontFamily="Segoe MDL2 Assets" Size="18" />
-      <FontImageSource x:Key="IconEdit" Glyph="&#xE70F;" Color="{DynamicResource Color.Primary}" FontFamily="Segoe MDL2 Assets" Size="18" />
-      <FontImageSource x:Key="IconRefresh" Glyph="&#xE72C;" Color="{DynamicResource Color.Primary}" FontFamily="Segoe MDL2 Assets" Size="18" />
-      <FontImageSource x:Key="IconReturn" Glyph="&#xE10E;" Color="{DynamicResource Color.Primary}" FontFamily="Segoe MDL2 Assets" Size="18" />
-      <FontImageSource x:Key="IconSettings" Glyph="&#xE713;" Color="{DynamicResource Color.Primary}" FontFamily="Segoe MDL2 Assets" Size="18" />
-      <FontImageSource x:Key="IconSymbol.Home" Glyph="&#xE80F;" Color="{DynamicResource Color.Primary}" FontFamily="Segoe MDL2 Assets" Size="18" />
-      <FontImageSource x:Key="IconSymbol.PointOfSale" Glyph="&#xE719;" Color="{DynamicResource Color.Primary}" FontFamily="Segoe MDL2 Assets" Size="18" />
-      <FontImageSource x:Key="IconSymbol.Inventory" Glyph="&#xEC50;" Color="{DynamicResource Color.Primary}" FontFamily="Segoe MDL2 Assets" Size="18" />
-      <FontImageSource x:Key="IconSymbol.People" Glyph="&#xE716;" Color="{DynamicResource Color.Primary}" FontFamily="Segoe MDL2 Assets" Size="18" />
-      <FontImageSource x:Key="IconSymbol.Finance" Glyph="&#xE9D2;" Color="{DynamicResource Color.Primary}" FontFamily="Segoe MDL2 Assets" Size="18" />
-      <FontImageSource x:Key="IconSymbol.Settings" Glyph="&#xE713;" Color="{DynamicResource Color.Primary}" FontFamily="Segoe MDL2 Assets" Size="18" />
+      <!-- Safe ASCII icon resources -->
+      <FontImageSource x:Key="IconAdd" Glyph="+" Color="{DynamicResource Color.Primary}" Size="18" />
+      <FontImageSource x:Key="IconEdit" Glyph="E" Color="{DynamicResource Color.Primary}" Size="18" />
+      <FontImageSource x:Key="IconRefresh" Glyph="R" Color="{DynamicResource Color.Primary}" Size="18" />
+      <FontImageSource x:Key="IconReturn" Glyph="B" Color="{DynamicResource Color.Primary}" Size="18" />
+      <FontImageSource x:Key="IconSettings" Glyph="S" Color="{DynamicResource Color.Primary}" Size="18" />
+      <!-- Shell tab icons -->
+      <FontImageSource x:Key="IconSymbol.Home" Glyph="H" Color="{DynamicResource Color.Primary}" Size="18" />
+      <FontImageSource x:Key="IconSymbol.PointOfSale" Glyph="P" Color="{DynamicResource Color.Primary}" Size="18" />
+      <FontImageSource x:Key="IconSymbol.Inventory" Glyph="I" Color="{DynamicResource Color.Primary}" Size="18" />
+      <FontImageSource x:Key="IconSymbol.People" Glyph="U" Color="{DynamicResource Color.Primary}" Size="18" />
+      <FontImageSource x:Key="IconSymbol.Finance" Glyph="$" Color="{DynamicResource Color.Primary}" Size="18" />
+      <FontImageSource x:Key="IconSymbol.Settings" Glyph="S" Color="{DynamicResource Color.Primary}" Size="18" />
     </ResourceDictionary>
   </Application.Resources>
 </Application>

@@ -6,7 +6,7 @@
   <!-- Button foundations -->
   <Style x:Key="Button.Base" TargetType="Button">
     <Setter Property="FontFamily" Value="{StaticResource FontFamily.Primary}" />
-    <Setter Property="CornerRadius" Value="{x:Int32 12}" />
+    <Setter Property="CornerRadius" Value="12" />
     <Setter Property="Padding" Value="{StaticResource Control.Padding.Primary}" />
     <Setter Property="HeightRequest" Value="{StaticResource Control.Height}" />
     <Setter Property="HorizontalOptions" Value="Fill" />

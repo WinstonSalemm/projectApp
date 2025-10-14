@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using Microsoft.Maui.Controls;
 
 namespace ProjectApp.Client.Maui.Services;
@@ -84,20 +84,22 @@ public static class NavigationHelper
         if (page is null)
             return;
 
-        await MainThread.InvokeOnMainThreadAsync(() =>
+        try
         {
-            var app = Application.Current;
-            if (app is null)
-                return;
-
-            // Close existing windows (single-window scenario)
-            foreach (var win in app.Windows.ToList())
+            await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                app.CloseWindow(win);
-            }
+                var app = Application.Current;
+                if (app is null)
+                    return;
 
-            app.OpenWindow(new Window(page));
-        });
+                // The canonical MAUI approach: replace MainPage
+                app.MainPage = page;
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[NavigationHelper] SetRoot failed: {ex}");
+        }
     }
 
     private static INavigation? GetWindowNavigation()

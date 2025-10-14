@@ -68,12 +68,22 @@ public partial class UserSelectViewModel : ObservableObject
             ? "dashboard"
             : "sales";
 
-        var shell = _services.GetRequiredService<AppShell>();
-        await MainThread.InvokeOnMainThreadAsync(async () =>
+        try
         {
-            NavigationHelper.SetRoot(shell);
-            shell.RefreshRoleState();
-            await shell.EnsureRouteAsync(targetRoute);
-        });
+            var shell = _services.GetRequiredService<AppShell>();
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                NavigationHelper.SetRoot(shell);
+                shell.RefreshRoleState();
+                await shell.EnsureRouteAsync(targetRoute);
+            });
+        }
+        catch (Exception ex)
+        {
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await NavigationHelper.DisplayAlert("Ошибка загрузки интерфейса", ex.Message, "OK");
+            });
+        }
     }
 }

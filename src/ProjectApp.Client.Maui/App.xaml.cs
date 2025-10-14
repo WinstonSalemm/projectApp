@@ -20,6 +20,40 @@ public partial class App : Application
         _auth = auth;
         Services = services;
         ApplyAppThemePalette();
+
+        // Global UI exception handlers to avoid hard crash in debug and show message
+        try
+        {
+#if WINDOWS
+            // WinUI UI-thread exceptions
+            Microsoft.UI.Xaml.Application.Current.UnhandledException += async (sender, e) =>
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"[App] WinUI.UnhandledException: {e.Message} : {e.Exception}");
+                    await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
+                    {
+                        await ProjectApp.Client.Maui.Services.NavigationHelper.DisplayAlert(
+                            "Необработанное исключение",
+                            e.Exception?.Message ?? e.Message ?? "Неизвестная ошибка",
+                            "OK");
+                    });
+                }
+                catch { }
+
+                try { e.Handled = true; } catch { }
+            };
+#endif
+            System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (s, e) =>
+            {
+                try { System.Diagnostics.Debug.WriteLine($"[App] UnobservedTaskException: {e.Exception}"); e.SetObserved(); } catch { }
+            };
+            System.AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+            {
+                try { System.Diagnostics.Debug.WriteLine($"[App] AppDomain.UnhandledException: {e.ExceptionObject}"); } catch { }
+            };
+        }
+        catch { }
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
