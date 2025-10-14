@@ -7,6 +7,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using ProjectApp.Client.Maui.Models;
 using ProjectApp.Client.Maui.Utils;
 
@@ -19,20 +20,26 @@ public class ApiCatalogService : ICatalogService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly AppSettings _settings;
     private readonly AuthService _auth;
+    private readonly ILogger<ApiCatalogService> _logger;
 
-    public ApiCatalogService(IHttpClientFactory httpClientFactory, AppSettings settings, AuthService auth)
+    public ApiCatalogService(IHttpClientFactory httpClientFactory, AppSettings settings, AuthService auth, ILogger<ApiCatalogService> logger)
     {
         _httpClientFactory = httpClientFactory;
         _settings = settings;
         _auth = auth;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<ProductModel>> SearchAsync(string? query, string? category = null, CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
-        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
-        client.BaseAddress = new Uri(baseUrl);
-        _auth.ConfigureClient(client);
+        try
+        {
+            var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
+            var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+            client.BaseAddress = new Uri(baseUrl);
+            _auth.ConfigureClient(client);
+            
+            _logger.LogInformation("[ApiCatalogService] SearchAsync: baseUrl={BaseUrl}, query={Query}, category={Category}", baseUrl, query, category);
 
         // Map UI placeholders to API filters
         var categoryRaw = category?.Trim();
@@ -49,37 +56,49 @@ public class ApiCatalogService : ICatalogService
 
         var url = "/api/products?" + string.Join("&", parts);
 
-        var result = await client.GetFromJsonAsync<PagedResultDto<ProductDto>>(url, ct);
-        var list = result?.Items ?? new List<ProductDto>();
+            var result = await client.GetFromJsonAsync<PagedResultDto<ProductDto>>(url, ct);
+            var list = result?.Items ?? new List<ProductDto>();
+            
+            _logger.LogInformation("[ApiCatalogService] SearchAsync: received {Count} products from API", list.Count);
         // Fallback client-side filter if server ignored category
         if (!string.IsNullOrWhiteSpace(categoryRaw))
         {
             list = list.Where(p => string.Equals(p.Category ?? string.Empty, categoryRaw, StringComparison.Ordinal)).ToList();
         }
-        var items = list.Select(p =>
-        {
-            var name = TextEncodingHelper.Normalize(p.Name);
-            var categoryValue = TextEncodingHelper.Normalize(p.Category);
-            var skuFixed = TextEncodingHelper.Normalize(p.Sku);
-            return new ProductModel
+            var items = list.Select(p =>
             {
-                Id = p.Id,
-                Name = name ?? string.Empty,
-                Sku = skuFixed ?? p.Sku,
-                Unit = string.Empty,
-                Price = p.UnitPrice,
-                Category = categoryValue ?? string.Empty
-            };
-        });
-        return items;
+                var name = TextEncodingHelper.Normalize(p.Name);
+                var categoryValue = TextEncodingHelper.Normalize(p.Category);
+                var skuFixed = TextEncodingHelper.Normalize(p.Sku);
+                return new ProductModel
+                {
+                    Id = p.Id,
+                    Name = name ?? string.Empty,
+                    Sku = skuFixed ?? p.Sku,
+                    Unit = string.Empty,
+                    Price = p.UnitPrice,
+                    Category = categoryValue ?? string.Empty
+                };
+            });
+            return items;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ApiCatalogService] SearchAsync failed: baseUrl={BaseUrl}, query={Query}, category={Category}", _settings.ApiBaseUrl, query, category);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<string>> GetCategoriesAsync(CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
-        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
-        client.BaseAddress = new Uri(baseUrl);
-        _auth.ConfigureClient(client);
+        try
+        {
+            var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
+            var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+            client.BaseAddress = new Uri(baseUrl);
+            _auth.ConfigureClient(client);
+            
+            _logger.LogInformation("[ApiCatalogService] GetCategoriesAsync: baseUrl={BaseUrl}", baseUrl);
 
         var endpoints = new[]
         {
@@ -87,24 +106,24 @@ public class ApiCatalogService : ICatalogService
             "/api/categories"
         };
 
-        foreach (var endpoint in endpoints)
-        {
-            var items = await TryFetchCategoriesAsync(client, endpoint, ct);
-            if (items.Count > 0)
+            foreach (var endpoint in endpoints)
             {
-                return items
-                    .Select(TextEncodingHelper.Normalize)
-                    .Where(s => !string.IsNullOrWhiteSpace(s))
-                    .Select(s => s!)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(s => s)
-                    .ToList();
+                var items = await TryFetchCategoriesAsync(client, endpoint, ct);
+                if (items.Count > 0)
+                {
+                    _logger.LogInformation("[ApiCatalogService] GetCategoriesAsync: received {Count} categories from {Endpoint}", items.Count, endpoint);
+                    return items
+                        .Select(TextEncodingHelper.Normalize)
+                        .Where(s => !string.IsNullOrWhiteSpace(s))
+                        .Select(s => s!)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(s => s)
+                        .ToList();
+                }
             }
-        }
 
-        // Fallback: derive categories from products list when category endpoints fail
-        try
-        {
+            // Fallback: derive categories from products list when category endpoints fail
+            _logger.LogWarning("[ApiCatalogService] GetCategoriesAsync: category endpoints failed, deriving from products");
             var products = await SearchAsync(query: null, category: null, ct: ct);
             var derived = products
                 .Select(p => TextEncodingHelper.Normalize(p.Category) ?? string.Empty)
@@ -112,12 +131,13 @@ public class ApiCatalogService : ICatalogService
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(s => s)
                 .ToList();
+            _logger.LogInformation("[ApiCatalogService] GetCategoriesAsync: derived {Count} categories from products", derived.Count);
             return derived;
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[ApiCatalogService] Fallback derive categories failed: {ex}");
-            return Array.Empty<string>();
+            _logger.LogError(ex, "[ApiCatalogService] GetCategoriesAsync failed: baseUrl={BaseUrl}", _settings.ApiBaseUrl);
+            throw;
         }
     }
 

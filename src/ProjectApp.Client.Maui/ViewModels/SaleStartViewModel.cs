@@ -372,7 +372,9 @@ public partial class SaleStartViewModel : ObservableObject
             IsCategoriesError = false;
             CategoriesErrorMessage = null;
 
+            _logger.LogInformation("[SaleStartViewModel] LoadCategoriesAsync started");
             var raw = await _catalog.GetCategoriesAsync();
+            _logger.LogInformation("[SaleStartViewModel] LoadCategoriesAsync received {Count} categories", raw?.Count() ?? 0);
             var list = raw?
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -401,10 +403,10 @@ public partial class SaleStartViewModel : ObservableObject
         catch (Exception ex)
         {
             IsCategoriesError = true;
-            CategoriesErrorMessage = ex.Message;
+            CategoriesErrorMessage = $"Ошибка загрузки категорий: {ex.Message}";
             ShowCategoriesEmptyState = true;
             ShowCategoriesSection = false;
-            _logger.LogError(ex, "Failed to load categories (status: 500?). CorrelationId: {CorrelationId}", ExtractCorrelationId(ex.Message));
+            _logger.LogError(ex, "[SaleStartViewModel] Failed to load categories. Error: {ErrorMessage}", ex.Message);
         }
         finally
         {

@@ -235,8 +235,7 @@ public class RoutedCatalogService : ICatalogService
     {
         if (_settings.UseApi)
         {
-            try { return await _api.SearchAsync(query, category, ct); }
-            catch { return await _mock.SearchAsync(query, category, ct); }
+            return await _api.SearchAsync(query, category, ct);
         }
         return await _mock.SearchAsync(query, category, ct);
     }
@@ -245,8 +244,7 @@ public class RoutedCatalogService : ICatalogService
     {
         if (_settings.UseApi)
         {
-            try { return await _api.GetCategoriesAsync(ct); }
-            catch { return await _mock.GetCategoriesAsync(ct); }
+            return await _api.GetCategoriesAsync(ct);
         }
         return await _mock.GetCategoriesAsync(ct);
     }
