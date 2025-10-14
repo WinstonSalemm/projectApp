@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using ProjectApp.Client.Maui.Models;
+using ProjectApp.Client.Maui.Utils;
 
 namespace ProjectApp.Client.Maui.Services;
 
@@ -49,14 +50,19 @@ public class ApiCatalogService : ICatalogService
         {
             list = list.Where(p => string.Equals(p.Category ?? string.Empty, categoryRaw, StringComparison.Ordinal)).ToList();
         }
-        var items = list.Select(p => new ProductModel
+        var items = list.Select(p =>
         {
-            Id = p.Id,
-            Name = p.Name,
-            Sku = p.Sku,
-            Unit = string.Empty,
-            Price = p.UnitPrice,
-            Category = p.Category ?? string.Empty
+            var name = TextEncodingHelper.Normalize(p.Name);
+            var categoryValue = TextEncodingHelper.Normalize(p.Category);
+            return new ProductModel
+            {
+                Id = p.Id,
+                Name = name ?? string.Empty,
+                Sku = p.Sku,
+                Unit = string.Empty,
+                Price = p.UnitPrice,
+                Category = categoryValue ?? string.Empty
+            };
         });
         return items;
     }
@@ -80,7 +86,9 @@ public class ApiCatalogService : ICatalogService
             if (items.Count > 0)
             {
                 return items
+                    .Select(TextEncodingHelper.Normalize)
                     .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Select(s => s!)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(s => s)
                     .ToList();
@@ -105,7 +113,11 @@ public class ApiCatalogService : ICatalogService
             }
 
             var parsed = JsonSerializer.Deserialize<List<string>>(body, CategoriesSerializerOptions);
-            return parsed ?? new List<string>();
+            return (parsed ?? new List<string>())
+                .Select(TextEncodingHelper.Normalize)
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s!)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -139,7 +151,13 @@ public class ApiCatalogService : ICatalogService
         var qs = string.Join(',', listIds);
         var url = $"/api/products/lookup?ids={Uri.EscapeDataString(qs)}";
         var list = await client.GetFromJsonAsync<List<ProductBrief>>(url, ct) ?? new List<ProductBrief>();
-        return list.ToDictionary(p => p.Id, p => (p.Sku, p.Name));
+        return list.ToDictionary(
+            p => p.Id,
+            p =>
+            {
+                var fixedName = TextEncodingHelper.Normalize(p.Name) ?? string.Empty;
+                return (p.Sku, fixedName);
+            });
     }
 
     private class PagedResultDto<T>

@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,8 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
