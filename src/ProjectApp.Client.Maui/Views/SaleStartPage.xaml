@@ -37,8 +37,66 @@
         <Border Style="{StaticResource Card.Container}">
           <VerticalStackLayout Spacing="12">
             <Label Text="Назначьте менеджера" FontAttributes="Bold" FontSize="{StaticResource Font.Size.H3}" />
-            <Picker ItemsSource="{Binding Managers}" SelectedItem="{Binding SelectedManager}" ItemDisplayBinding="{Binding DisplayName}" IsEnabled="{Binding IsManagersLoading, Converter={StaticResource InverseBoolConverter}}" />
-            <ActivityIndicator IsRunning="True" IsVisible="{Binding IsManagersLoading}" />
+            <Grid>
+              <CollectionView ItemsSource="{Binding Managers}"
+                              SelectionMode="Single"
+                              SelectedItem="{Binding SelectedManager}"
+                              IsEnabled="{Binding IsManagersLoading, Converter={StaticResource InverseBoolConverter}}"
+                              x:Name="ManagersCollection">
+                <CollectionView.ItemsLayout>
+                  <GridItemsLayout Orientation="Vertical"
+                                   Span="2"
+                                   HorizontalItemSpacing="12"
+                                   VerticalItemSpacing="12" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                  <DataTemplate x:DataType="models:UserDto">
+                    <Border x:Name="ManagerCard"
+                            Padding="20"
+                            BackgroundColor="{DynamicResource Color.Surface}"
+                            Stroke="{DynamicResource Brush.Border}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 16"
+                            Shadow="{StaticResource Shadow.Level1}">
+                      <VerticalStackLayout Spacing="4">
+                        <Label x:Name="ManagerNameLabel"
+                               Text="{Binding DisplayName}"
+                               FontAttributes="Bold"
+                               FontSize="{StaticResource Font.Size.Body}" />
+                        <Label x:Name="ManagerIdLabel"
+                               Text="{Binding Id}"
+                               FontSize="{StaticResource Font.Size.Caption}"
+                               TextColor="{DynamicResource Color.Text.Secondary}" />
+                      </VerticalStackLayout>
+                      <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup x:Name="CommonStates">
+                          <VisualState Name="Normal">
+                            <VisualState.Setters>
+                              <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface}" />
+                              <Setter Property="Stroke" Value="{DynamicResource Brush.Border}" />
+                              <Setter TargetName="ManagerNameLabel" Property="Label.TextColor" Value="{DynamicResource Color.Text.Primary}" />
+                              <Setter TargetName="ManagerIdLabel" Property="Label.TextColor" Value="{DynamicResource Color.Text.Secondary}" />
+                            </VisualState.Setters>
+                          </VisualState>
+                          <VisualState Name="Selected">
+                            <VisualState.Setters>
+                              <Setter Property="BackgroundColor" Value="{DynamicResource Color.Primary}" />
+                              <Setter Property="Stroke" Value="{DynamicResource Brush.Primary}" />
+                              <Setter TargetName="ManagerNameLabel" Property="Label.TextColor" Value="{DynamicResource Color.OnPrimary}" />
+                              <Setter TargetName="ManagerIdLabel" Property="Label.TextColor" Value="{DynamicResource Color.OnPrimary}" />
+                            </VisualState.Setters>
+                          </VisualState>
+                        </VisualStateGroup>
+                      </VisualStateManager.VisualStateGroups>
+                    </Border>
+                  </DataTemplate>
+                </CollectionView.ItemTemplate>
+              </CollectionView>
+              <ActivityIndicator IsRunning="True"
+                                 IsVisible="{Binding IsManagersLoading}"
+                                 VerticalOptions="Center"
+                                 HorizontalOptions="Center" />
+            </Grid>
           </VerticalStackLayout>
         </Border>
 
