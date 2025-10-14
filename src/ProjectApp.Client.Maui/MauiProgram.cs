@@ -155,7 +155,7 @@ public static class MauiProgram
         builder.Services.AddTransient<UnregisteredClientViewModel>();
         builder.Services.AddTransient<UnregisteredClientPage>();
         builder.Services.AddTransient<ConfirmAccountPage>();
-        builder.Services.AddTransient<AppShell>();
+        builder.Services.AddSingleton<AppShell>();
 
         return builder.Build();
     }

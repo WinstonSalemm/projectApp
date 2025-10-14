@@ -92,8 +92,13 @@ public static class NavigationHelper
                 if (app is null)
                     return;
 
-                // The canonical MAUI approach: replace MainPage
+                // Set both MainPage and current Window.Page for WinUI reliability
                 app.MainPage = page;
+                var win = app.Windows.FirstOrDefault();
+                if (win is not null)
+                {
+                    win.Page = page;
+                }
             });
         }
         catch (Exception ex)
