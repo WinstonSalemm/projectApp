@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 
 
@@ -345,37 +345,6 @@ public partial class SaleStartViewModel : ObservableObject
 
 
 
-
-
-
-        SeedSaleMethods();
-
-
-
-        _ = InitialiseAsync();
-
-
-
-    }
-
-
-
-
-
-
-
-    [RelayCommand]
-
-
-
-    private async Task LoadCategoriesAsync()
-
-
-
-    {
-
-
-
         if (IsCategoriesLoading)
 
 
@@ -595,702 +564,181 @@ public partial class SaleStartViewModel : ObservableObject
 
 
 
-
     [RelayCommand]
-
-
-
     private async Task LoadManagersAsync()
-
-
-
     {
-
-
-
         if (IsManagersLoading)
-
-
-
         {
-
-
-
             return;
-
-
-
         }
-
-
-
-
-
-
-
         try
-
-
-
         {
-
-
-
             IsManagersLoading = true;
-
-
-
             await MainThread.InvokeOnMainThreadAsync(() =>
-
-
-
             {
-
-
-
                 Managers.Clear();
-
-
-
                 var isAdmin = string.Equals(_authService.Role, "Admin", StringComparison.OrdinalIgnoreCase);
-
-
-
-
-
-
-
                 foreach (var entry in ManagerDirectory)
-
-
-
                 {
-
-
-
                     if (entry.AdminOnly && !isAdmin)
-
-
-
-                    {
-
-
-
                         continue;
-
-
-
-                    }
-
-
-
-
-
-
-
-                    Managers.Add(new UserDto
-
-
-
-                    {
-
-
-
-                        Id = entry.Id,
-
-
-
-                        DisplayName = entry.Name
-
-
-
-                    });
-
-
-
+                    Managers.Add(new UserDto { Id = entry.Id, DisplayName = entry.Name });
                 }
-
-
-
-
-
-
-
                 var preselected = Managers.FirstOrDefault(m =>
-
-
-
                     !string.IsNullOrWhiteSpace(_authService.UserName) &&
-
-
-
                     string.Equals(m.Id, _authService.UserName, StringComparison.OrdinalIgnoreCase));
-
-
-
-
-
-
-
                 SelectedManager = preselected ?? Managers.FirstOrDefault();
-
-
-
             });
-
-
-
         }
-
-
-
-        finally
-
-
-
+        catch (Exception ex)
         {
-
-
-
-            IsManagersLoading = false;
-
-
-
-            UpdateStepState();
-
-
-
-        }
-
-
-
-    }
-
-
-
-
-
-
-
-    private async Task LoadStoresAsync()
-
-
-
-    {
-
-
-
-        if (IsStoresLoading)
-
-
-
-        {
-
-
-
-            return;
-
-
-
-        }
-
-
-
-
-
-
-
-        try
-
-
-
-        {
-
-
-
-            IsStoresLoading = true;
-
-
-
-            var defaults = GetDefaultStores();
-
-
-
-
-
-
-
+            _logger.LogError(ex, "Failed to load managers");
             await MainThread.InvokeOnMainThreadAsync(() =>
-
-
-
             {
-
-
-
-                Stores.Clear();
-
-
-
-                foreach (var store in defaults)
-
-
-
-                {
-
-
-
-                    Stores.Add(store);
-
-
-
-                }
-
-
-
-
-
-
-
-                if (Stores.Count > 0 && SelectedStore is null)
-
-
-
-                {
-
-
-
-                    SelectedStore = Stores.FirstOrDefault(s => !s.IsAdmin) ?? Stores.First();
-
-
-
-                }
-
-
-
+                Managers.Clear();
+                SelectedManager = null;
             });
-
-
-
         }
-
-
-
         finally
-
-
-
         {
-
-
-
-            IsStoresLoading = false;
-
-
-
+            IsManagersLoading = false;
             UpdateStepState();
-
-
-
         }
-
-
-
     }
 
-
-
-
-
-
-
-    private void SeedSaleMethods()
+private async Task LoadStoresAsync()
+{
+    if (IsStoresLoading)
     {
-        if (SaleMethods.Count > 0)
-        {
-            return;
-        }
-
-        IsSaleMethodsLoading = true;
-        try
-        {
-            var methods = new[]
-            {
-                new SaleMethodOption
-                {
-                    Id = SaleMethodKind.CashWithReceipt,
-                    Title = "Наличными с чеком",
-                    Description = "Стандартная продажа с выдачей фискального чека.",
-                    Icon = "₽",
-                    PaymentType = PaymentType.CashWithReceipt
-                },
-                new SaleMethodOption
-                {
-                    Id = SaleMethodKind.CashNoReceipt,
-                    Title = "Наличными без чека",
-                    Description = "Продажа за наличные без печати чека.",
-                    Icon = "₽",
-                    PaymentType = PaymentType.CashNoReceipt
-                },
-                new SaleMethodOption
-                {
-                    Id = SaleMethodKind.CardWithReceipt,
-                    Title = "Картой с чеком",
-                    Description = "Оплата банковской картой с фискальным чеком.",
-                    Icon = "💳",
-                    PaymentType = PaymentType.CardWithReceipt
-                },
-                new SaleMethodOption
-                {
-                    Id = SaleMethodKind.ClickWithReceipt,
-                    Title = "Click с чеком",
-                    Description = "Онлайн-оплата Click с чеком.",
-                    Icon = "📲",
-                    PaymentType = PaymentType.ClickWithReceipt
-                },
-                new SaleMethodOption
-                {
-                    Id = SaleMethodKind.ClickNoReceipt,
-                    Title = "Click без чека",
-                    Description = "Click-оплата с ручным учётом чека.",
-                    Icon = "📲",
-                    PaymentType = PaymentType.ClickNoReceipt
-                },
-                new SaleMethodOption
-                {
-                    Id = SaleMethodKind.Site,
-                    Title = "Сайт",
-                    Description = "Продажа, оформленная через интернет-магазин.",
-                    Icon = "🌐",
-                    PaymentType = PaymentType.Site
-                },
-                new SaleMethodOption
-                {
-                    Id = SaleMethodKind.Return,
-                    Title = "Возврат",
-                    Description = "Перейти к оформлению возврата.",
-                    Icon = "↩",
-                    PaymentType = PaymentType.Return
-                },
-                new SaleMethodOption
-                {
-                    Id = SaleMethodKind.Reservation,
-                    Title = "Бронь",
-                    Description = "Создать бронь и удержать товар.",
-                    Icon = "📌",
-                    PaymentType = PaymentType.Reservation
-                },
-                new SaleMethodOption
-                {
-                    Id = SaleMethodKind.Payme,
-                    Title = "Payme",
-                    Description = "Онлайн-оплата через Payme.",
-                    Icon = "💸",
-                    PaymentType = PaymentType.Payme
-                },
-                new SaleMethodOption
-                {
-                    Id = SaleMethodKind.Contract,
-                    Title = "Договор",
-                    Description = "Продажа по договору или предоплате.",
-                    Icon = "📄",
-                    PaymentType = PaymentType.Contract
-                },
-                new SaleMethodOption
-                {
-                    Id = SaleMethodKind.CommissionClients,
-                    Title = "Комиссионные клиенты",
-                    Description = "Открыть клиентов, закреплённых за менеджером.",
-                    Icon = "👥",
-                    PaymentType = null
-                }
-            };
-
-            foreach (var method in methods)
-            {
-                SaleMethods.Add(method);
-            }
-        }
-        finally
-        {
-            IsSaleMethodsLoading = false;
-        }
+        return;
     }
+
+    try
+    {
+        IsStoresLoading = true;
+        var defaults = GetDefaultStores();
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            Stores.Clear();
+            foreach (var store in defaults)
+            {
+                Stores.Add(store);
+            }
+
+            if (Stores.Count > 0 && SelectedStore is null)
+            {
+                SelectedStore = Stores.FirstOrDefault(s => !s.IsAdmin) ?? Stores.First();
+            }
+        });
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Failed to load stores");
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            Stores.Clear();
+            SelectedStore = null;
+        });
+    }
+    finally
+    {
+        IsStoresLoading = false;
+        UpdateStepState();
+    }
+}
 
 public void ApplySaleMethod(SaleMethodOption option)
+{
+    if (option is null)
     {
-        if (option is null)
-        {
-            return;
-        }
-
-        SelectedSaleMethod = option;
-
-        if (option.PaymentType.HasValue)
-        {
-            SelectedPaymentType = option.PaymentType.Value;
-            _session.SetPaymentType(option.PaymentType.Value);
-        }
+        return;
     }
+
+    SelectedSaleMethod = option;
+
+    if (option.PaymentType.HasValue)
+    {
+        SelectedPaymentType = option.PaymentType.Value;
+        _session.SetPaymentType(option.PaymentType.Value);
+    }
+}
 
 private async Task InitialiseAsync()
-
-
-
+{
+    try
     {
-
-
-
         _session.Reset();
-
-
-
         await Task.WhenAll(
-
-
-
             LoadCategoriesAsync(),
-
-
-
             LoadManagersAsync(),
-
-
-
             LoadStoresAsync());
-
-
-
     }
-
-
-
-
-
-
-
-    private void UpdateStepState()
-
-
-
+    catch (Exception ex)
     {
-
-
-
-        var isReady = SelectedManager is not null && SelectedStore is not null;
-
-
-
-        CanSelectSaleMethods = isReady;
-
-
-
-        StepValidationMessage = isReady ? null : "Выберите менеджера и точку продаж, чтобы продолжить.";
-
-
-
-        HasStepValidationMessage = !string.IsNullOrWhiteSpace(StepValidationMessage);
-
-
-
-        if (isReady)
-
-
-
+        _logger.LogError(ex, "InitialiseAsync failed");
+        await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-
-
-
-            _session.SetContext(SelectedManager!, SelectedStore!);
-
-
-
-        }
-
-
-
-        else
-
-
-
-        {
-
-
-
-            _session.Reset();
-
-
-
-        }
-
-
-
+            await Services.NavigationHelper.DisplayAlert("Ошибка инициализации", ex.Message, "OK");
+        });
     }
+}
 
+private void UpdateStepState()
+{
+    var isReady = SelectedManager is not null && SelectedStore is not null;
+    CanSelectSaleMethods = isReady;
+    StepValidationMessage = isReady ? null : "Выберите менеджера и точку продаж, чтобы продолжить.";
+    HasStepValidationMessage = !string.IsNullOrWhiteSpace(StepValidationMessage);
 
-
-
-
-
-
-    private static string? ExtractCorrelationId(string? message)
-
-
-
+    if (isReady)
     {
-
-
-
-        if (string.IsNullOrWhiteSpace(message))
-
-
-
-        {
-
-
-
-            return null;
-
-
-
-        }
-
-
-
-
-
-
-
-        const string marker = "correlationId";
-
-
-
-        var idx = message.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-
-
-
-        if (idx < 0)
-
-
-
-        {
-
-
-
-            return null;
-
-
-
-        }
-
-
-
-
-
-
-
-        return message[idx..].Split(new[] { ' ', ',', ';' }, StringSplitOptions.RemoveEmptyEntries).Skip(1).FirstOrDefault();
-
-
-
+        _session.SetContext(SelectedManager!, SelectedStore!);
     }
-
-
-
-
-
-
-
-    private IReadOnlyList<StoreOption> GetDefaultStores()
-
-
-
+    else
     {
-
-
-
-        var stores = new List<StoreOption>
-
-
-
-        {
-
-
-
-            new() { Id = "store-main", Name = "Магазин" }
-
-
-
-        };
-
-
-
-
-
-
-
-        if (string.Equals(_authService.Role, "Admin", StringComparison.OrdinalIgnoreCase))
-
-
-
-        {
-
-
-
-            stores.Insert(0, new StoreOption { Id = "admin", Name = "ADMIN", IsAdmin = true });
-
-
-
-        }
-
-
-
-
-
-
-
-        return stores;
-
-
-
+        _session.Reset();
     }
+}
 
-
-
-    partial void OnSelectedManagerChanged(UserDto? value)
-
-
-
+private static string? ExtractCorrelationId(string? message)
+{
+    if (string.IsNullOrWhiteSpace(message))
     {
-
-
-
-        UpdateStepState();
-
-
-
+        return null;
     }
 
-
-
-
-
-
-
-    partial void OnSelectedStoreChanged(StoreOption? value)
-
-
-
+    const string marker = "correlationId";
+    var idx = message.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+    if (idx < 0)
     {
-
-
-
-        UpdateStepState();
-
-
-
+        return null;
     }
 
+    return message[idx..].Split(new[] { ' ', ',', ';' }, StringSplitOptions.RemoveEmptyEntries).Skip(1).FirstOrDefault();
+}
 
+private IReadOnlyList<StoreOption> GetDefaultStores()
+{
+    var stores = new List<StoreOption>
+    {
+        new() { Id = "store-main", Name = "Магазин" }
+    };
 
+    if (string.Equals(_authService.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+    {
+        stores.Insert(0, new StoreOption { Id = "admin", Name = "ADMIN", IsAdmin = true });
+    }
+
+    return stores;
+}
+
+partial void OnSelectedManagerChanged(UserDto? value)
+{
+    UpdateStepState();
+}
+
+partial void OnSelectedStoreChanged(StoreOption? value)
+{
+    UpdateStepState();
+}
 }
