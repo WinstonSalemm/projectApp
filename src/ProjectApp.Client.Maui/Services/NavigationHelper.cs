@@ -92,12 +92,15 @@ public static class NavigationHelper
                 if (app is null)
                     return;
 
-                // Set both MainPage and current Window.Page for WinUI reliability
-                app.MainPage = page;
+                // Update the current Window.Page (preferred on WinUI) instead of setting MainPage
                 var win = app.Windows.FirstOrDefault();
                 if (win is not null)
                 {
                     win.Page = page;
+                }
+                else
+                {
+                    app.OpenWindow(new Window(page));
                 }
             });
         }

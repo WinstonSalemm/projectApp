@@ -60,11 +60,12 @@ public class ApiCatalogService : ICatalogService
         {
             var name = TextEncodingHelper.Normalize(p.Name);
             var categoryValue = TextEncodingHelper.Normalize(p.Category);
+            var skuFixed = TextEncodingHelper.Normalize(p.Sku);
             return new ProductModel
             {
                 Id = p.Id,
                 Name = name ?? string.Empty,
-                Sku = p.Sku,
+                Sku = skuFixed ?? p.Sku,
                 Unit = string.Empty,
                 Price = p.UnitPrice,
                 Category = categoryValue ?? string.Empty
@@ -101,7 +102,23 @@ public class ApiCatalogService : ICatalogService
             }
         }
 
-        return Array.Empty<string>();
+        // Fallback: derive categories from products list when category endpoints fail
+        try
+        {
+            var products = await SearchAsync(query: null, category: null, ct: ct);
+            var derived = products
+                .Select(p => TextEncodingHelper.Normalize(p.Category) ?? string.Empty)
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(s => s)
+                .ToList();
+            return derived;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ApiCatalogService] Fallback derive categories failed: {ex}");
+            return Array.Empty<string>();
+        }
     }
 
     private static async Task<List<string>> TryFetchCategoriesAsync(HttpClient client, string path, CancellationToken ct)

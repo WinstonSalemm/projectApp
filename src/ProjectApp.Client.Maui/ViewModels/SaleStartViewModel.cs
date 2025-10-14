@@ -318,250 +318,99 @@ public partial class SaleStartViewModel : ObservableObject
 
 
 
-
-
     public SaleStartViewModel(ICatalogService catalog, AuthService authService, ILogger<SaleStartViewModel> logger, SaleSession session)
-
-
-
     {
-
-
-
         _catalog = catalog;
-
-
-
         _authService = authService;
-
-
-
         _logger = logger;
-
-
-
         _session = session;
-
-
-
-
-        if (IsCategoriesLoading)
-
-
-
-        {
-
-
-
-            return;
-
-
-
-        }
-
-
-
-
-
-
-
-        try
-
-
-
-        {
-
-
-
-            IsCategoriesLoading = true;
-
-
-
-            IsCategoriesError = false;
-
-
-
-            CategoriesErrorMessage = null;
-
-
-
-
-
-
-
-            var raw = await _catalog.GetCategoriesAsync();
-
-
-
-            var list = raw?
-
-
-
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-
-
-
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-
-
-
-                .OrderBy(s => s)
-
-
-
-                .Select(name => new CategoryDto { Name = name })
-
-
-
-                .ToList()
-
-
-
-                ?? new List<CategoryDto>();
-
-
-
-
-
-
-
-            if (list.Count > 0 && list.All(c => !string.Equals(c.Name, AllCategoriesLabel, StringComparison.OrdinalIgnoreCase)))
-
-
-
-            {
-
-
-
-                list.Insert(0, new CategoryDto { Name = AllCategoriesLabel });
-
-
-
-            }
-
-
-
-
-
-
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
-
-
-
-            {
-
-
-
-                Categories.Clear();
-
-
-
-                foreach (var item in list)
-
-
-
-                {
-
-
-
-                    Categories.Add(item);
-
-
-
-                }
-
-
-
-
-
-
-
-                ShowCategoriesEmptyState = Categories.Count == 0;
-
-
-
-                ShowCategoriesSection = Categories.Count > 0;
-
-
-
-                if (!ShowCategoriesEmptyState && SelectedCategory is null)
-
-
-
-                {
-
-
-
-                    SelectedCategory = Categories.FirstOrDefault();
-
-
-
-                }
-
-
-
-            });
-
-
-
-        }
-
-
-
-        catch (Exception ex)
-
-
-
-        {
-
-
-
-            IsCategoriesError = true;
-
-
-
-            CategoriesErrorMessage = ex.Message;
-
-
-
-            ShowCategoriesEmptyState = true;
-
-
-
-            ShowCategoriesSection = false;
-
-
-
-            _logger.LogError(ex, "Failed to load categories (status: 500?). CorrelationId: {CorrelationId}", ExtractCorrelationId(ex.Message));
-
-
-
-        }
-
-
-
-        finally
-
-
-
-        {
-
-
-
-            IsCategoriesLoading = false;
-
-
-
-        }
-
-
-
+        SeedSaleMethods();
+        _ = InitialiseAsync();
     }
 
+    private void SeedSaleMethods()
+    {
+        if (SaleMethods.Count > 0)
+            return;
 
+        IsSaleMethodsLoading = true;
+        try
+        {
+            var methods = new[]
+            {
+                new SaleMethodOption { Id = SaleMethodKind.CashWithReceipt, Title = "Наличными с чеком", Description = "Стандартная продажа с выдачей фискального чека.", Icon = "$", PaymentType = PaymentType.CashWithReceipt },
+                new SaleMethodOption { Id = SaleMethodKind.CashNoReceipt,   Title = "Наличными без чека", Description = "Продажа за наличные без печати чека.",            Icon = "$", PaymentType = PaymentType.CashNoReceipt },
+                new SaleMethodOption { Id = SaleMethodKind.CardWithReceipt,  Title = "Картой с чеком",    Description = "Оплата банковской картой с фискальным чеком.",     Icon = "C", PaymentType = PaymentType.CardWithReceipt },
+                new SaleMethodOption { Id = SaleMethodKind.ClickWithReceipt, Title = "Click с чеком",     Description = "Онлайн-оплата Click с чеком.",                      Icon = "K", PaymentType = PaymentType.ClickWithReceipt },
+                new SaleMethodOption { Id = SaleMethodKind.ClickNoReceipt,   Title = "Click без чека",    Description = "Click-оплата с ручным учётом чека.",                 Icon = "K", PaymentType = PaymentType.ClickNoReceipt },
+                new SaleMethodOption { Id = SaleMethodKind.Site,             Title = "Сайт",              Description = "Продажа, оформленная через интернет-магазин.",       Icon = "W", PaymentType = PaymentType.Site },
+                new SaleMethodOption { Id = SaleMethodKind.Return,           Title = "Возврат",           Description = "Перейти к оформлению возврата.",                    Icon = "R", PaymentType = PaymentType.Return },
+                new SaleMethodOption { Id = SaleMethodKind.Reservation,      Title = "Бронь",             Description = "Создать бронь и удержать товар.",                    Icon = "B", PaymentType = PaymentType.Reservation },
+                new SaleMethodOption { Id = SaleMethodKind.Payme,            Title = "Payme",             Description = "Онлайн-оплата через Payme.",                         Icon = "P", PaymentType = PaymentType.Payme },
+                new SaleMethodOption { Id = SaleMethodKind.Contract,         Title = "Договор",           Description = "Продажа по договору или предоплате.",                Icon = "D", PaymentType = PaymentType.Contract },
+                new SaleMethodOption { Id = SaleMethodKind.CommissionClients,Title = "Комиссионные клиенты", Description = "Открыть клиентов, закреплённых за менеджером.",  Icon = "U", PaymentType = null }
+            };
 
+            foreach (var m in methods)
+                SaleMethods.Add(m);
+        }
+        finally
+        {
+            IsSaleMethodsLoading = false;
+        }
+    }
 
+    [RelayCommand]
+    private async Task LoadCategoriesAsync()
+    {
+        if (IsCategoriesLoading)
+            return;
+
+        try
+        {
+            IsCategoriesLoading = true;
+            IsCategoriesError = false;
+            CategoriesErrorMessage = null;
+
+            var raw = await _catalog.GetCategoriesAsync();
+            var list = raw?
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(s => s)
+                .Select(name => new CategoryDto { Name = name })
+                .ToList()
+                ?? new List<CategoryDto>();
+
+            if (list.Count > 0 && list.All(c => !string.Equals(c.Name, AllCategoriesLabel, StringComparison.OrdinalIgnoreCase)))
+            {
+                list.Insert(0, new CategoryDto { Name = AllCategoriesLabel });
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                Categories.Clear();
+                foreach (var item in list)
+                    Categories.Add(item);
+
+                ShowCategoriesEmptyState = Categories.Count == 0;
+                ShowCategoriesSection = Categories.Count > 0;
+                if (!ShowCategoriesEmptyState && SelectedCategory is null)
+                    SelectedCategory = Categories.FirstOrDefault();
+            });
+        }
+        catch (Exception ex)
+        {
+            IsCategoriesError = true;
+            CategoriesErrorMessage = ex.Message;
+            ShowCategoriesEmptyState = true;
+            ShowCategoriesSection = false;
+            _logger.LogError(ex, "Failed to load categories (status: 500?). CorrelationId: {CorrelationId}", ExtractCorrelationId(ex.Message));
+        }
+        finally
+        {
+            IsCategoriesLoading = false;
+        }
+    }
 
 
     [RelayCommand]
@@ -644,38 +493,6 @@ private async Task LoadStoresAsync()
     {
         IsStoresLoading = false;
         UpdateStepState();
-    }
-}
-
-private void SeedSaleMethods()
-{
-    if (SaleMethods.Count > 0)
-        return;
-
-    IsSaleMethodsLoading = true;
-    try
-    {
-        var methods = new[]
-        {
-            new SaleMethodOption { Id = SaleMethodKind.CashWithReceipt, Title = "Наличными с чеком", Description = "Стандартная продажа с выдачей фискального чека.", Icon = "$", PaymentType = PaymentType.CashWithReceipt },
-            new SaleMethodOption { Id = SaleMethodKind.CashNoReceipt,   Title = "Наличными без чека", Description = "Продажа за наличные без печати чека.",            Icon = "$", PaymentType = PaymentType.CashNoReceipt },
-            new SaleMethodOption { Id = SaleMethodKind.CardWithReceipt,  Title = "Картой с чеком",    Description = "Оплата банковской картой с фискальным чеком.",     Icon = "C", PaymentType = PaymentType.CardWithReceipt },
-            new SaleMethodOption { Id = SaleMethodKind.ClickWithReceipt, Title = "Click с чеком",     Description = "Онлайн-оплата Click с чеком.",                      Icon = "K", PaymentType = PaymentType.ClickWithReceipt },
-            new SaleMethodOption { Id = SaleMethodKind.ClickNoReceipt,   Title = "Click без чека",    Description = "Click-оплата с ручным учётом чека.",                 Icon = "K", PaymentType = PaymentType.ClickNoReceipt },
-            new SaleMethodOption { Id = SaleMethodKind.Site,             Title = "Сайт",              Description = "Продажа, оформленная через интернет-магазин.",       Icon = "W", PaymentType = PaymentType.Site },
-            new SaleMethodOption { Id = SaleMethodKind.Return,           Title = "Возврат",           Description = "Перейти к оформлению возврата.",                    Icon = "R", PaymentType = PaymentType.Return },
-            new SaleMethodOption { Id = SaleMethodKind.Reservation,      Title = "Бронь",             Description = "Создать бронь и удержать товар.",                    Icon = "B", PaymentType = PaymentType.Reservation },
-            new SaleMethodOption { Id = SaleMethodKind.Payme,            Title = "Payme",             Description = "Онлайн-оплата через Payme.",                         Icon = "P", PaymentType = PaymentType.Payme },
-            new SaleMethodOption { Id = SaleMethodKind.Contract,         Title = "Договор",           Description = "Продажа по договору или предоплате.",                Icon = "D", PaymentType = PaymentType.Contract },
-            new SaleMethodOption { Id = SaleMethodKind.CommissionClients,Title = "Комиссионные клиенты", Description = "Открыть клиентов, закреплённых за менеджером.",  Icon = "U", PaymentType = null }
-        };
-
-        foreach (var m in methods)
-            SaleMethods.Add(m);
-    }
-    finally
-    {
-        IsSaleMethodsLoading = false;
     }
 }
 
