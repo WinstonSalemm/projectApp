@@ -238,6 +238,8 @@ builder.Services.AddHostedService<ProjectApp.Api.Services.InventoryCleanupJob>()
 
 // Finance module
 builder.Services.Configure<FinanceSettings>(builder.Configuration.GetSection("Finance"));
+// Register FinanceSettings as singleton for services that need it directly (not via IOptions)
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<FinanceSettings>>().Value);
 builder.Services.AddScoped<IFinanceRepository, FinanceRepository>();
 builder.Services.AddScoped<FinanceReportBuilder>();
 builder.Services.AddScoped<FinanceService>();
