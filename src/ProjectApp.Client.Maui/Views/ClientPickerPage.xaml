@@ -4,7 +4,7 @@
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.ClientPickerPage"
              x:Name="Page"
-             Title="Р’С‹Р±РѕСЂ РєР»РёРµРЅС‚Р°" x:DataType="viewModels:ClientPickerViewModel">
+             Title="Р’С‹Р±РѕСЂ РєР»РёРµРЅС‚Р°">
   <ContentPage.ToolbarItems>
     <ToolbarItem Text="РЎРѕР·РґР°С‚СЊ" Clicked="OnCreateClicked"/>
   </ContentPage.ToolbarItems>
@@ -29,4 +29,5 @@
     </CollectionView>
   </Grid>
 </ContentPage>
+
 

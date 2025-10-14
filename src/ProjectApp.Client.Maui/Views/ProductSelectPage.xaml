@@ -4,7 +4,7 @@
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.ProductSelectPage"
              x:Name="Root"
-             Title="Р’С‹Р±РѕСЂ С‚РѕРІР°СЂР°" x:DataType="viewModels:ProductSelectViewModel">
+             Title="Р’С‹Р±РѕСЂ С‚РѕРІР°СЂР°">
   <ContentPage.Content>
     <Grid Padding="12" RowDefinitions="Auto,*" RowSpacing="12">
       <Grid Grid.Row="0" ColumnDefinitions="*,Auto,200,Auto,Auto" ColumnSpacing="8">
@@ -41,4 +41,5 @@
     </Grid>
   </ContentPage.Content>
 </ContentPage>
+
 

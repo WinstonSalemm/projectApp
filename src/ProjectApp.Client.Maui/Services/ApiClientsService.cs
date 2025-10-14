@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using ProjectApp.Client.Maui.Models;
 
 namespace ProjectApp.Client.Maui.Services;
@@ -18,7 +18,7 @@ public class ApiClientsService
 
     private HttpClient CreateClient()
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);

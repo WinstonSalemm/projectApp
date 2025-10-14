@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using ProjectApp.Client.Maui.Services;
 
 namespace ProjectApp.Client.Maui.Services;
@@ -20,7 +20,7 @@ public class ApiProductsService : IProductsService
     {
         var n = (name ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(n)) return false;
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
@@ -52,11 +52,11 @@ public class ApiProductsService : IProductsService
         {
             Sku = draft.Sku?.Trim() ?? string.Empty,
             Name = draft.Name?.Trim() ?? string.Empty,
-            Unit = draft.Unit?.Trim() ?? "шт",
+            Unit = draft.Unit?.Trim() ?? "С€С‚",
             Price = draft.Price,
             Category = draft.Category?.Trim() ?? string.Empty
         };
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);

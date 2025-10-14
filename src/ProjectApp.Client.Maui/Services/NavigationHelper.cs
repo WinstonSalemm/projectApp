@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using Microsoft.Maui.Controls;
 
 namespace ProjectApp.Client.Maui.Services;
@@ -79,13 +79,25 @@ public static class NavigationHelper
         return Task.FromResult(false);
     }
 
-    public static void SetRoot(Page page)
+    public static async void SetRoot(Page page)
     {
-        var window = Application.Current?.Windows.FirstOrDefault();
-        if (window != null)
+        if (page is null)
+            return;
+
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            window.Page = page;
-        }
+            var app = Application.Current;
+            if (app is null)
+                return;
+
+            // Close existing windows (single-window scenario)
+            foreach (var win in app.Windows.ToList())
+            {
+                app.CloseWindow(win);
+            }
+
+            app.OpenWindow(new Window(page));
+        });
     }
 
     private static INavigation? GetWindowNavigation()

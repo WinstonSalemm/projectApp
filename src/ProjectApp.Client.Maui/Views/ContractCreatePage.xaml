@@ -4,7 +4,7 @@
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.ContractCreatePage"
              x:Name="Root"
-             Title="РЎРѕР·РґР°С‚СЊ РґРѕРіРѕРІРѕСЂ" x:DataType="viewModels:ContractCreateViewModel">
+             Title="РЎРѕР·РґР°С‚СЊ РґРѕРіРѕРІРѕСЂ">
   <ScrollView>
     <VerticalStackLayout Padding="12" Spacing="12">
       <Entry Placeholder="РћСЂРіР°РЅРёР·Р°С†РёСЏ" Text="{Binding OrgName}"/>
@@ -52,4 +52,5 @@
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>
+
 

@@ -5,7 +5,7 @@
              xmlns:conv="clr-namespace:ProjectApp.Client.Maui.Converters"
              x:Class="ProjectApp.Client.Maui.Views.SalesHistoryPage"
              x:Name="Page"
-             Title="РСЃС‚РѕСЂРёСЏ РїСЂРѕРґР°Р¶" x:DataType="viewModels:SalesHistoryViewModel">
+             Title="РСЃС‚РѕСЂРёСЏ РїСЂРѕРґР°Р¶">
   <CollectionView ItemsSource="{Binding Items}">
     <CollectionView.Header>
       <Frame Style="{StaticResource CardFrame}">
@@ -62,4 +62,5 @@
     </CollectionView.EmptyView>
   </CollectionView>
 </ContentPage>
+
 

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
                     xmlns:controls="clr-namespace:ProjectApp.Client.Maui.Controls"
@@ -34,7 +34,7 @@
                            CommandParameter="{Binding}" />
   </DataTemplate>
 
-  <DataTemplate x:Key="ListItem.Client" x:DataType="models:ClientListItem">
+  <DataTemplate x:Key="ListItem.Client">
     <controls:ListItemView Title="{Binding Name}"
                            Subtitle="{Binding Phone}"
                            Meta="{Binding OwnerUserName}"
@@ -52,3 +52,4 @@
                              ActionCommandParameter="{Binding ActionCommandParameter}" />
   </DataTemplate>
 </ResourceDictionary>
+

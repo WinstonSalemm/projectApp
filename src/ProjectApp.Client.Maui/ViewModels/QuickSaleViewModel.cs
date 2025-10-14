@@ -1,7 +1,8 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Collections.Generic;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.ApplicationModel;
@@ -54,6 +55,12 @@ public partial class QuickSaleViewModel : ObservableObject
     public ObservableCollection<CartItemModel> Cart { get; } = new();
     public ObservableCollection<string> Categories { get; } = new();
 
+    [ObservableProperty]
+    private bool showCategoriesEmptyState;
+
+    [ObservableProperty]
+    private string? categoriesError;
+
     public IReadOnlyList<PaymentType> PaymentTypes { get; } = new[]
     {
         PaymentType.CashWithReceipt,
@@ -104,8 +111,7 @@ public partial class QuickSaleViewModel : ObservableObject
 
     public ObservableCollection<string> ReservationNotes { get; } = new();
     [ObservableProperty]
-    private string newReservationNote = string.Empty;
-
+    private string newReservationNote = string.Empty;
     [RelayCommand]
     private void AddReservationNote()
     {
@@ -113,8 +119,7 @@ public partial class QuickSaleViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(note)) return;
         ReservationNotes.Add(note);
         NewReservationNote = string.Empty;
-    }
-
+    }
     [RelayCommand]
     private void RemoveReservationNote(string? note)
     {
@@ -178,7 +183,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
                         IsOffline = true;
-                        try { await Toast.Make("Нужен вход: выполните вход как Менеджер и повторите поиск", ToastDuration.Short).Show(token); } catch { }
+                        try { await Toast.Make("РќСѓР¶РµРЅ РІС…РѕРґ: РІС‹РїРѕР»РЅРёС‚Рµ РІС…РѕРґ РєР°Рє РњРµРЅРµРґР¶РµСЂ Рё РїРѕРІС‚РѕСЂРёС‚Рµ РїРѕРёСЃРє", ToastDuration.Short).Show(token); } catch { }
                     });
                     return;
                 }
@@ -243,9 +248,9 @@ public partial class QuickSaleViewModel : ObservableObject
                         SearchResults.Add(new QuickProductRow
                         {
                             Id = p.Id,
-                            Sku = p.Sku,
-                            Name = p.Name,
-                            Unit = p.Unit,
+                            Sku = p.Sku ?? string.Empty,
+                            Name = p.Name ?? string.Empty,
+                            Unit = p.Unit ?? string.Empty,
                             Price = p.Price,
                             Nd40Qty = hasAvail ? availTuple.Nd40 : (stock?.Nd40Qty ?? 0),
                             Im40Qty = hasAvail ? availTuple.Im40 : (stock?.Im40Qty ?? 0),
@@ -270,8 +275,8 @@ public partial class QuickSaleViewModel : ObservableObject
                     var msg = (ex.Message ?? string.Empty);
                     var authErr = msg.Contains("401") || msg.Contains("403");
                     var text = authErr
-                        ? "Доступ запрещён или сессия истекла. Войдите как Менеджер и повторите."
-                        : "Нет связи с сервером";
+                        ? "Р”РѕСЃС‚СѓРї Р·Р°РїСЂРµС‰С‘РЅ РёР»Рё СЃРµСЃСЃРёСЏ РёСЃС‚РµРєР»Р°. Р’РѕР№РґРёС‚Рµ РєР°Рє РњРµРЅРµРґР¶РµСЂ Рё РїРѕРІС‚РѕСЂРёС‚Рµ."
+                        : "РќРµС‚ СЃРІСЏР·Рё СЃ СЃРµСЂРІРµСЂРѕРј";
                     try { await Toast.Make(text, ToastDuration.Short).Show(token); } catch { }
                 }
             }
@@ -281,20 +286,30 @@ public partial class QuickSaleViewModel : ObservableObject
     partial void OnSelectedCategoryChanged(string? value)
     {
         DebouncedSearchAsync(Query);
-    }
-
+    }
+    [RelayCommand]
     private async Task LoadCategoriesAsync()
     {
         try
         {
+            CategoriesError = null;
             var list = await _catalog.GetCategoriesAsync();
+            var normalized = list?.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(s => s).ToList()
+                             ?? new List<string>();
             await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
             {
                 Categories.Clear();
-                Categories.Add(string.Empty); // пустая категория = все
-                foreach (var c in list)
-                    Categories.Add(c);
-                // Apply preset category even if Picker reset SelectedCategory during binding
+                if (normalized.Count > 0)
+                {
+                    Categories.Add(string.Empty); // empty category = all
+                    foreach (var c in normalized)
+                        Categories.Add(c);
+                    ShowCategoriesEmptyState = false;
+                }
+                else
+                {
+                    ShowCategoriesEmptyState = true;
+                }
                 var keep = _presetCategory ?? SelectedCategory;
                 if (!string.IsNullOrWhiteSpace(keep))
                 {
@@ -307,9 +322,16 @@ public partial class QuickSaleViewModel : ObservableObject
                 }
             });
         }
-        catch { }
-    }
-
+        catch (Exception ex)
+        {
+            CategoriesError = ex.Message;
+            await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                Categories.Clear();
+                ShowCategoriesEmptyState = true;
+            });
+        }
+    }
     [RelayCommand]
     private void AddToCart(QuickProductRow product)
     {
@@ -374,8 +396,7 @@ public partial class QuickSaleViewModel : ObservableObject
     partial void OnSelectedPaymentTypeChanged(PaymentType value)
     {
         IsReservation = value == PaymentType.Reservation;
-    }
-
+    }
     [RelayCommand]
     private void RemoveFromCart(CartItemModel? item)
     {
@@ -383,8 +404,7 @@ public partial class QuickSaleViewModel : ObservableObject
         Cart.Remove(item);
         RecalculateTotal();
         UpdateCanSubmit();
-    }
-
+    }
     [RelayCommand]
     private async Task SubmitAsync()
     {
@@ -392,7 +412,7 @@ public partial class QuickSaleViewModel : ObservableObject
         {
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await NavigationHelper.DisplayAlert("Действие недоступно", "Роль Админ не проводит продажи.", "OK");
+                await NavigationHelper.DisplayAlert("Р”РµР№СЃС‚РІРёРµ РЅРµРґРѕСЃС‚СѓРїРЅРѕ", "Р РѕР»СЊ РђРґРјРёРЅ РЅРµ РїСЂРѕРІРѕРґРёС‚ РїСЂРѕРґР°Р¶Рё.", "OK");
             });
             return;
         }
@@ -412,7 +432,7 @@ public partial class QuickSaleViewModel : ObservableObject
                 rd.Items.Add(new ReservationCreateItemDraft
                 {
                     ProductId = c.ProductId,
-                    // Prefer IM40 by default; register-specific UI может быть добавлен позже
+                    // Prefer IM40 by default; register-specific UI РјРѕР¶РµС‚ Р±С‹С‚СЊ РґРѕР±Р°РІР»РµРЅ РїРѕР·Р¶Рµ
                     Register = Models.StockRegister.IM40,
                     Qty = (decimal)c.Qty
                 });
@@ -425,11 +445,11 @@ public partial class QuickSaleViewModel : ObservableObject
                 if (!resId.HasValue)
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
-                        await NavigationHelper.DisplayAlert("Ошибка", "Не удалось создать резерв", "OK"));
+                        await NavigationHelper.DisplayAlert("РћС€РёР±РєР°", "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ СЂРµР·РµСЂРІ", "OK"));
                     return;
                 }
                 await MainThread.InvokeOnMainThreadAsync(async () =>
-                    await NavigationHelper.DisplayAlert("Успех", $"Резерв создан #{resId}", "OK"));
+                    await NavigationHelper.DisplayAlert("РЈСЃРїРµС…", $"Р РµР·РµСЂРІ СЃРѕР·РґР°РЅ #{resId}", "OK"));
                 Cart.Clear();
                 Total = 0m;
                 ReservationPaid = false;
@@ -452,7 +472,7 @@ public partial class QuickSaleViewModel : ObservableObject
                 if (!resId.HasValue)
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
-                        await NavigationHelper.DisplayAlert("Ошибка", "Не удалось создать резерв", "OK"));
+                        await NavigationHelper.DisplayAlert("РћС€РёР±РєР°", "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ СЂРµР·РµСЂРІ", "OK"));
                     return;
                 }
 
@@ -462,7 +482,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     if (photo == null)
                     {
                         await MainThread.InvokeOnMainThreadAsync(async () =>
-                            await NavigationHelper.DisplayAlert("Фото обязательно", "Для резерва требуется фото менеджера", "OK"));
+                            await NavigationHelper.DisplayAlert("Р¤РѕС‚Рѕ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ", "Р”Р»СЏ СЂРµР·РµСЂРІР° С‚СЂРµР±СѓРµС‚СЃСЏ С„РѕС‚Рѕ РјРµРЅРµРґР¶РµСЂР°", "OK"));
                         return;
                     }
                     await using var stream = await photo.OpenReadAsync();
@@ -470,19 +490,19 @@ public partial class QuickSaleViewModel : ObservableObject
                     if (!okUp)
                     {
                         await MainThread.InvokeOnMainThreadAsync(async () =>
-                            await NavigationHelper.DisplayAlert("Ошибка", "Не удалось отправить фото в Telegram", "OK"));
+                            await NavigationHelper.DisplayAlert("РћС€РёР±РєР°", "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ С„РѕС‚Рѕ РІ Telegram", "OK"));
                         return;
                     }
                 }
                 catch
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
-                        await NavigationHelper.DisplayAlert("Ошибка", "Не удалось сделать фото. Повторите.", "OK"));
+                        await NavigationHelper.DisplayAlert("РћС€РёР±РєР°", "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРґРµР»Р°С‚СЊ С„РѕС‚Рѕ. РџРѕРІС‚РѕСЂРёС‚Рµ.", "OK"));
                     return;
                 }
 
                 await MainThread.InvokeOnMainThreadAsync(async () =>
-                    await NavigationHelper.DisplayAlert("Успех", $"Резерв создан #{resId}", "OK"));
+                    await NavigationHelper.DisplayAlert("РЈСЃРїРµС…", $"Р РµР·РµСЂРІ СЃРѕР·РґР°РЅ #{resId}", "OK"));
                 Cart.Clear();
                 Total = 0m;
                 ReservationPaid = false;
@@ -503,11 +523,11 @@ public partial class QuickSaleViewModel : ObservableObject
             if (!resIdOther.HasValue)
             {
                 await MainThread.InvokeOnMainThreadAsync(async () =>
-                    await NavigationHelper.DisplayAlert("Ошибка", "Не удалось создать резерв", "OK"));
+                    await NavigationHelper.DisplayAlert("РћС€РёР±РєР°", "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ СЂРµР·РµСЂРІ", "OK"));
                 return;
             }
             await MainThread.InvokeOnMainThreadAsync(async () =>
-                await NavigationHelper.DisplayAlert("Успех", $"Резерв создан #{resIdOther}", "OK"));
+                await NavigationHelper.DisplayAlert("РЈСЃРїРµС…", $"Р РµР·РµСЂРІ СЃРѕР·РґР°РЅ #{resIdOther}", "OK"));
             Cart.Clear();
             Total = 0m;
             ReservationPaid = false;
@@ -526,7 +546,7 @@ public partial class QuickSaleViewModel : ObservableObject
         var draft = new SaleDraft
         {
             ClientId = SelectedClientId,
-            ClientName = string.IsNullOrWhiteSpace(ClientName) ? "Посетитель" : ClientName,
+            ClientName = string.IsNullOrWhiteSpace(ClientName) ? "РџРѕСЃРµС‚РёС‚РµР»СЊ" : ClientName,
             PaymentType = SelectedPaymentType,
             Items = Cart.Select(c => new SaleDraftItem { ProductId = c.ProductId, Qty = c.Qty, UnitPrice = c.UnitPrice }).ToList()
         };
@@ -539,9 +559,9 @@ public partial class QuickSaleViewModel : ObservableObject
         {
             // Always include a generated description line with client and whether paid
             var notes = new List<string>();
-            var client = string.IsNullOrWhiteSpace(ClientName) ? "(не указан)" : ClientName.Trim();
-            var paidText = ReservationPaid ? "Да" : "Нет";
-            notes.Add($"Клиент: {client}; Оплата: {paidText}");
+            var client = string.IsNullOrWhiteSpace(ClientName) ? "(РЅРµ СѓРєР°Р·Р°РЅ)" : ClientName.Trim();
+            var paidText = ReservationPaid ? "Р”Р°" : "РќРµС‚";
+            notes.Add($"РљР»РёРµРЅС‚: {client}; РћРїР»Р°С‚Р°: {paidText}");
             if (ReservationNotes.Any()) notes.AddRange(ReservationNotes);
             draft.ReservationNotes = notes;
         }
@@ -554,7 +574,7 @@ public partial class QuickSaleViewModel : ObservableObject
         }
         catch
         {
-            result = SalesResult.Fail("Сетевая ошибка");
+            result = SalesResult.Fail("РЎРµС‚РµРІР°СЏ РѕС€РёР±РєР°");
         }
         if (result.Success)
         {
@@ -568,7 +588,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     {
                         await MainThread.InvokeOnMainThreadAsync(async () =>
                         {
-                            await NavigationHelper.DisplayAlert("Фото обязательно", "Для подтверждения требуется фото", "OK");
+                            await NavigationHelper.DisplayAlert("Р¤РѕС‚Рѕ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ", "Р”Р»СЏ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ С‚СЂРµР±СѓРµС‚СЃСЏ С„РѕС‚Рѕ", "OK");
                         });
                         return;
                     }
@@ -576,7 +596,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     {
                         await MainThread.InvokeOnMainThreadAsync(async () =>
                         {
-                            await NavigationHelper.DisplayAlert("Ошибка", "Не удалось определить номер продажи для загрузки фото", "OK");
+                            await NavigationHelper.DisplayAlert("РћС€РёР±РєР°", "РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ РЅРѕРјРµСЂ РїСЂРѕРґР°Р¶Рё РґР»СЏ Р·Р°РіСЂСѓР·РєРё С„РѕС‚Рѕ", "OK");
                         });
                         return;
                     }
@@ -586,7 +606,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     {
                         await MainThread.InvokeOnMainThreadAsync(async () =>
                         {
-                            await NavigationHelper.DisplayAlert("Ошибка", "Не удалось отправить фото в Telegram", "OK");
+                            await NavigationHelper.DisplayAlert("РћС€РёР±РєР°", "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ С„РѕС‚Рѕ РІ Telegram", "OK");
                         });
                         return;
                     }
@@ -595,14 +615,14 @@ public partial class QuickSaleViewModel : ObservableObject
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
-                        await NavigationHelper.DisplayAlert("Ошибка", "Не удалось сделать фото. Повторите.", "OK");
+                        await NavigationHelper.DisplayAlert("РћС€РёР±РєР°", "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРґРµР»Р°С‚СЊ С„РѕС‚Рѕ. РџРѕРІС‚РѕСЂРёС‚Рµ.", "OK");
                     });
                     return;
                 }
             }
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await NavigationHelper.DisplayAlert("Успех", "Продажа проведена", "OK");
+                await NavigationHelper.DisplayAlert("РЈСЃРїРµС…", "РџСЂРѕРґР°Р¶Р° РїСЂРѕРІРµРґРµРЅР°", "OK");
             });
             Cart.Clear();
             Total = 0m;
@@ -623,28 +643,27 @@ public partial class QuickSaleViewModel : ObservableObject
             // Decide if it's a network issue or a business/validation error
             var err = result.ErrorMessage ?? string.Empty;
             var isNetwork = string.IsNullOrWhiteSpace(err)
-                            || err.Contains("Сетевая ошибка", StringComparison.OrdinalIgnoreCase)
+                            || err.Contains("РЎРµС‚РµРІР°СЏ РѕС€РёР±РєР°", StringComparison.OrdinalIgnoreCase)
                             || err.StartsWith("HTTP 5")
                             || err.StartsWith("HTTP 0");
 
             if (_settings.UseApi && isNetwork)
             {
                 IsOffline = true;
-                var msg = string.IsNullOrWhiteSpace(err) ? "Нет связи с сервером" : err;
+                var msg = string.IsNullOrWhiteSpace(err) ? "РќРµС‚ СЃРІСЏР·Рё СЃ СЃРµСЂРІРµСЂРѕРј" : err;
                 try { await Toast.Make(msg, ToastDuration.Long).Show(); } catch { }
             }
             else
             {
-                // Show server-provided message (e.g., недостаточно остатков)
+                // Show server-provided message (e.g., РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РѕСЃС‚Р°С‚РєРѕРІ)
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    var msg = string.IsNullOrWhiteSpace(err) ? "Не удалось провести продажу" : err;
-                    await NavigationHelper.DisplayAlert("Ошибка", msg, "OK");
+                    var msg = string.IsNullOrWhiteSpace(err) ? "РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕРІРµСЃС‚Рё РїСЂРѕРґР°Р¶Сѓ" : err;
+                    await NavigationHelper.DisplayAlert("РћС€РёР±РєР°", msg, "OK");
                 });
             }
         }
-    }
-
+    }
     [RelayCommand]
     private async Task ChangePaymentTypeAsync()
     {
@@ -659,8 +678,7 @@ public partial class QuickSaleViewModel : ObservableObject
             }
         }
         catch { }
-    }
-
+    }
     [RelayCommand]
     private async Task RetryAsync()
     {
@@ -679,7 +697,7 @@ public partial class QuickSaleViewModel : ObservableObject
                         {
                             await MainThread.InvokeOnMainThreadAsync(async () =>
                             {
-                                await NavigationHelper.DisplayAlert("Успех", "Продажа проведена", "OK");
+                                await NavigationHelper.DisplayAlert("РЈСЃРїРµС…", "РџСЂРѕРґР°Р¶Р° РїСЂРѕРІРµРґРµРЅР°", "OK");
                             });
                             Cart.Clear();
                             Total = 0m;
@@ -696,7 +714,7 @@ public partial class QuickSaleViewModel : ObservableObject
                         }
                         else
                         {
-                            var msg = string.IsNullOrWhiteSpace(result.ErrorMessage) ? "Не удалось провести продажу" : result.ErrorMessage;
+                            var msg = string.IsNullOrWhiteSpace(result.ErrorMessage) ? "РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕРІРµСЃС‚Рё РїСЂРѕРґР°Р¶Сѓ" : result.ErrorMessage;
                             try { await Toast.Make(msg, ToastDuration.Long).Show(); } catch { }
                         }
                     }
@@ -708,5 +726,11 @@ public partial class QuickSaleViewModel : ObservableObject
         }
     }
 }
+
+
+
+
+
+
 
 

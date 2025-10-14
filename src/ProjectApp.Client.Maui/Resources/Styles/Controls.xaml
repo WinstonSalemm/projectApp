@@ -5,8 +5,8 @@
 
   <!-- Button foundations -->
   <Style x:Key="Button.Base" TargetType="Button">
-    <Setter Property="FontFamily" Value="{StaticResource FontFamily.Inter}" />
-    <Setter Property="CornerRadius" Value="{StaticResource Radius.12}" />
+    <Setter Property="FontFamily" Value="{StaticResource FontFamily.Primary}" />
+    <Setter Property="CornerRadius" Value="{x:Int32 12}" />
     <Setter Property="Padding" Value="{StaticResource Control.Padding.Primary}" />
     <Setter Property="HeightRequest" Value="{StaticResource Control.Height}" />
     <Setter Property="HorizontalOptions" Value="Fill" />
@@ -91,7 +91,7 @@
   </Style>
 
   <Style TargetType="Entry" BasedOn="{StaticResource Input.Base}">
-    <Setter Property="FontFamily" Value="{StaticResource FontFamily.Inter}" />
+    <Setter Property="FontFamily" Value="{StaticResource FontFamily.Primary}" />
     <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface.Muted}" />
     <Setter Property="TextColor" Value="{DynamicResource Color.Text.Primary}" />
     <Setter Property="PlaceholderColor" Value="{DynamicResource Color.Text.Tertiary}" />
@@ -99,7 +99,7 @@
   </Style>
 
   <Style TargetType="Editor" BasedOn="{StaticResource Input.Base}">
-    <Setter Property="FontFamily" Value="{StaticResource FontFamily.Inter}" />
+    <Setter Property="FontFamily" Value="{StaticResource FontFamily.Primary}" />
     <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface.Muted}" />
     <Setter Property="TextColor" Value="{DynamicResource Color.Text.Primary}" />
     <Setter Property="PlaceholderColor" Value="{DynamicResource Color.Text.Tertiary}" />
@@ -107,7 +107,7 @@
   </Style>
 
   <Style TargetType="Picker" BasedOn="{StaticResource Input.Base}">
-    <Setter Property="FontFamily" Value="{StaticResource FontFamily.Inter}" />
+    <Setter Property="FontFamily" Value="{StaticResource FontFamily.Primary}" />
     <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface.Muted}" />
     <Setter Property="TextColor" Value="{DynamicResource Color.Text.Primary}" />
     <Setter Property="TitleColor" Value="{DynamicResource Color.Text.Secondary}" />
@@ -115,7 +115,7 @@
   </Style>
 
   <Style TargetType="SearchBar">
-    <Setter Property="FontFamily" Value="{StaticResource FontFamily.Inter}" />
+    <Setter Property="FontFamily" Value="{StaticResource FontFamily.Primary}" />
     <Setter Property="HeightRequest" Value="{StaticResource Control.Height}" />
     <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface.Muted}" />
     <Setter Property="TextColor" Value="{DynamicResource Color.Text.Primary}" />

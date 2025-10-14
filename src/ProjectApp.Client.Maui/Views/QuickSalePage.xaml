@@ -1,179 +1,197 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             xmlns:models="clr-namespace:ProjectApp.Client.Maui.Models"
              xmlns:converters="clr-namespace:ProjectApp.Client.Maui.Converters"
              x:Class="ProjectApp.Client.Maui.Views.QuickSalePage"
              x:Name="RootPage"
-             Title="Р‘С‹СЃС‚СЂР°СЏ РїСЂРѕРґР°Р¶Р°" x:DataType="viewModels:QuickSaleViewModel">
+             x:DataType="viewModels:QuickSaleViewModel"
+             Title="Быстрая продажа">
   <ContentPage.Resources>
     <ResourceDictionary>
-      <converters:PaymentTypeToRuConverter x:Key="PaymentTypeToRuConverter"/>
+      <converters:PaymentTypeToRuConverter x:Key="PaymentTypeToRuConverter" />
+      <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+      <converters:CurrencyConverter x:Key="CurrencyConverter" />
     </ResourceDictionary>
   </ContentPage.Resources>
+
   <ContentPage.ToolbarItems>
-    <ToolbarItem Text="РќР°СЃС‚СЂРѕР№РєРё" Clicked="OnSettingsClicked" IconImageSource="{StaticResource IconSettings}" />
+    <ToolbarItem Text="Настройки" Clicked="OnSettingsClicked" IconImageSource="{StaticResource IconSettings}" />
   </ContentPage.ToolbarItems>
-  <ContentPage.Content>
-    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto" Padding="24" RowSpacing="16">
-      <Frame Grid.Row="0" BackgroundColor="#FFCC00" Padding="8" HasShadow="False" IsVisible="{Binding IsOffline}">
-        <HorizontalStackLayout Spacing="12">
-          <Label Text="РћС„С„Р»Р°Р№РЅ СЂРµР¶РёРј (РјРѕРєРё)" FontAttributes="Bold" VerticalOptions="Center"/>
-          <Button Text="РџРѕРІС‚РѕСЂРёС‚СЊ" Command="{Binding RetryCommand}" Style="{StaticResource OutlinedButton}" ToolTipProperties.Text="РџРѕРІС‚РѕСЂРёС‚СЊ РїРѕРїС‹С‚РєСѓ РїРѕРґРєР»СЋС‡РµРЅРёСЏ" />
-        </HorizontalStackLayout>
-      </Frame>
 
-      <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-        <Entry Grid.Column="0" Placeholder="РџРѕРёСЃРє РїРѕ SKU РёР»Рё РЅР°Р·РІР°РЅРёСЋ" Text="{Binding Query}"/>
-        <Picker Grid.Column="1" WidthRequest="220" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}"/>
-      </Grid>
-
-      <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16">
-        <VerticalStackLayout Grid.Column="0">
-          <Label Text="Р РµР·СѓР»СЊС‚Р°С‚С‹" Style="{StaticResource SectionTitle}"/>
-          <CollectionView ItemsSource="{Binding SearchResults}" Margin="0,8,0,0">
-            <CollectionView.EmptyView>
-              <VerticalStackLayout Padding="12" Spacing="6">
-                <Label Text="РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
-                <Label Text="РџРѕРїСЂРѕР±СѓР№С‚Рµ РёР·РјРµРЅРёС‚СЊ Р·Р°РїСЂРѕСЃ РёР»Рё РєР°С‚РµРіРѕСЂРёСЋ" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
-              </VerticalStackLayout>
-            </CollectionView.EmptyView>
-            <CollectionView.ItemsLayout>
-              <GridItemsLayout Orientation="Vertical">
-                <GridItemsLayout.Span>
-                  <OnIdiom x:TypeArguments="x:Int32" Phone="2" Tablet="3" Desktop="4" />
-                </GridItemsLayout.Span>
-              </GridItemsLayout>
-            </CollectionView.ItemsLayout>
-            <CollectionView.ItemTemplate>
-              <DataTemplate>
-                <Frame Style="{StaticResource CardFrame}" HeightRequest="180">
-                  <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*">
-                    <Label Grid.Row="0" Text="{Binding Name}" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
-                    <VerticalStackLayout Grid.Row="1" Spacing="6">
-                      <Label Text="{Binding Sku}" FontSize="12" TextColor="Gray"/>
-                      <Label x:Name="PriceLabel" Text="{Binding Price, Converter={StaticResource CurrencyConverter}}" FontSize="14">
-                        <Label.Triggers>
-                          <DataTrigger TargetType="Label" Binding="{Binding Price}" Value="0">
-                            <Setter Property="TextColor" Value="#B91C1C" />
-                            <Setter Property="FontAttributes" Value="Bold" />
-                          </DataTrigger>
-                        </Label.Triggers>
-                      </Label>
-                      <HorizontalStackLayout Spacing="8">
-                        <Frame Style="{StaticResource BadgeFrame}"
-                               BackgroundColor="{Binding Nd40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=bg}"
-                               BorderColor="{Binding Nd40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=border}">
-                          <Label Text="{Binding Nd40Qty, StringFormat='ND-40: {0:N0}'}" FontSize="11"
-                                 TextColor="{Binding Nd40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}"/>
-                        </Frame>
-                        <Frame Style="{StaticResource BadgeFrame}"
-                               BackgroundColor="{Binding Im40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=bg}"
-                               BorderColor="{Binding Im40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=border}">
-                          <Label Text="{Binding Im40Qty, StringFormat='IM-40: {0:N0}'}" FontSize="11"
-                                 TextColor="{Binding Im40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}"/>
-                        </Frame>
-                        <Frame Style="{StaticResource BadgeFrame}"
-                               BackgroundColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=bg}"
-                               BorderColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=border}">
-                          <Label Text="{Binding TotalQty, StringFormat='Р’СЃРµРіРѕ: {0:N0}'}" FontSize="11"
-                                 TextColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}"/>
-                        </Frame>
-                      </HorizontalStackLayout>
-                      <Label Text="РќРµС‚ РІ РЅР°Р»РёС‡РёРё" FontAttributes="Bold" TextColor="#B91C1C" IsVisible="False">
-                        <Label.Triggers>
-                          <DataTrigger TargetType="Label" Binding="{Binding TotalQty}" Value="0">
-                            <Setter Property="IsVisible" Value="True" />
-                          </DataTrigger>
-                        </Label.Triggers>
-                      </Label>
-                    </VerticalStackLayout>
-                    <Button Grid.Row="2" Text="Р”РѕР±Р°РІРёС‚СЊ" Style="{StaticResource CtaPrimary}" ToolTipProperties.Text="Р”РѕР±Р°РІРёС‚СЊ РІ РєРѕСЂР·РёРЅСѓ"
-                            Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.AddToCartCommand}" CommandParameter="{Binding .}" ImageSource="{StaticResource IconAdd}" ContentLayout="Left,8">
-                      <Button.Triggers>
-                        <DataTrigger TargetType="Button" Binding="{Binding TotalQty}" Value="0">
-                          <Setter Property="IsVisible" Value="False" />
-                        </DataTrigger>
-                      </Button.Triggers>
-                    </Button>
-                  </Grid>
-                </Frame>
-              </DataTemplate>
-            </CollectionView.ItemTemplate>
-          </CollectionView>
-        </VerticalStackLayout>
-
-        <VerticalStackLayout Grid.Column="1" Spacing="8">
-          <Label Text="РљРѕСЂР·РёРЅР°" Style="{StaticResource SectionTitle}"/>
-          <CollectionView ItemsSource="{Binding Cart}" Margin="0,8,0,0">
-            <CollectionView.ItemTemplate>
-              <DataTemplate>
-                <Grid ColumnDefinitions="*,Auto,Auto" Padding="8" ColumnSpacing="10">
-                  <VerticalStackLayout>
-                    <Label Text="{Binding Name}" FontAttributes="Bold"/>
-                    <HorizontalStackLayout Spacing="6">
-                      <Label Text="Р¦РµРЅР°:" FontSize="12"/>
-                      <Entry Text="{Binding UnitPrice, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="120" FontSize="14"/>
-                    </HorizontalStackLayout>
-                    <HorizontalStackLayout Spacing="6">
-                      <Label Text="РљРѕР»-РІРѕ:" FontSize="12"/>
-                      <Entry Text="{Binding Qty, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="100" FontSize="14" />
-                    </HorizontalStackLayout>
-                    <HorizontalStackLayout Spacing="6">
-                      <Label Text="РЎСѓРјРјР°:" FontSize="12"/>
-                      <Label Text="{Binding Subtotal, Converter={StaticResource CurrencyConverter}}" FontAttributes="Bold"/>
-                    </HorizontalStackLayout>
-                    <Label Text="{Binding Source={x:Reference RootPage}, Path=BindingContext.Total, StringFormat=''}" IsVisible="False"/>
-                  </VerticalStackLayout>
-                  <Button Grid.Column="2" Text="РЈРґР°Р»РёС‚СЊ" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RemoveFromCartCommand}" CommandParameter="{Binding .}" Style="{StaticResource OutlinedButton}" ToolTipProperties.Text="РЈРґР°Р»РёС‚СЊ РёР· РєРѕСЂР·РёРЅС‹"/>
-                </Grid>
-              </DataTemplate>
-            </CollectionView.ItemTemplate>
-          </CollectionView>
-        </VerticalStackLayout>
-      </Grid>
-
-      <HorizontalStackLayout Grid.Row="3" Spacing="12" Margin="0,12,0,0">
-        <Label Text="РўРёРї РїСЂРѕРґР°Р¶Рё:" VerticalOptions="Center"/>
-        <Label VerticalOptions="Center" Text="{Binding SelectedPaymentType, Converter={StaticResource PaymentTypeToRuConverter}}"/>
-        <Button Text="РР·РјРµРЅРёС‚СЊ" Command="{Binding ChangePaymentTypeCommand}" Style="{StaticResource OutlinedButton}" ToolTipProperties.Text="РР·РјРµРЅРёС‚СЊ С‚РёРї РѕРїР»Р°С‚С‹"/>
-        <Entry Placeholder="РРјСЏ РєР»РёРµРЅС‚Р° (РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ РґР»СЏ Р±СЂРѕРЅРё)" Text="{Binding ClientName}"/>
-        <Button Text="РљР»РёРµРЅС‚" Clicked="OnPickClientClicked" Style="{StaticResource OutlinedButton}" ToolTipProperties.Text="Р’С‹Р±СЂР°С‚СЊ РєР»РёРµРЅС‚Р°"/>
-        <HorizontalStackLayout Spacing="6" IsVisible="{Binding IsReservation}">
-          <Label Text="РћРїР»Р°С‚Р°:" VerticalOptions="Center"/>
-          <Switch IsToggled="{Binding ReservationPaid}"/>
-        </HorizontalStackLayout>
+  <Grid RowDefinitions="Auto,*" Padding="24" RowSpacing="16">
+    <Frame Grid.Row="0"
+           BackgroundColor="#FFCC00"
+           Padding="12"
+           HasShadow="False"
+           IsVisible="{Binding IsOffline}">
+      <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
+        <Label Text="Нет связи с сервером"
+               FontAttributes="Bold"
+               VerticalOptions="Center" />
+        <Button Text="Повторить"
+                Command="{Binding RetryCommand}"
+                Style="{StaticResource Button.Secondary}" />
       </HorizontalStackLayout>
-      <Label Grid.Row="4" Text="Р”Р»СЏ Р±СЂРѕРЅРё РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ СѓРєР°Р¶РёС‚Рµ РєР»РёРµРЅС‚Р° Рё РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё РѕС‚РјРµС‚СЊС‚Рµ 'РћРїР»Р°С‚Р°'"
-             FontSize="12" TextColor="#6B7280" IsVisible="{Binding IsReservation}"/>
+    </Frame>
 
-      <Frame Grid.Row="5" Padding="12" Style="{StaticResource CardFrame}">
-        <HorizontalStackLayout Spacing="12">
-          <Label Text="РС‚РѕРіРѕ:" FontAttributes="Bold"/>
-          <Label Text="{Binding Total, Converter={StaticResource CurrencyConverter}}" FontAttributes="Bold"/>
-        </HorizontalStackLayout>
-      </Frame>
+    <Grid Grid.Row="1" ColumnDefinitions="2*,*" ColumnSpacing="24">
+      <!-- Левая колонка: каталог -->
+      <Grid RowDefinitions="Auto,Auto,*" RowSpacing="16">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <Entry Placeholder="Поиск по названию или SKU"
+                 Text="{Binding Query}"
+                 ClearButtonVisibility="WhileEditing" />
+          <Picker ItemsSource="{Binding Categories}"
+                  SelectedItem="{Binding SelectedCategory}"
+                  Title="Все категории"
+                  WidthRequest="220" />
+        </Grid>
 
-      <VerticalStackLayout Grid.Row="6" Spacing="8" IsVisible="{Binding IsReservation}">
-        <Label Text="Р—Р°РјРµС‚РєРё Рє Р±СЂРѕРЅРµ" FontAttributes="Bold"/>
-        <HorizontalStackLayout Spacing="8">
-          <Entry Placeholder="РўРµРєСЃС‚ Р·Р°РјРµС‚РєРё" Text="{Binding NewReservationNote}" HorizontalOptions="FillAndExpand"/>
-          <Button Text="Р”РѕР±Р°РІРёС‚СЊ" Command="{Binding AddReservationNoteCommand}" Style="{StaticResource OutlinedButton}" ToolTipProperties.Text="Р”РѕР±Р°РІРёС‚СЊ Р·Р°РјРµС‚РєСѓ"/>
-        </HorizontalStackLayout>
-        <CollectionView ItemsSource="{Binding ReservationNotes}" Margin="0,4,0,0">
+        <Border Grid.Row="1" Style="{StaticResource Card.Container}">
+          <VerticalStackLayout Spacing="4">
+            <Label Text="Результаты поиска"
+                   FontAttributes="Bold"
+                   FontSize="{StaticResource Font.Size.H3}" />
+            <Label Text="Добавьте товары в корзину кнопкой справа."
+                   TextColor="{DynamicResource Color.Text.Secondary}" />
+          </VerticalStackLayout>
+        </Border>
+
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding SearchResults}"
+                        SelectionMode="None"
+                        Margin="0,0,0,16">
           <CollectionView.ItemTemplate>
-            <DataTemplate>
-              <Grid ColumnDefinitions="*,Auto" Padding="4" ColumnSpacing="8">
-                <Label Text="{Binding .}"/>
-                <Button Grid.Column="1" Text="РЈРґР°Р»РёС‚СЊ" Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RemoveReservationNoteCommand}" CommandParameter="{Binding .}" Style="{StaticResource OutlinedButton}" ToolTipProperties.Text="РЈРґР°Р»РёС‚СЊ Р·Р°РјРµС‚РєСѓ"/>
-              </Grid>
+            <DataTemplate x:DataType="viewModels:QuickSaleViewModel+QuickProductRow">
+              <Border Style="{StaticResource Card.Container}">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12">
+                  <Label Grid.Row="0"
+                         Grid.Column="0"
+                         Text="{Binding Name}"
+                         FontAttributes="Bold"
+                         LineBreakMode="TailTruncation" />
+                  <Label Grid.Row="1"
+                         Grid.Column="0"
+                         Text="{Binding Sku}"
+                         TextColor="{DynamicResource Color.Text.Secondary}" />
+                  <Label Grid.Row="2"
+                         Grid.Column="0"
+                         Text="{Binding Price, Converter={StaticResource CurrencyConverter}}"
+                         FontAttributes="Bold" />
+                  <Button Grid.Row="0"
+                          Grid.Column="1"
+                          Grid.RowSpan="3"
+                          Text="Добавить"
+                          Style="{StaticResource CtaPrimary}"
+                          Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.AddToCartCommand}"
+                          CommandParameter="{Binding .}" />
+                </Grid>
+              </Border>
             </DataTemplate>
           </CollectionView.ItemTemplate>
         </CollectionView>
-      </VerticalStackLayout>
+      </Grid>
 
-      <Button Grid.Row="7" Text="РџСЂРѕРІРµСЃС‚Рё" Command="{Binding SubmitCommand}" IsEnabled="{Binding CanSubmit}" Style="{StaticResource CtaPrimary}" Margin="0,8,0,0" ToolTipProperties.Text="РџСЂРѕРІРµСЃС‚Рё РїСЂРѕРґР°Р¶Сѓ"/>
+      <!-- Правая колонка: корзина -->
+      <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto,Auto,Auto" RowSpacing="16">
+        <Border Grid.Row="0" Style="{StaticResource Card.Container}">
+          <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
+            <Label Text="Тип оплаты:" FontAttributes="Bold" />
+            <Label Text="{Binding SelectedPaymentType, Converter={StaticResource PaymentTypeToRuConverter}}" />
+            <Button Text="Изменить"
+                    Command="{Binding ChangePaymentTypeCommand}"
+                    Style="{StaticResource Button.Tertiary}" />
+          </HorizontalStackLayout>
+        </Border>
+
+        <CollectionView Grid.Row="1"
+                        ItemsSource="{Binding Cart}"
+                        SelectionMode="None">
+          <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="models:CartItemModel">
+              <Border Style="{StaticResource Card.Container}">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12">
+                  <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontAttributes="Bold" />
+                  <Label Grid.Row="1" Grid.Column="0" Text="{Binding UnitPrice, Converter={StaticResource CurrencyConverter}}" TextColor="{DynamicResource Color.Text.Secondary}" />
+                  <StackLayout Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                    <Label Text="Количество:" VerticalOptions="Center" />
+                    <Entry Text="{Binding Qty, Mode=TwoWay}" WidthRequest="80" Keyboard="Numeric" />
+                    <Label Text="Цена:" VerticalOptions="Center" />
+                    <Entry Text="{Binding UnitPrice, Mode=TwoWay}" WidthRequest="100" Keyboard="Numeric" />
+                    <Label Text="Итого:" VerticalOptions="Center" />
+                    <Label Text="{Binding Subtotal, Converter={StaticResource CurrencyConverter}}" FontAttributes="Bold" />
+                  </StackLayout>
+                  <Button Grid.Row="0"
+                          Grid.Column="1"
+                          Grid.RowSpan="3"
+                          Text="Удалить"
+                          Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RemoveFromCartCommand}"
+                          CommandParameter="{Binding .}"
+                          Style="{StaticResource Button.Secondary}" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </CollectionView.ItemTemplate>
+          <CollectionView.EmptyView>
+            <Label Text="Корзина пуста" HorizontalOptions="Center" VerticalOptions="Center" />
+          </CollectionView.EmptyView>
+        </CollectionView>
+
+        <Border Grid.Row="2" Style="{StaticResource Card.Container}">
+          <HorizontalStackLayout Spacing="12">
+            <Label Text="Клиент:" VerticalOptions="Center" />
+            <Entry Text="{Binding ClientName}" Placeholder="Введите имя клиента" />
+          </HorizontalStackLayout>
+        </Border>
+
+        <Border Grid.Row="3" Style="{StaticResource Card.Container}" IsVisible="{Binding IsReservation}">
+          <VerticalStackLayout Spacing="8">
+            <HorizontalStackLayout Spacing="8">
+              <Label Text="Оплата получена:" VerticalOptions="Center" />
+              <Switch IsToggled="{Binding ReservationPaid}" />
+            </HorizontalStackLayout>
+            <HorizontalStackLayout Spacing="8">
+              <Entry Placeholder="Комментарий"
+                     Text="{Binding NewReservationNote}"
+                     HorizontalOptions="FillAndExpand" />
+              <Button Text="Добавить"
+                      Command="{Binding AddReservationNoteCommand}"
+                      Style="{StaticResource Button.Secondary}" />
+            </HorizontalStackLayout>
+            <CollectionView ItemsSource="{Binding ReservationNotes}" SelectionMode="None">
+              <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <Label Text="{Binding .}" />
+                    <Button Text="Удалить"
+                            Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RemoveReservationNoteCommand}"
+                            CommandParameter="{Binding .}"
+                            Style="{StaticResource Button.Tertiary}" />
+                  </Grid>
+                </DataTemplate>
+              </CollectionView.ItemTemplate>
+            </CollectionView>
+          </VerticalStackLayout>
+        </Border>
+
+        <Grid Grid.Row="4" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <StackLayout Orientation="Horizontal" Spacing="12" VerticalOptions="Center">
+            <Label Text="Итого:" FontAttributes="Bold" />
+            <Label Text="{Binding Total, Converter={StaticResource CurrencyConverter}}" FontAttributes="Bold" />
+          </StackLayout>
+          <StackLayout Grid.Column="1" Orientation="Horizontal" Spacing="12">
+            <Button Text="Клиент"
+                    Clicked="OnPickClientClicked"
+                    Style="{StaticResource Button.Secondary}" />
+            <Button Text="Провести"
+                    Command="{Binding SubmitCommand}"
+                    IsEnabled="{Binding CanSubmit}"
+                    Style="{StaticResource CtaPrimary}" />
+          </StackLayout>
+        </Grid>
+      </Grid>
     </Grid>
-  </ContentPage.Content>
+  </Grid>
 </ContentPage>
-

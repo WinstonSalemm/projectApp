@@ -23,9 +23,9 @@ public static class MauiProgram
             .UseMauiCommunityToolkit()
             .ConfigureFonts(fonts =>
             {
-                fonts.AddFont("Resources/Fonts/Inter-Regular.ttf", "Inter");
-                fonts.AddFont("Resources/Fonts/Inter-SemiBold.ttf", "InterSemiBold");
-                fonts.AddFont("Resources/Fonts/Inter-Bold.ttf", "InterBold");
+                fonts.AddFont("Inter-Regular.ttf", "InterRegular");
+                fonts.AddFont("Inter-SemiBold.ttf", "InterSemiBold");
+                fonts.AddFont("Inter-Bold.ttf", "InterBold");
             });
 
 #if WINDOWS
@@ -64,8 +64,11 @@ public static class MauiProgram
         builder.Services.AddSingleton(settings);
 
         // Register concrete API and Mock services
-        builder.Services.AddHttpClient(); // generic factory
+        builder.Services.AddTransient<AuthHeaderHandler>();
+        builder.Services.AddHttpClient(HttpClientNames.Api)
+            .AddHttpMessageHandler<AuthHeaderHandler>(); // ensure auth header injection
         builder.Services.AddSingleton<AuthService>();
+        builder.Services.AddSingleton<SaleSession>();
         builder.Services.AddSingleton<IAudioManager>(sp => AudioManager.Current);
         builder.Services.AddSingleton<ApiCatalogService>();
         builder.Services.AddSingleton<ApiSalesService>();

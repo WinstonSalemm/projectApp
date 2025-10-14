@@ -5,7 +5,7 @@
              xmlns:behaviors="clr-namespace:ProjectApp.Client.Maui.Behaviors"
              x:Class="ProjectApp.Client.Maui.Views.SuppliesPage"
              x:Name="Root"
-             Title="РџРѕСЃС‚Р°РІРєРё (ND-40)" x:DataType="viewModels:SuppliesViewModel">
+             Title="РџРѕСЃС‚Р°РІРєРё (ND-40)">
   <ScrollView>
     <VerticalStackLayout Padding="24" Spacing="20">
       <!-- Supply section -->
@@ -151,4 +151,5 @@
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>
+
 

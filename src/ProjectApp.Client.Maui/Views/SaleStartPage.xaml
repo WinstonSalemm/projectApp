@@ -1,78 +1,131 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             xmlns:models="clr-namespace:ProjectApp.Client.Maui.Models"
+             xmlns:controls="clr-namespace:ProjectApp.Client.Maui.Controls"
+             xmlns:converters="clr-namespace:ProjectApp.Client.Maui.Converters"
              x:Class="ProjectApp.Client.Maui.Views.SaleStartPage"
              x:Name="Root"
-             Title="Sales" x:DataType="viewModels:SaleStartViewModel">
+             x:DataType="viewModels:SaleStartViewModel"
+             Title="Начало продажи">
   <ContentPage.Resources>
     <ResourceDictionary>
-      <GridItemsLayout x:Key="CategoryLayout.Compact"
-                       Orientation="Vertical"
-                       Span="2"
-                       HorizontalItemSpacing="{StaticResource Space.3}"
-                       VerticalItemSpacing="{StaticResource Space.3}" />
-      <GridItemsLayout x:Key="CategoryLayout.Medium"
-                       Orientation="Vertical"
-                       Span="3"
-                       HorizontalItemSpacing="{StaticResource Space.4}"
-                       VerticalItemSpacing="{StaticResource Space.4}" />
-      <GridItemsLayout x:Key="CategoryLayout.Expanded"
-                       Orientation="Vertical"
-                       Span="4"
-                       HorizontalItemSpacing="{StaticResource Space.4}"
-                       VerticalItemSpacing="{StaticResource Space.4}" />
+      <GridItemsLayout x:Key="SaleMethodLayout.Compact" Orientation="Vertical" Span="1" HorizontalItemSpacing="12" VerticalItemSpacing="12" />
+      <GridItemsLayout x:Key="SaleMethodLayout.Medium" Orientation="Vertical" Span="2" HorizontalItemSpacing="16" VerticalItemSpacing="16" />
+      <GridItemsLayout x:Key="SaleMethodLayout.Expanded" Orientation="Vertical" Span="3" HorizontalItemSpacing="20" VerticalItemSpacing="20" />
+      <GridItemsLayout x:Key="CategoryLayout.Compact" Orientation="Vertical" Span="2" HorizontalItemSpacing="12" VerticalItemSpacing="12" />
+      <GridItemsLayout x:Key="CategoryLayout.Medium" Orientation="Vertical" Span="3" HorizontalItemSpacing="16" VerticalItemSpacing="16" />
+      <GridItemsLayout x:Key="CategoryLayout.Expanded" Orientation="Vertical" Span="4" HorizontalItemSpacing="20" VerticalItemSpacing="20" />
+      <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
     </ResourceDictionary>
   </ContentPage.Resources>
 
-  <VisualStateManager.VisualStateGroups>
-    <VisualStateGroup x:Name="AdaptiveStates">
-      <VisualState Name="Compact">
-        <VisualState.Setters>
-          <Setter TargetName="CategoriesCollection" Property="CollectionView.ItemsLayout" Value="{StaticResource CategoryLayout.Compact}" />
-        </VisualState.Setters>
-      </VisualState>
-      <VisualState Name="Medium">
-        <VisualState.Setters>
-          <Setter TargetName="CategoriesCollection" Property="CollectionView.ItemsLayout" Value="{StaticResource CategoryLayout.Medium}" />
-        </VisualState.Setters>
-      </VisualState>
-      <VisualState Name="Expanded">
-        <VisualState.Setters>
-          <Setter TargetName="CategoriesCollection" Property="CollectionView.ItemsLayout" Value="{StaticResource CategoryLayout.Expanded}" />
-        </VisualState.Setters>
-      </VisualState>
-    </VisualStateGroup>
-  </VisualStateManager.VisualStateGroups>
-
   <ScrollView>
-    <VerticalStackLayout Spacing="{StaticResource Space.4}">
-      <Border Style="{StaticResource Card.Container}">
-        <VerticalStackLayout Spacing="{StaticResource Space.2}">
-          <Label Text="Choose product category"
-                 FontSize="{StaticResource Font.Size.H2}"
-                 FontAttributes="Bold" />
-          <Label Text="Pick a preset to speed up checkout. Categories are tailored to your sales flow."
-                 TextColor="{DynamicResource Color.Text.Secondary}" />
-        </VerticalStackLayout>
-      </Border>
+    <Grid Padding="24" RowSpacing="24" ColumnSpacing="24">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
 
-      <CollectionView x:Name="CategoriesCollection"
-                      ItemsSource="{Binding Categories}"
-                      SelectionMode="None">
-        <CollectionView.ItemTemplate>
-          <DataTemplate>
-            <Border Style="{StaticResource Card.Container}">
-              <Button Text="{Binding .}"
-                      Style="{StaticResource Button.Primary}"
-                      HeightRequest="64"
-                      Clicked="OnCategoryClicked"
-                      SemanticProperties.Description="Open quick sale for selected category" />
-            </Border>
-          </DataTemplate>
-        </CollectionView.ItemTemplate>
-      </CollectionView>
-    </VerticalStackLayout>
+      <VerticalStackLayout x:Name="StepSection" Grid.Row="0" Grid.Column="0" Spacing="16">
+        <Border Style="{StaticResource Card.Container}">
+          <VerticalStackLayout Spacing="12">
+            <Label Text="Назначьте менеджера" FontAttributes="Bold" FontSize="{StaticResource Font.Size.H3}" />
+            <Picker ItemsSource="{Binding Managers}" SelectedItem="{Binding SelectedManager}" ItemDisplayBinding="{Binding DisplayName}" IsEnabled="{Binding IsManagersLoading, Converter={StaticResource InverseBoolConverter}}" />
+            <ActivityIndicator IsRunning="True" IsVisible="{Binding IsManagersLoading}" />
+          </VerticalStackLayout>
+        </Border>
+
+        <Border Style="{StaticResource Card.Container}">
+          <VerticalStackLayout Spacing="12">
+            <Label Text="Выберите точку продаж" FontAttributes="Bold" FontSize="{StaticResource Font.Size.H3}" />
+            <Picker ItemsSource="{Binding Stores}" SelectedItem="{Binding SelectedStore}" ItemDisplayBinding="{Binding Name}" IsEnabled="{Binding IsStoresLoading, Converter={StaticResource InverseBoolConverter}}" />
+            <ActivityIndicator IsRunning="True" IsVisible="{Binding IsStoresLoading}" />
+            <Label Text="{Binding StepValidationMessage}" TextColor="{DynamicResource Color.Error}" FontSize="{StaticResource Font.Size.Body.Small}" IsVisible="{Binding HasStepValidationMessage}" />
+          </VerticalStackLayout>
+        </Border>
+      </VerticalStackLayout>
+
+      <VerticalStackLayout x:Name="MethodsSection" Grid.Row="0" Grid.Column="1" Spacing="16">
+        <Border Style="{StaticResource Card.Container}">
+          <VerticalStackLayout Spacing="8">
+            <Label Text="Выберите тип продажи" FontAttributes="Bold" FontSize="{StaticResource Font.Size.H2}" />
+            <Label Text="Доступны быстрые продажи, возвраты, брони и дополнительные сценарии." TextColor="{DynamicResource Color.Text.Secondary}" />
+          </VerticalStackLayout>
+        </Border>
+
+        <CollectionView x:Name="SaleMethodsCollection"
+                        ItemsSource="{Binding SaleMethods}"
+                        SelectionMode="Single"
+                        SelectedItem="{Binding SelectedSaleMethod}"
+                        IsEnabled="{Binding CanSelectSaleMethods}"
+                        SelectionChanged="OnSaleMethodSelectionChanged">
+          <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="models:SaleMethodOption">
+              <Border Style="{StaticResource Card.Container}">
+                <VerticalStackLayout Spacing="8">
+                  <Label Text="{Binding Icon}" FontSize="{StaticResource Font.Size.H1}" />
+                  <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="{StaticResource Font.Size.Body}" />
+                  <Label Text="{Binding Description}" TextColor="{DynamicResource Color.Text.Secondary}" FontSize="{StaticResource Font.Size.Body.Small}" />
+                </VerticalStackLayout>
+              </Border>
+            </DataTemplate>
+          </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Label Text="Назначьте менеджера и точку, чтобы открыть сценарии."
+               TextColor="{DynamicResource Color.Text.Secondary}"
+               FontSize="{StaticResource Font.Size.Caption}"
+               IsVisible="{Binding CanSelectSaleMethods, Converter={StaticResource InverseBoolConverter}}" />
+      </VerticalStackLayout>
+
+      <VerticalStackLayout x:Name="CategoriesSection"
+                           Grid.Row="1"
+                           Grid.Column="0"
+                           Grid.ColumnSpan="2"
+                           Spacing="16"
+                           IsVisible="{Binding ShowCategoriesSection}">
+        <Border Style="{StaticResource Card.Container}">
+          <VerticalStackLayout Spacing="8">
+            <Label Text="Быстрый выбор категории" FontAttributes="Bold" FontSize="{StaticResource Font.Size.H3}" />
+            <Label Text="Необязательно: выберите категорию, чтобы предзаполнить быстрый заказ." TextColor="{DynamicResource Color.Text.Secondary}" />
+          </VerticalStackLayout>
+        </Border>
+
+        <Border BackgroundColor="{DynamicResource Color.Error}" Padding="12" IsVisible="{Binding IsCategoriesError}">
+          <Label Text="{Binding CategoriesErrorMessage, TargetNullValue=Не удалось загрузить категории.}"
+                 TextColor="{DynamicResource Color.OnPrimary}"
+                 FontSize="{StaticResource Font.Size.Body.Small}" />
+        </Border>
+
+        <Grid>
+          <CollectionView x:Name="CategoriesCollection"
+                          ItemsSource="{Binding Categories}"
+                          SelectionMode="None">
+            <CollectionView.ItemTemplate>
+              <DataTemplate x:DataType="models:CategoryDto">
+                <Border Style="{StaticResource Card.Container}">
+                  <Button Text="{Binding Name}"
+                          Style="{StaticResource Button.Primary}"
+                          HeightRequest="64"
+                          Clicked="OnCategoryClicked" />
+                </Border>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+
+          <ActivityIndicator IsRunning="True"
+                             IsVisible="{Binding IsCategoriesLoading}"
+                             VerticalOptions="Center"
+                             HorizontalOptions="Center" />
+        </Grid>
+      </VerticalStackLayout>
+    </Grid>
   </ScrollView>
 </ContentPage>
-

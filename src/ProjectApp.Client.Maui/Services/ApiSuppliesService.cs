@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using ProjectApp.Client.Maui.Services;
 
 namespace ProjectApp.Client.Maui.Services;
@@ -50,7 +50,7 @@ public class ApiSuppliesService : ISuppliesService
 
     public async Task<bool> CreateSupplyAsync(SupplyDraft draft, CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
@@ -84,7 +84,7 @@ public class ApiSuppliesService : ISuppliesService
 
     public async Task<bool> TransferToIm40Async(string code, List<SupplyTransferItem> items, CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
@@ -123,7 +123,7 @@ public class ApiSuppliesService : ISuppliesService
 
     public async Task<IEnumerable<SupplyBatchDto>> QueryAsync(string? code = null, int? productId = null, string? register = null, CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);

@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 
 namespace ProjectApp.Client.Maui.Services;
 
@@ -17,7 +17,7 @@ public class ApiFinanceService : IFinanceService
 
     private HttpClient Create()
     {
-        var c = _httpClientFactory.CreateClient();
+        var c = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         c.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(c);

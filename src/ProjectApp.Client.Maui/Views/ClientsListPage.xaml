@@ -6,7 +6,7 @@
              xmlns:controls="clr-namespace:ProjectApp.Client.Maui.Controls"
              x:Class="ProjectApp.Client.Maui.Views.ClientsListPage"
              x:Name="Page"
-             Title="Clients" x:DataType="viewModels:ClientsListViewModel">
+             Title="Clients">
   <ContentPage.Resources>
     <ResourceDictionary>
       <GridItemsLayout x:Key="ItemsLayout.Compact"
@@ -128,7 +128,7 @@
                     ItemsSource="{Binding Items}"
                     SelectionMode="None">
       <CollectionView.ItemTemplate>
-        <DataTemplate x:DataType="models:ClientListItem">
+        <DataTemplate>
           <controls:ListItemView Title="{Binding Name}"
                                  Subtitle="{Binding Phone}"
                                  Meta="{Binding OwnerUserName, StringFormat='Owner: {0}'}"
@@ -152,6 +152,7 @@
     </CollectionView>
   </Grid>
 </ContentPage>
+
 
 
 

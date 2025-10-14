@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.AdminDashboardPage"
-             Title="Dashboard" x:DataType="viewModels:AdminDashboardViewModel">
+             Title="Dashboard">
 
   <VisualStateManager.VisualStateGroups>
     <VisualStateGroup x:Name="AdaptiveStates">
@@ -87,4 +87,5 @@
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>
+
 

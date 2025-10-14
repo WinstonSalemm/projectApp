@@ -11,7 +11,7 @@
     },
     "ProjectApp.Client.Maui (Android Tablet)": {
       "commandName": "Project",
-      "targetFramework": "net9.0-android34.0",
+      "targetFramework": "net9.0-android35.0",
       "dotnetRunMessages": true
     },
     "WSL": {

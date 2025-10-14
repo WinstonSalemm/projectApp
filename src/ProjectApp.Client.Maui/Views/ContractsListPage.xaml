@@ -5,7 +5,7 @@
              xmlns:conv="clr-namespace:ProjectApp.Client.Maui.Converters"
              x:Class="ProjectApp.Client.Maui.Views.ContractsListPage"
              x:Name="Root"
-             Title="Р”РѕРіРѕРІРѕСЂС‹" x:DataType="viewModels:ContractsListViewModel">
+             Title="Р”РѕРіРѕРІРѕСЂС‹">
   <ContentPage.Content>
     <VerticalStackLayout Padding="24" Spacing="16">
       <CollectionView ItemsSource="{Binding Items}">
@@ -63,4 +63,5 @@
     </VerticalStackLayout>
   </ContentPage.Content>
 </ContentPage>
+
 

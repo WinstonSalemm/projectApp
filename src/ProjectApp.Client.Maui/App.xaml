@@ -27,7 +27,7 @@
         <Setter Property="BarTextColor" Value="{DynamicResource Color.OnPrimary}" />
       </Style>
       <Style TargetType="Label">
-        <Setter Property="FontFamily" Value="{StaticResource FontFamily.Inter}" />
+      <Setter Property="FontFamily" Value="{StaticResource FontFamily.Primary}" />
         <Setter Property="TextColor" Value="{DynamicResource Color.Text.Primary}" />
       </Style>
       <!-- Legacy styles mapped to new palette -->

@@ -1,13 +1,12 @@
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ProjectApp.Client.Maui.Services;
-using System;
-using System.Linq;
-using System.Collections.ObjectModel;
-using System.Threading.Tasks;
-using Microsoft.Maui.Controls;
 using Microsoft.Extensions.DependencyInjection;
-using ProjectApp.Client.Maui;
+using Microsoft.Maui.Controls;
+using ProjectApp.Client.Maui.Services;
 
 namespace ProjectApp.Client.Maui.ViewModels;
 
@@ -18,21 +17,38 @@ public partial class ReturnForSaleViewModel : ObservableObject
     private readonly IReturnsService _returns;
     private readonly ApiCatalogService _catalog;
 
-    [ObservableProperty] private bool isBusy;
-    [ObservableProperty] private string statusMessage = string.Empty;
+    [ObservableProperty]
+    private bool isBusy;
 
-    [ObservableProperty] private int saleId;
-    [ObservableProperty] private int? clientId;
-    [ObservableProperty] private string clientName = string.Empty;
-    [ObservableProperty] private string paymentType = string.Empty;
-    [ObservableProperty] private DateTime createdAt;
-    [ObservableProperty] private string? reason;
+    [ObservableProperty]
+    private string statusMessage = string.Empty;
+
+    [ObservableProperty]
+    private int saleId;
+
+    [ObservableProperty]
+    private int? clientId;
+
+    [ObservableProperty]
+    private string clientName = string.Empty;
+
+    [ObservableProperty]
+    private string paymentType = string.Empty;
+
+    [ObservableProperty]
+    private DateTime createdAt;
+
+    [ObservableProperty]
+    private string? reason;
 
     public ObservableCollection<ReturnLine> Lines { get; } = new();
 
-    // If a return already exists for the sale we show 'Отмена возврата'
-    [ObservableProperty] private bool hasReturn;
-    public string ActionButtonText => HasReturn ? "Отмена возврата" : "Оформить возврат";
+    // Если возврат уже существует, показываем кнопку "Отменить возврат"
+    [ObservableProperty]
+    private bool hasReturn;
+
+    public string ActionButtonText => HasReturn ? "Отменить возврат" : "Оформить возврат";
+
     partial void OnHasReturnChanged(bool value) => OnPropertyChanged(nameof(ActionButtonText));
 
     public ReturnForSaleViewModel(ApiSalesService sales, ApiReturnsService returnsApi, IReturnsService returns, ApiCatalogService catalog)
@@ -47,53 +63,81 @@ public partial class ReturnForSaleViewModel : ObservableObject
     {
         public int SaleItemId { get; set; }
         public int ProductId { get; set; }
-        [ObservableProperty] private string sku = string.Empty;
-        [ObservableProperty] private string name = string.Empty;
-        [ObservableProperty] private decimal soldQty;
-        [ObservableProperty] private decimal alreadyReturnedQty;
-        [ObservableProperty] private decimal availableQty;
-        [ObservableProperty] private decimal returnQty;
+
+        [ObservableProperty]
+        private string sku = string.Empty;
+
+        [ObservableProperty]
+        private string name = string.Empty;
+
+        [ObservableProperty]
+        private decimal soldQty;
+
+        [ObservableProperty]
+        private decimal alreadyReturnedQty;
+
+        [ObservableProperty]
+        private decimal availableQty;
+
+        [ObservableProperty]
+        private decimal returnQty;
     }
 
     public async Task LoadAsync(int saleId)
     {
-        if (IsBusy) return;
+        if (IsBusy)
+        {
+            return;
+        }
+
         try
         {
-            IsBusy = true; StatusMessage = string.Empty;
-            var s = await _sales.GetSaleByIdAsync(saleId);
-            if (s == null) { StatusMessage = $"Продажа #{saleId} не найдена"; return; }
-            SaleId = s.Id; ClientId = s.ClientId; ClientName = s.ClientName; PaymentType = s.PaymentType; CreatedAt = s.CreatedAt;
+            IsBusy = true;
+            StatusMessage = string.Empty;
+
+            var sale = await _sales.GetSaleByIdAsync(saleId);
+            if (sale is null)
+            {
+                StatusMessage = $"Продажа #{saleId} не найдена.";
+                return;
+            }
+
+            SaleId = sale.Id;
+            ClientId = sale.ClientId;
+            ClientName = sale.ClientName ?? string.Empty;
+            PaymentType = sale.PaymentType;
+            CreatedAt = sale.CreatedAt;
 
             var returns = await _returnsApi.GetBySaleAsync(saleId);
             HasReturn = returns.Any();
+
             var returnedMap = returns
                 .SelectMany(r => r.Items)
                 .GroupBy(i => i.SaleItemId)
                 .ToDictionary(g => g.Key, g => g.Sum(x => x.Qty));
 
             Lines.Clear();
-            foreach (var it in s.Items)
+            foreach (var item in sale.Items)
             {
-                var sold = it.Qty;
-                var done = returnedMap.TryGetValue(it.Id, out var d) ? d : 0m;
-                var avail = Math.Max(0m, sold - done);
+                var sold = item.Qty;
+                var alreadyReturned = returnedMap.TryGetValue(item.Id, out var done) ? done : 0m;
+                var available = Math.Max(0m, sold - alreadyReturned);
+
                 Lines.Add(new ReturnLine
                 {
-                    SaleItemId = it.Id,
-                    ProductId = it.ProductId,
+                    SaleItemId = item.Id,
+                    ProductId = item.ProductId,
                     SoldQty = sold,
-                    AlreadyReturnedQty = done,
-                    AvailableQty = avail,
+                    AlreadyReturnedQty = alreadyReturned,
+                    AvailableQty = available,
                     ReturnQty = 0m
                 });
             }
 
-            // Load product names/SKUs for display
-            var map = await _catalog.LookupAsync(Lines.Select(l => l.ProductId));
+            var lookup = await _catalog.LookupAsync(Lines.Select(l => l.ProductId));
             foreach (var line in Lines)
             {
-                if (map.TryGetValue(line.ProductId, out var info))
+                if (lookup.TryGetValue(line.ProductId, out var info))
                 {
                     line.Sku = info.Sku;
                     line.Name = info.Name;
@@ -104,42 +148,70 @@ public partial class ReturnForSaleViewModel : ObservableObject
         {
             StatusMessage = ex.Message;
         }
-        finally { IsBusy = false; }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]
     private void SelectAll()
     {
-        foreach (var l in Lines)
-            l.ReturnQty = l.AvailableQty;
+        foreach (var line in Lines)
+        {
+            line.ReturnQty = line.AvailableQty;
+        }
     }
+
     [RelayCommand]
     private async Task SubmitAsync()
     {
-        if (SaleId <= 0) { StatusMessage = "Продажа не выбрана"; return; }
+        if (SaleId <= 0)
+        {
+            StatusMessage = "Продажа не выбрана.";
+            return;
+        }
+
         try
         {
-            IsBusy = true; StatusMessage = string.Empty;
+            IsBusy = true;
+            StatusMessage = string.Empty;
+
             if (HasReturn)
             {
-                var confirm = await NavigationHelper.DisplayAlert("Отмена возврата", "Отменить возврат по этой продаже?", "Да", "Нет");
-                if (!confirm) return;
-                var okCancel = await _returns.CancelBySaleAsync(SaleId);
-                StatusMessage = okCancel ? "Возврат отменён" : "Не удалось отменить возврат";
-                if (okCancel)
+                var confirm = await NavigationHelper.DisplayAlert(
+                    "Отменить возврат",
+                    "Отменить возврат по выбранной продаже?",
+                    "Да",
+                    "Нет");
+
+                if (!confirm)
+                {
+                    return;
+                }
+
+                var cancelled = await _returns.CancelBySaleAsync(SaleId);
+                StatusMessage = cancelled
+                    ? "Возврат отменён."
+                    : "Не удалось отменить возврат.";
+
+                if (cancelled)
                 {
                     HasReturn = false;
                     await LoadAsync(SaleId);
-                    return;
                 }
             }
             else
             {
-                var items = Lines.Where(l => l.ReturnQty > 0).Select(l => new ReturnDraftItem
-                {
-                    SaleItemId = l.SaleItemId,
-                    Qty = l.ReturnQty
-                }).ToList();
+                var items = Lines
+                    .Where(line => line.ReturnQty > 0)
+                    .Select(line => new ReturnDraftItem
+                    {
+                        SaleItemId = line.SaleItemId,
+                        Qty = line.ReturnQty
+                    })
+                    .ToList();
+
                 var draft = new ReturnDraft
                 {
                     RefSaleId = SaleId,
@@ -147,12 +219,16 @@ public partial class ReturnForSaleViewModel : ObservableObject
                     Reason = Reason,
                     Items = items.Count == 0 ? null : items
                 };
-                var ok = await _returns.CreateReturnAsync(draft);
-                StatusMessage = ok ? "Возврат создан" : "Ошибка возврата";
-                if (ok)
+
+                var created = await _returns.CreateReturnAsync(draft);
+                StatusMessage = created
+                    ? "Возврат оформлен."
+                    : "Не удалось оформить возврат.";
+
+                if (created)
                 {
                     HasReturn = true;
-                    await NavigationHelper.DisplayAlert("OK", "Возврат создан", "OK");
+                    await NavigationHelper.DisplayAlert("Готово", "Возврат оформлен.", "OK");
                 }
             }
         }
@@ -160,8 +236,9 @@ public partial class ReturnForSaleViewModel : ObservableObject
         {
             StatusMessage = ex.Message;
         }
-        finally { IsBusy = false; }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 }
-
-

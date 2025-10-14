@@ -26,7 +26,9 @@ public partial class PaymentSelectViewModel : ObservableObject
     private async Task SelectAsync(string paymentType)
     {
         if (!Enum.TryParse(paymentType, out PaymentType pt))
+        {
             pt = PaymentType.CashWithReceipt;
+        }
 
         Selected = pt;
 
@@ -37,20 +39,24 @@ public partial class PaymentSelectViewModel : ObservableObject
             {
                 hvm.ShowAll = true;
             }
+
             await NavigationHelper.PushAsync(history);
             return;
         }
 
         var auth = _services.GetRequiredService<AuthService>();
         var account = string.IsNullOrWhiteSpace(auth.DisplayName)
-            ? auth.UserName ?? "неизвестный пользователь"
+            ? auth.UserName ?? "Текущий пользователь"
             : auth.DisplayName;
 
         async Task OnYes()
         {
             var startPage = _services.GetRequiredService<SaleStartPage>();
-            if (startPage.BindingContext is SaleStartViewModel svm2)
-                svm2.SelectedPaymentType = pt;
+            if (startPage.BindingContext is SaleStartViewModel svm)
+            {
+                svm.SelectedPaymentType = pt;
+            }
+
             await NavigationHelper.PushAsync(startPage);
         }
 

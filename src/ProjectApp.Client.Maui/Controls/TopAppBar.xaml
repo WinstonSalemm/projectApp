@@ -1,8 +1,10 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:ProjectApp.Client.Maui.Controls"
              x:Class="ProjectApp.Client.Maui.Controls.TopAppBar"
-             x:Name="Root">
+             x:Name="Root"
+             x:DataType="controls:TopAppBar">
   <Border Background="{DynamicResource Color.Surface}"
           Stroke="{DynamicResource Color.Border}"
           StrokeThickness="0"
@@ -15,23 +17,24 @@
     <Grid ColumnDefinitions="*,Auto"
           RowDefinitions="Auto,Auto"
           ColumnSpacing="{StaticResource Space.4}"
-          RowSpacing="{StaticResource Space.1}">
-      <Label Text="{Binding Source={x:Reference Root}, Path=Title}"
+          RowSpacing="{StaticResource Space.1}"
+          BindingContext="{x:Reference Root}">
+      <Label Text="{Binding Title}"
              FontSize="{StaticResource Font.Size.H2}"
              FontAttributes="Bold"
              TextColor="{DynamicResource Color.Text.Primary}"
              SemanticProperties.HeadingLevel="Level1" />
       <Label Grid.Row="1"
-             Text="{Binding Source={x:Reference Root}, Path=Subtitle}"
+             Text="{Binding Subtitle}"
              FontSize="{StaticResource Font.Size.Body.Small}"
              TextColor="{DynamicResource Color.Text.Secondary}"
-             IsVisible="{Binding Source={x:Reference Root}, Path=HasSubtitle}" />
+             IsVisible="{Binding HasSubtitle}" />
       <ContentPresenter Grid.Column="1"
                         Grid.RowSpan="2"
                         VerticalOptions="Center"
                         HorizontalOptions="End"
-                        Content="{Binding Source={x:Reference Root}, Path=ActionContent}"
-                        IsVisible="{Binding Source={x:Reference Root}, Path=HasActionContent}" />
+                        Content="{Binding ActionContent}"
+                        IsVisible="{Binding HasActionContent}" />
     </Grid>
   </Border>
 </ContentView>

@@ -4,7 +4,7 @@
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              xmlns:models="clr-namespace:ProjectApp.Client.Maui.Models"
              x:Class="ProjectApp.Client.Maui.Views.ClientEditPage"
-             Title="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РєР»РёРµРЅС‚Р°" x:DataType="viewModels:ClientEditViewModel">
+             Title="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РєР»РёРµРЅС‚Р°">
   <ScrollView>
     <VerticalStackLayout Padding="16" Spacing="12">
       <Picker Title="РўРёРї РєР»РёРµРЅС‚Р°" SelectedItem="{Binding Type}">
@@ -24,4 +24,5 @@
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>
+
 

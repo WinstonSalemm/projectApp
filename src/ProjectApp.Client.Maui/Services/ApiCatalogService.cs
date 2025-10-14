@@ -1,10 +1,20 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using ProjectApp.Client.Maui.Models;
 
 namespace ProjectApp.Client.Maui.Services;
 
 public class ApiCatalogService : ICatalogService
 {
+    private static readonly JsonSerializerOptions CategoriesSerializerOptions = new(JsonSerializerDefaults.Web);
+
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly AppSettings _settings;
     private readonly AuthService _auth;
@@ -18,13 +28,13 @@ public class ApiCatalogService : ICatalogService
 
     public async Task<IEnumerable<ProductModel>> SearchAsync(string? query, string? category = null, CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
 
         // Treat placeholder as no filter
-        var categoryRaw = string.Equals(category, "(Без категории)", StringComparison.Ordinal) ? null : category;
+        var categoryRaw = string.Equals(category, "(пїЅ'пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ'пїЅпїЅ?пїЅ?пїЅ?пїЅпїЅпїЅ)", StringComparison.Ordinal) ? null : category;
         var q = string.IsNullOrWhiteSpace(query) ? null : Uri.EscapeDataString(query);
         var cat = string.IsNullOrWhiteSpace(categoryRaw) ? null : Uri.EscapeDataString(categoryRaw);
         var parts = new List<string> { "page=1", "size=50" };
@@ -53,46 +63,62 @@ public class ApiCatalogService : ICatalogService
 
     public async Task<IEnumerable<string>> GetCategoriesAsync(CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
-        List<string>? list = null;
+
+        var endpoints = new[]
+        {
+            "/api/products/categories",
+            "/api/categories"
+        };
+
+        foreach (var endpoint in endpoints)
+        {
+            var items = await TryFetchCategoriesAsync(client, endpoint, ct);
+            if (items.Count > 0)
+            {
+                return items
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(s => s)
+                    .ToList();
+            }
+        }
+
+        return Array.Empty<string>();
+    }
+
+    private static async Task<List<string>> TryFetchCategoriesAsync(HttpClient client, string path, CancellationToken ct)
+    {
         try
         {
-            list = await client.GetFromJsonAsync<List<string>>("/api/products/categories", ct);
-        }
-        catch { list = null; }
-        if (list == null || list.Count == 0)
-        {
-            try
+            using var request = new HttpRequestMessage(HttpMethod.Get, path);
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct);
+            var body = await response.Content.ReadAsStringAsync(ct);
+            Debug.WriteLine($"[ApiCatalogService] GET {path} => {(int)response.StatusCode} {response.StatusCode}: {TrimForLog(body)}");
+
+            if (!response.IsSuccessStatusCode)
             {
-                list = await client.GetFromJsonAsync<List<string>>("/api/categories", ct);
+                return new List<string>();
             }
-            catch { list = null; }
+
+            var parsed = JsonSerializer.Deserialize<List<string>>(body, CategoriesSerializerOptions);
+            return parsed ?? new List<string>();
         }
-        var result = (list ?? new List<string>())
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(s => s)
-            .ToList();
-        if (result.Count == 0)
+        catch (Exception ex)
         {
-            // Local safety net so UI is never empty if server endpoints fail
-            var defaults = new[]
-            {
-                "Огнетушители",
-                "Огнетушители ПОРОШКОВЫЕ",
-                "Огнетушители УГЛЕКИСЛОТНЫЕ",
-                "Кронштейны",
-                "Подставки",
-                "Шкафы",
-                "датчики",
-                "рукава"
-            };
-            result = defaults.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s).ToList();
+            Debug.WriteLine($"[ApiCatalogService] GET {path} failed: {ex}");
+            return new List<string>();
         }
-        return result;
+    }
+
+    private static string TrimForLog(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        const int limit = 300;
+        return value.Length <= limit ? value : value[..limit] + "...";
     }
 
     private class ProductBrief
@@ -106,7 +132,7 @@ public class ApiCatalogService : ICatalogService
     {
         var listIds = ids.Distinct().ToList();
         if (listIds.Count == 0) return new Dictionary<int, (string, string)>();
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
@@ -133,4 +159,3 @@ public class ApiCatalogService : ICatalogService
         public string? Category { get; set; }
     }
 }
-

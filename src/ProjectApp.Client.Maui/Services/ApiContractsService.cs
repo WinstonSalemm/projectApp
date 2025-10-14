@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 
 namespace ProjectApp.Client.Maui.Services;
 
@@ -17,7 +17,7 @@ public class ApiContractsService : IContractsService
 
     public async Task<ContractDetail?> GetAsync(int id, CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
@@ -52,7 +52,7 @@ public class ApiContractsService : IContractsService
 
     public async Task<bool> UpdateAsync(int id, ContractCreateDraft draft, CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
@@ -84,7 +84,7 @@ public class ApiContractsService : IContractsService
     {
         public int? ProductId { get; set; }
         public string Name { get; set; } = string.Empty;
-        public string Unit { get; set; } = "шт";
+        public string Unit { get; set; } = "С€С‚";
         public decimal Qty { get; set; }
         public decimal UnitPrice { get; set; }
     }
@@ -123,7 +123,7 @@ public class ApiContractsService : IContractsService
 
     public async Task<IEnumerable<ContractListItem>> ListAsync(string? status = null, CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
@@ -150,7 +150,7 @@ public class ApiContractsService : IContractsService
 
     public async Task<bool> CreateAsync(ContractCreateDraft draft, CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
@@ -180,7 +180,7 @@ public class ApiContractsService : IContractsService
 
     public async Task<bool> UpdateStatusAsync(int id, string status, CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);

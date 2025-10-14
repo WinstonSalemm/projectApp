@@ -1,4 +1,4 @@
-namespace ProjectApp.Client.Maui.Services;
+﻿namespace ProjectApp.Client.Maui.Services;
 
 public class AppSettings
 {

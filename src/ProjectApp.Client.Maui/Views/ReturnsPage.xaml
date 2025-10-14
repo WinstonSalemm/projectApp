@@ -4,7 +4,7 @@
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.ReturnsPage"
              x:Name="Root"
-             Title="Р’РѕР·РІСЂР°С‚" x:DataType="viewModels:ReturnsViewModel">
+             Title="Р’РѕР·РІСЂР°С‚">
   <Grid Padding="24" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" RowSpacing="16">
     <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
       <Label Text="РџСЂРѕРґР°Р¶Р° #" VerticalTextAlignment="Center"/>
@@ -42,4 +42,5 @@
     <Label Grid.Row="6" Text="{Binding StatusMessage}" TextColor="Red"/>
   </Grid>
 </ContentPage>
+
 

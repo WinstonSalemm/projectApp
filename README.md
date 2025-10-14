@@ -1,76 +1,82 @@
-# ProjectApp
+﻿# ProjectApp
 ## Docker
 
-Запуск API в Docker через compose:
+Р—Р°РїСѓСЃРє API РІ Docker С‡РµСЂРµР· compose:
 
 ```powershell
 cd C:\projectApp
 docker compose up -d --build
 ```
 
-API поднимется на `http://localhost:5028`.
+API РїРѕРґРЅРёРјРµС‚СЃСЏ РЅР° `http://localhost:5028`.
 
-Данные SQLite хранятся в локальной папке `./data` (монтируется в контейнер `/app/data`).
+Р”Р°РЅРЅС‹Рµ SQLite С…СЂР°РЅСЏС‚СЃСЏ РІ Р»РѕРєР°Р»СЊРЅРѕР№ РїР°РїРєРµ `./data` (РјРѕРЅС‚РёСЂСѓРµС‚СЃСЏ РІ РєРѕРЅС‚РµР№РЅРµСЂ `/app/data`).
 
-Переопределение конфигурации через переменные окружения (подхватываются с префиксом `PROJECTAPP__`):
+РџРµСЂРµРѕРїСЂРµРґРµР»РµРЅРёРµ РєРѕРЅС„РёРіСѓСЂР°С†РёРё С‡РµСЂРµР· РїРµСЂРµРјРµРЅРЅС‹Рµ РѕРєСЂСѓР¶РµРЅРёСЏ (РїРѕРґС…РІР°С‚С‹РІР°СЋС‚СЃСЏ СЃ РїСЂРµС„РёРєСЃРѕРј `PROJECTAPP__`):
 
-```powershellвввв
-# Задать API ключ (для мутаций)
+```powershellРІРІРІРІ
+# Р—Р°РґР°С‚СЊ API РєР»СЋС‡ (РґР»СЏ РјСѓС‚Р°С†РёР№)
 $env:PROJECTAPP__Security__ApiKey = "prod-secret"
 
-# Разрешить источники CORS
+# Р Р°Р·СЂРµС€РёС‚СЊ РёСЃС‚РѕС‡РЅРёРєРё CORS
 $env:PROJECTAPP__Cors__Origins__0 = "https://app.example.com"
 $env:PROJECTAPP__Cors__Origins__1 = "https://admin.example.com"
 
-# Переопределить строку подключения к SQLite
+# РџРµСЂРµРѕРїСЂРµРґРµР»РёС‚СЊ СЃС‚СЂРѕРєСѓ РїРѕРґРєР»СЋС‡РµРЅРёСЏ Рє SQLite
 $env:PROJECTAPP__ConnectionStrings__DefaultConnection = "Data Source=/app/data/projectapp.db"
 
 docker compose up -d
+
 ```
+
+## Recent Fixes
+- MAUI font registration now relies on font aliases in `Resources/Fonts`, preventing startup crashes and font URI warnings.
+- Auth tokens persist between requests and a delegating handler injects the `Authorization` header for every API call.
+- Category-driven screens show a retryable empty state when the API returns errors instead of crashing the UI.
 dwdw
-Readiness: проверьте `http://localhost:5028/ready` — 200 если миграции применены и БД доступна. Liveness: `http://localhost:5028/health` — всегда 200 при живом процессе.
+Readiness: РїСЂРѕРІРµСЂСЊС‚Рµ `http://localhost:5028/ready` вЂ” 200 РµСЃР»Рё РјРёРіСЂР°С†РёРё РїСЂРёРјРµРЅРµРЅС‹ Рё Р‘Р” РґРѕСЃС‚СѓРїРЅР°. Liveness: `http://localhost:5028/health` вЂ” РІСЃРµРіРґР° 200 РїСЂРё Р¶РёРІРѕРј РїСЂРѕС†РµСЃСЃРµ.
 dwdwd
-## CORS конфигурация (CORS Configuration)
+## CORS РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ (CORS Configuration)
 
-В API CORS управляется через секцию `Cors` в конфигурации.
+Р’ API CORS СѓРїСЂР°РІР»СЏРµС‚СЃСЏ С‡РµСЂРµР· СЃРµРєС†РёСЋ `Cors` РІ РєРѕРЅС„РёРіСѓСЂР°С†РёРё.
 
-- Конфиги по умолчанию:
-  - `src/ProjectApp.Api/appsettings.json` — содержит список Origins для локальной разработки (`http://localhost:5028`, `http://localhost:5000`).
-  - `src/ProjectApp.Api/appsettings.Development.json` — `Origins=["*"]` (разрешает всех для дев-режима).
-  - `src/ProjectApp.Api/appsettings.Production.json` — `Origins=[]` (по умолчанию пусто, нужно явно задать).
+- РљРѕРЅС„РёРіРё РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ:
+  - `src/ProjectApp.Api/appsettings.json` вЂ” СЃРѕРґРµСЂР¶РёС‚ СЃРїРёСЃРѕРє Origins РґР»СЏ Р»РѕРєР°Р»СЊРЅРѕР№ СЂР°Р·СЂР°Р±РѕС‚РєРё (`http://localhost:5028`, `http://localhost:5000`).
+  - `src/ProjectApp.Api/appsettings.Development.json` вЂ” `Origins=["*"]` (СЂР°Р·СЂРµС€Р°РµС‚ РІСЃРµС… РґР»СЏ РґРµРІ-СЂРµР¶РёРјР°).
+  - `src/ProjectApp.Api/appsettings.Production.json` вЂ” `Origins=[]` (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РїСѓСЃС‚Рѕ, РЅСѓР¶РЅРѕ СЏРІРЅРѕ Р·Р°РґР°С‚СЊ).
 
-Вы можете переопределять Origins через переменные окружения с префиксом `PROJECTAPP__` (они добавляются в конфигурацию на старте в `Program.cs`). Индексация элементов массива — с 0.
+Р’С‹ РјРѕР¶РµС‚Рµ РїРµСЂРµРѕРїСЂРµРґРµР»СЏС‚СЊ Origins С‡РµСЂРµР· РїРµСЂРµРјРµРЅРЅС‹Рµ РѕРєСЂСѓР¶РµРЅРёСЏ СЃ РїСЂРµС„РёРєСЃРѕРј `PROJECTAPP__` (РѕРЅРё РґРѕР±Р°РІР»СЏСЋС‚СЃСЏ РІ РєРѕРЅС„РёРіСѓСЂР°С†РёСЋ РЅР° СЃС‚Р°СЂС‚Рµ РІ `Program.cs`). РРЅРґРµРєСЃР°С†РёСЏ СЌР»РµРјРµРЅС‚РѕРІ РјР°СЃСЃРёРІР° вЂ” СЃ 0.
 
-Примеры (Windows PowerShell):
+РџСЂРёРјРµСЂС‹ (Windows PowerShell):
 
 ```powershell
-# Разрешить два источника
+# Р Р°Р·СЂРµС€РёС‚СЊ РґРІР° РёСЃС‚РѕС‡РЅРёРєР°
 $env:PROJECTAPP__Cors__Origins__0 = "https://app.example.com"
 $env:PROJECTAPP__Cors__Origins__1 = "https://admin.example.com"
 
-# Запуск API после установки переменных
+# Р—Р°РїСѓСЃРє API РїРѕСЃР»Рµ СѓСЃС‚Р°РЅРѕРІРєРё РїРµСЂРµРјРµРЅРЅС‹С…
 cd C:\projectApp\src\ProjectApp.Api
 dotnet run --launch-profile http
 ```
 
-В Production по умолчанию принимаются только явно заданные Origins. В Development разрешены все источники, чтобы упростить локальную разработку.
+Р’ Production РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РїСЂРёРЅРёРјР°СЋС‚СЃСЏ С‚РѕР»СЊРєРѕ СЏРІРЅРѕ Р·Р°РґР°РЅРЅС‹Рµ Origins. Р’ Development СЂР°Р·СЂРµС€РµРЅС‹ РІСЃРµ РёСЃС‚РѕС‡РЅРёРєРё, С‡С‚РѕР±С‹ СѓРїСЂРѕСЃС‚РёС‚СЊ Р»РѕРєР°Р»СЊРЅСѓСЋ СЂР°Р·СЂР°Р±РѕС‚РєСѓ.
 
-## База данных (SQLite), миграции и сидирование
+## Р‘Р°Р·Р° РґР°РЅРЅС‹С… (SQLite), РјРёРіСЂР°С†РёРё Рё СЃРёРґРёСЂРѕРІР°РЅРёРµ
 
-- В среде Development API при старте автоматически применяет миграции (`db.Database.Migrate()`), а затем выполняет сидирование только при пустой таблице `Products`.
-- Файл БД `projectapp.db` размещается в каталоге ContentRoot приложения (`src/ProjectApp.Api/` при запуске из проекта).
+- Р’ СЃСЂРµРґРµ Development API РїСЂРё СЃС‚Р°СЂС‚Рµ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїСЂРёРјРµРЅСЏРµС‚ РјРёРіСЂР°С†РёРё (`db.Database.Migrate()`), Р° Р·Р°С‚РµРј РІС‹РїРѕР»РЅСЏРµС‚ СЃРёРґРёСЂРѕРІР°РЅРёРµ С‚РѕР»СЊРєРѕ РїСЂРё РїСѓСЃС‚РѕР№ С‚Р°Р±Р»РёС†Рµ `Products`.
+- Р¤Р°Р№Р» Р‘Р” `projectapp.db` СЂР°Р·РјРµС‰Р°РµС‚СЃСЏ РІ РєР°С‚Р°Р»РѕРіРµ ContentRoot РїСЂРёР»РѕР¶РµРЅРёСЏ (`src/ProjectApp.Api/` РїСЂРё Р·Р°РїСѓСЃРєРµ РёР· РїСЂРѕРµРєС‚Р°).
 
-Ручное применение миграций (если запускаете без автоприменения или на CI):
+Р СѓС‡РЅРѕРµ РїСЂРёРјРµРЅРµРЅРёРµ РјРёРіСЂР°С†РёР№ (РµСЃР»Рё Р·Р°РїСѓСЃРєР°РµС‚Рµ Р±РµР· Р°РІС‚РѕРїСЂРёРјРµРЅРµРЅРёСЏ РёР»Рё РЅР° CI):
 
 ```powershell
 cd C:\projectApp\src\ProjectApp.Api
-dotnet tool restore # если требуется
+dotnet tool restore # РµСЃР»Рё С‚СЂРµР±СѓРµС‚СЃСЏ
 dotnet ef database update
 ```
 
-Отключение сидирования в Production:
+РћС‚РєР»СЋС‡РµРЅРёРµ СЃРёРґРёСЂРѕРІР°РЅРёСЏ РІ Production:
 
-- По умолчанию в `src/ProjectApp.Api/appsettings.Production.json` сидирование выключено:
+- РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РІ `src/ProjectApp.Api/appsettings.Production.json` СЃРёРґРёСЂРѕРІР°РЅРёРµ РІС‹РєР»СЋС‡РµРЅРѕ:
 
 ```json
 {
@@ -78,45 +84,45 @@ dotnet ef database update
 }
 ```
 
-- Переопределить можно переменной окружения:
+- РџРµСЂРµРѕРїСЂРµРґРµР»РёС‚СЊ РјРѕР¶РЅРѕ РїРµСЂРµРјРµРЅРЅРѕР№ РѕРєСЂСѓР¶РµРЅРёСЏ:
 
 ```powershell
 $env:PROJECTAPP__Seed__Enabled = "false"
 ```
 
-В Development сидирование включено по умолчанию и произойдёт только один раз при пустой таблице.
+Р’ Development СЃРёРґРёСЂРѕРІР°РЅРёРµ РІРєР»СЋС‡РµРЅРѕ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ Рё РїСЂРѕРёР·РѕР№РґС‘С‚ С‚РѕР»СЊРєРѕ РѕРґРёРЅ СЂР°Р· РїСЂРё РїСѓСЃС‚РѕР№ С‚Р°Р±Р»РёС†Рµ.
 
-## Аутентификация API (ApiKey)
+## РђСѓС‚РµРЅС‚РёС„РёРєР°С†РёСЏ API (ApiKey)
 
-- Схема аутентификации: `ApiKey` через заголовок `X-API-KEY`.
-- Значение читается из конфигурации `Security:ApiKey`.
-- В Dev по умолчанию в `appsettings.Development.json` установлено: `"Security": { "ApiKey": "dev-key" }`.
+- РЎС…РµРјР° Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёРё: `ApiKey` С‡РµСЂРµР· Р·Р°РіРѕР»РѕРІРѕРє `X-API-KEY`.
+- Р—РЅР°С‡РµРЅРёРµ С‡РёС‚Р°РµС‚СЃСЏ РёР· РєРѕРЅС„РёРіСѓСЂР°С†РёРё `Security:ApiKey`.
+- Р’ Dev РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РІ `appsettings.Development.json` СѓСЃС‚Р°РЅРѕРІР»РµРЅРѕ: `"Security": { "ApiKey": "dev-key" }`.
 
-Переменная окружения для Prod (и не только):
+РџРµСЂРµРјРµРЅРЅР°СЏ РѕРєСЂСѓР¶РµРЅРёСЏ РґР»СЏ Prod (Рё РЅРµ С‚РѕР»СЊРєРѕ):
 
 ```powershell
 $env:PROJECTAPP__Security__ApiKey = "<prod-secret>"
 ```
 
-Требуется для мутаций:
+РўСЂРµР±СѓРµС‚СЃСЏ РґР»СЏ РјСѓС‚Р°С†РёР№:
 
 - `POST /api/sales`
 - `POST /api/returns`
 
-Анонимно доступны:
+РђРЅРѕРЅРёРјРЅРѕ РґРѕСЃС‚СѓРїРЅС‹:
 
 - `GET /api/products`
 - `GET /health`
 - Swagger UI
 
-В Swagger нажмите Authorize и введите значение API Key (заголовок `X-API-KEY`).
+Р’ Swagger РЅР°Р¶РјРёС‚Рµ Authorize Рё РІРІРµРґРёС‚Рµ Р·РЅР°С‡РµРЅРёРµ API Key (Р·Р°РіРѕР»РѕРІРѕРє `X-API-KEY`).
 
 ## Health checks
 
-- Liveness: `GET /health` — всегда 200, если процесс жив.
-- Readiness: `GET /ready` — 200 только если БД доступна (проверка `db`).
+- Liveness: `GET /health` вЂ” РІСЃРµРіРґР° 200, РµСЃР»Рё РїСЂРѕС†РµСЃСЃ Р¶РёРІ.
+- Readiness: `GET /ready` вЂ” 200 С‚РѕР»СЊРєРѕ РµСЃР»Рё Р‘Р” РґРѕСЃС‚СѓРїРЅР° (РїСЂРѕРІРµСЂРєР° `db`).
 
-Проверка через curl (PowerShell):
+РџСЂРѕРІРµСЂРєР° С‡РµСЂРµР· curl (PowerShell):
 
 ```powershell
 curl http://localhost:5028/health -v
@@ -124,65 +130,65 @@ curl http://localhost:5028/ready -v
 ```
 
 
-Рус/Eng quick guide for the repository at `C:\projectApp`.
+Р СѓСЃ/Eng quick guide for the repository at `C:\projectApp`.
 
-## Обзор (Overview)
-- Бэкенд: `src/ProjectApp.Api` — ASP.NET Core (net9.0), EF Core + SQLite, Swagger.
-- Тесты API: `src/tests/ProjectApp.Api.Tests` — xUnit + FluentAssertions, InMemory SQLite.
-- Клиент: `src/ProjectApp.Client.Maui` — .NET MAUI (Windows), экран быстрой продажи (QuickSale) с моком/режимом API.
+## РћР±Р·РѕСЂ (Overview)
+- Р‘СЌРєРµРЅРґ: `src/ProjectApp.Api` вЂ” ASP.NET Core (net9.0), EF Core + SQLite, Swagger.
+- РўРµСЃС‚С‹ API: `src/tests/ProjectApp.Api.Tests` вЂ” xUnit + FluentAssertions, InMemory SQLite.
+- РљР»РёРµРЅС‚: `src/ProjectApp.Client.Maui` вЂ” .NET MAUI (Windows), СЌРєСЂР°РЅ Р±С‹СЃС‚СЂРѕР№ РїСЂРѕРґР°Р¶Рё (QuickSale) СЃ РјРѕРєРѕРј/СЂРµР¶РёРјРѕРј API.
 
 Back-end API (ASP.NET Core + EF Core SQLite), tests (xUnit), and a .NET MAUI client for Quick Sale with mock/API switch.
 
-## Быстрый старт (Quick Start)
+## Р‘С‹СЃС‚СЂС‹Р№ СЃС‚Р°СЂС‚ (Quick Start)
 
-### 1) Сборка (Build)
+### 1) РЎР±РѕСЂРєР° (Build)
 ```powershell
 cd C:\projectApp\src
 dotnet restore
 dotnet build
 ```
 
-### 2) Запуск API (Run API)
+### 2) Р—Р°РїСѓСЃРє API (Run API)
 ```powershell
 cd C:\projectApp\src\ProjectApp.Api
 dotnet run --launch-profile http
 ```
 Swagger UI: http://localhost:5028/swagger
 
-Profiles/ports (см. `src/ProjectApp.Api/Properties/launchSettings.json`):
+Profiles/ports (СЃРј. `src/ProjectApp.Api/Properties/launchSettings.json`):
 - http: `http://localhost:5028`
 - https: `https://localhost:7289`
 
-### 3) Миграции БД (EF Core Migrations)
-Проект использует SQLite. Перед запуском API в первый раз примените миграции:
+### 3) РњРёРіСЂР°С†РёРё Р‘Р” (EF Core Migrations)
+РџСЂРѕРµРєС‚ РёСЃРїРѕР»СЊР·СѓРµС‚ SQLite. РџРµСЂРµРґ Р·Р°РїСѓСЃРєРѕРј API РІ РїРµСЂРІС‹Р№ СЂР°Р· РїСЂРёРјРµРЅРёС‚Рµ РјРёРіСЂР°С†РёРё:
 ```powershell
 cd C:\projectApp\src\ProjectApp.Api
-dotnet tool restore # если нужно
+dotnet tool restore # РµСЃР»Рё РЅСѓР¶РЅРѕ
 dotnet ef database update
 ```
-Тесты применяют миграции автоматически (см. тестовую фикстуру), но само API — нет.
+РўРµСЃС‚С‹ РїСЂРёРјРµРЅСЏСЋС‚ РјРёРіСЂР°С†РёРё Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё (СЃРј. С‚РµСЃС‚РѕРІСѓСЋ С„РёРєСЃС‚СѓСЂСѓ), РЅРѕ СЃР°РјРѕ API вЂ” РЅРµС‚.
 
-## MAUI клиент (Windows) — запуск и режим API
+## MAUI РєР»РёРµРЅС‚ (Windows) вЂ” Р·Р°РїСѓСЃРє Рё СЂРµР¶РёРј API
 
-### Запуск клиента
+### Р—Р°РїСѓСЃРє РєР»РёРµРЅС‚Р°
 ```powershell
 cd C:\projectApp\src
 dotnet build -t:Run -f net9.0-windows10.0.19041.0 ProjectApp.Client.Maui/ProjectApp.Client.Maui.csproj
 ```
-Либо из Visual Studio (F5), выбрав Windows как целевую платформу.
+Р›РёР±Рѕ РёР· Visual Studio (F5), РІС‹Р±СЂР°РІ Windows РєР°Рє С†РµР»РµРІСѓСЋ РїР»Р°С‚С„РѕСЂРјСѓ.
 
-### Включение API-режима
-Файл настроек клиента: `src/ProjectApp.Client.Maui/appsettings.json`
+### Р’РєР»СЋС‡РµРЅРёРµ API-СЂРµР¶РёРјР°
+Р¤Р°Р№Р» РЅР°СЃС‚СЂРѕРµРє РєР»РёРµРЅС‚Р°: `src/ProjectApp.Client.Maui/appsettings.json`
 ```json
 {
   "UseApi": true,
   "ApiBaseUrl": "http://localhost:5028"
 }
 ```
-- `UseApi=false` — оффлайн (моки), баннер «Оффлайн режим (моки)».
-- `UseApi=true` — онлайн через API (`/api/products`, `/api/sales`). Убедитесь, что API запущено на порту из `launchSettings.json`.
+- `UseApi=false` вЂ” РѕС„С„Р»Р°Р№РЅ (РјРѕРєРё), Р±Р°РЅРЅРµСЂ В«РћС„С„Р»Р°Р№РЅ СЂРµР¶РёРј (РјРѕРєРё)В».
+- `UseApi=true` вЂ” РѕРЅР»Р°Р№РЅ С‡РµСЂРµР· API (`/api/products`, `/api/sales`). РЈР±РµРґРёС‚РµСЃСЊ, С‡С‚Рѕ API Р·Р°РїСѓС‰РµРЅРѕ РЅР° РїРѕСЂС‚Сѓ РёР· `launchSettings.json`.
 
-## Команды (Commands)
+## РљРѕРјР°РЅРґС‹ (Commands)
 
 ### Build
 ```powershell
@@ -208,33 +214,33 @@ cd C:\projectApp\src
 dotnet build -t:Run -f net9.0-windows10.0.19041.0 ProjectApp.Client.Maui/ProjectApp.Client.Maui.csproj
 ```
 
-## Структура каталогов (Directory Structure)
+## РЎС‚СЂСѓРєС‚СѓСЂР° РєР°С‚Р°Р»РѕРіРѕРІ (Directory Structure)
 
 ```
 C:\projectApp\
-└─ src\
-   ├─ ProjectApp.sln                   # Solution: API, tests, MAUI client
-   ├─ ProjectApp.Api\                 # ASP.NET Core Web API (net9.0)
-   │  ├─ Controllers\                 # ProductsController, SalesController, ReturnsController
-   │  ├─ Data\                        # AppDbContext, EF Core setup, seed data
-   │  ├─ Migrations\                  # EF Core migrations for SQLite
-   │  ├─ Models\                      # Product, Sale, SaleItem, Stock, Return, PaymentType, ...
-   │  ├─ Repositories\                # EfProductRepository, EfSaleRepository, interfaces
-   │  ├─ Services\                    # SaleCalculator (+ ISaleCalculator)
-   │  └─ Program.cs                   # DI, Swagger, JSON enum as strings, CORS
-   │
-   ├─ tests\
-   │  └─ ProjectApp.Api.Tests\        # xUnit + FluentAssertions
-   │     ├─ SqliteDbFixture.cs        # InMemory SQLite with db.Database.Migrate()
-   │     ├─ SaleCalculatorTests.cs    # Проверка Total по нескольким позициям
-   │     ├─ StockRegisterSelectionTests.cs  # Списание IM40/ND40 по PaymentType
-   │     └─ ReturnsControllerTests.cs # Возврат возвращает остатки в нужный регистр
-   │
-   └─ ProjectApp.Client.Maui\         # .NET MAUI client (Windows)
-      ├─ appsettings.json             # UseApi flag, ApiBaseUrl
-      ├─ App.xaml / App.xaml.cs       # Startup (QuickSalePage)
-      ├─ MauiProgram.cs               # DI: Mock*/Api* services, HttpClient
-      ├─ Models\                      # ProductModel, CartItemModel (Observable), PaymentType
-      ├─ Services\                    # ICatalogService/ISalesService; Mock*/Api* impls
-      ├─ ViewModels\                  # QuickSaleViewModel (поиск с debounce, оффлайн баннер, итоги)
-      └─ Views\                       # QuickSalePage (UI)
+в””в”Ђ src\
+   в”њв”Ђ ProjectApp.sln                   # Solution: API, tests, MAUI client
+   в”њв”Ђ ProjectApp.Api\                 # ASP.NET Core Web API (net9.0)
+   в”‚  в”њв”Ђ Controllers\                 # ProductsController, SalesController, ReturnsController
+   в”‚  в”њв”Ђ Data\                        # AppDbContext, EF Core setup, seed data
+   в”‚  в”њв”Ђ Migrations\                  # EF Core migrations for SQLite
+   в”‚  в”њв”Ђ Models\                      # Product, Sale, SaleItem, Stock, Return, PaymentType, ...
+   в”‚  в”њв”Ђ Repositories\                # EfProductRepository, EfSaleRepository, interfaces
+   в”‚  в”њв”Ђ Services\                    # SaleCalculator (+ ISaleCalculator)
+   в”‚  в””в”Ђ Program.cs                   # DI, Swagger, JSON enum as strings, CORS
+   в”‚
+   в”њв”Ђ tests\
+   в”‚  в””в”Ђ ProjectApp.Api.Tests\        # xUnit + FluentAssertions
+   в”‚     в”њв”Ђ SqliteDbFixture.cs        # InMemory SQLite with db.Database.Migrate()
+   в”‚     в”њв”Ђ SaleCalculatorTests.cs    # РџСЂРѕРІРµСЂРєР° Total РїРѕ РЅРµСЃРєРѕР»СЊРєРёРј РїРѕР·РёС†РёСЏРј
+   в”‚     в”њв”Ђ StockRegisterSelectionTests.cs  # РЎРїРёСЃР°РЅРёРµ IM40/ND40 РїРѕ PaymentType
+   в”‚     в””в”Ђ ReturnsControllerTests.cs # Р’РѕР·РІСЂР°С‚ РІРѕР·РІСЂР°С‰Р°РµС‚ РѕСЃС‚Р°С‚РєРё РІ РЅСѓР¶РЅС‹Р№ СЂРµРіРёСЃС‚СЂ
+   в”‚
+   в””в”Ђ ProjectApp.Client.Maui\         # .NET MAUI client (Windows)
+      в”њв”Ђ appsettings.json             # UseApi flag, ApiBaseUrl
+      в”њв”Ђ App.xaml / App.xaml.cs       # Startup (QuickSalePage)
+      в”њв”Ђ MauiProgram.cs               # DI: Mock*/Api* services, HttpClient
+      в”њв”Ђ Models\                      # ProductModel, CartItemModel (Observable), PaymentType
+      в”њв”Ђ Services\                    # ICatalogService/ISalesService; Mock*/Api* impls
+      в”њв”Ђ ViewModels\                  # QuickSaleViewModel (РїРѕРёСЃРє СЃ debounce, РѕС„С„Р»Р°Р№РЅ Р±Р°РЅРЅРµСЂ, РёС‚РѕРіРё)
+      в””в”Ђ Views\                       # QuickSalePage (UI)

@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.SuppliesHistoryPage"
-             Title="РџРѕСЃС‚Р°РІРєРё" x:DataType="viewModels:SuppliesHistoryViewModel">
+             Title="РџРѕСЃС‚Р°РІРєРё">
   <Grid Padding="24" RowDefinitions="Auto,*" RowSpacing="16">
     <Frame Grid.Row="0" Style="{StaticResource CardFrame}">
       <HorizontalStackLayout Spacing="12">
@@ -37,4 +37,5 @@
     </CollectionView>
   </Grid>
 </ContentPage>
+
 

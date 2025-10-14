@@ -1,9 +1,10 @@
-using Microsoft.Maui.Controls;
-using ProjectApp.Client.Maui.ViewModels;
-using System.Threading.Tasks;
 using System;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.Controls;
 using ProjectApp.Client.Maui.Services;
+using ProjectApp.Client.Maui.ViewModels;
 
 namespace ProjectApp.Client.Maui.Views;
 
@@ -17,13 +18,12 @@ public partial class QuickSalePage : ContentPage
         BindingContext = vm;
         _services = services;
 
-        // Add extra toolbar items based on role
         var auth = _services.GetRequiredService<AuthService>();
-        // Returns available for Manager/Admin
-        var returnsItem = new ToolbarItem { Text = "Возврат" };
+
+        var returnsItem = new ToolbarItem { Text = "Возвраты" };
         returnsItem.Clicked += OnReturnsClicked;
         ToolbarItems.Add(returnsItem);
-        // Supplies only for Admin
+
         if (string.Equals(auth.Role, "Admin", StringComparison.OrdinalIgnoreCase))
         {
             var suppliesItem = new ToolbarItem { Text = "Поставки" };
@@ -87,11 +87,21 @@ public partial class QuickSalePage : ContentPage
 
     private async void OnPickClientClicked(object? sender, EventArgs e)
     {
-        var page = _services.GetService<ClientPickerPage>();
-        if (page != null)
+        var page = _services.GetService<ClientsListPage>();
+        if (page is null)
         {
-            await Navigation.PushAsync(page);
+            return;
         }
+
+        if (page.BindingContext is ClientsListViewModel vm)
+        {
+            vm.ShowOnlyMine = true;
+            if (vm.LoadCommand is IAsyncRelayCommand loadCommand)
+            {
+                await loadCommand.ExecuteAsync(null);
+            }
+        }
+
+        await Navigation.PushAsync(page);
     }
 }
-

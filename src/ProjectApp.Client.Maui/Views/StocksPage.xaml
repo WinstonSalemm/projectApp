@@ -5,7 +5,7 @@
              xmlns:converters="clr-namespace:ProjectApp.Client.Maui.Converters"
              x:Class="ProjectApp.Client.Maui.Views.StocksPage"
              x:Name="Root"
-             Title="РЎРєР»Р°Рґ (С‚РѕР»СЊРєРѕ РђРґРјРёРЅ)" x:DataType="viewModels:StocksViewModel">
+             Title="РЎРєР»Р°Рґ (С‚РѕР»СЊРєРѕ РђРґРјРёРЅ)">
   <ContentPage.Resources>
     <ResourceDictionary>
       <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
@@ -115,4 +115,5 @@
     <Label Grid.Row="1" Text="{Binding StatusMessage}" TextColor="Red"/>
   </Grid>
 </ContentPage>
+
 

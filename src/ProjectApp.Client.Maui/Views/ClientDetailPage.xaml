@@ -9,7 +9,7 @@
     <ToolbarItem Text="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ" Command="{Binding EditCommand}" IconImageSource="{StaticResource IconEdit}"/>
   </TabbedPage.ToolbarItems>
 
-  <ContentPage Title="РљР°СЂС‚РѕС‡РєР°" x:DataType="viewModels:ClientDetailViewModel">
+  <ContentPage Title="РљР°СЂС‚РѕС‡РєР°">
     <ScrollView>
       <VerticalStackLayout Padding="24" Spacing="16">
         <Label Text="РћСЃРЅРѕРІРЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ" Style="{StaticResource SectionTitle}"/>
@@ -33,7 +33,7 @@
     </ScrollView>
   </ContentPage>
 
-  <ContentPage Title="РџСЂРѕРґР°Р¶Рё" x:DataType="viewModels:ClientDetailViewModel">
+  <ContentPage Title="РџСЂРѕРґР°Р¶Рё">
     <ScrollView>
       <VerticalStackLayout Padding="24" Spacing="16">
         <HorizontalStackLayout Spacing="12">
@@ -61,7 +61,7 @@
     </ScrollView>
   </ContentPage>
 
-  <ContentPage Title="Р’РѕР·РІСЂР°С‚С‹" x:DataType="viewModels:ClientDetailViewModel">
+  <ContentPage Title="Р’РѕР·РІСЂР°С‚С‹">
     <ScrollView>
       <VerticalStackLayout Padding="24" Spacing="16">
         <HorizontalStackLayout Spacing="12">
@@ -89,7 +89,7 @@
     </ScrollView>
   </ContentPage>
 
-  <ContentPage Title="Р”РѕР»РіРё" x:DataType="viewModels:ClientDetailViewModel">
+  <ContentPage Title="Р”РѕР»РіРё">
     <ScrollView>
       <VerticalStackLayout Padding="24" Spacing="16">
         <CollectionView ItemsSource="{Binding Debts}" Margin="0,4,0,0">
@@ -110,4 +110,5 @@
     </ScrollView>
   </ContentPage>
 </TabbedPage>
+
 

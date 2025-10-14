@@ -1,4 +1,6 @@
+
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -13,6 +15,18 @@ public partial class UserSelectViewModel : ObservableObject
     private readonly AuthService _auth;
     private readonly IServiceProvider _services;
 
+    private static readonly IReadOnlyDictionary<string, (string DisplayName, string Role)> Directory =
+        new Dictionary<string, (string DisplayName, string Role)>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["liliya"] = ("Лилия", "Manager"),
+            ["timur"] = ("Тимур", "Manager"),
+            ["albert"] = ("Альберт", "Manager"),
+            ["alisher"] = ("Алишер", "Manager"),
+            ["rasim"] = ("Расим", "Manager"),
+            ["valeriy"] = ("Валерий", "Manager"),
+            ["shop"] = ("Магазин", "Manager")
+        };
+
     public UserSelectViewModel(AuthService auth, IServiceProvider services)
     {
         _auth = auth;
@@ -20,19 +34,36 @@ public partial class UserSelectViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task LoginManagerAsync(string userName)
-    {
-        if (string.IsNullOrWhiteSpace(userName))
-            return;
+    private Task LoginShopAsync() => LoginManagerAsync("shop");
 
-        var ok = await _auth.LoginAsync(userName, null);
-        if (!ok)
+    [RelayCommand]
+    private async Task LoginManagerAsync(string? userName)
+    {
+        if (string.IsNullOrWhiteSpace(userName) || !Directory.TryGetValue(userName, out var info))
         {
-            var detail = string.IsNullOrWhiteSpace(_auth.LastErrorMessage) ? string.Empty : $"\n{_auth.LastErrorMessage}";
-            await NavigationHelper.DisplayAlert("Ошибка авторизации", $"Не удалось войти: {userName}.{detail}", "OK");
+            await NavigationHelper.DisplayAlert("Неизвестный пользователь", "Выберите одного из доступных менеджеров.", "OK");
             return;
         }
 
+        _auth.LoginOffline(userName, info.DisplayName, info.Role);
+        await NavigateToShellAsync();
+    }
+
+    [RelayCommand]
+    private async Task LoginAdminAsync()
+    {
+        var loginPage = _services.GetRequiredService<Views.LoginPage>();
+        if (loginPage.BindingContext is LoginViewModel vm)
+        {
+            vm.UserName = "admin";
+            vm.IsPasswordVisible = true;
+        }
+
+        await NavigationHelper.PushAsync(loginPage);
+    }
+
+    private async Task NavigateToShellAsync()
+    {
         var targetRoute = string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase)
             ? "dashboard"
             : "sales";
@@ -45,21 +76,4 @@ public partial class UserSelectViewModel : ObservableObject
             await shell.EnsureRouteAsync(targetRoute);
         });
     }
-
-    [RelayCommand]
-    private Task LoginShopAsync() => LoginManagerAsync("shop");
-
-    [RelayCommand]
-    private async Task LoginAdminAsync()
-    {
-        var login = _services.GetRequiredService<ProjectApp.Client.Maui.Views.LoginPage>();
-        if (login.BindingContext is ProjectApp.Client.Maui.ViewModels.LoginViewModel lvm)
-        {
-            lvm.UserName = "admin";
-            lvm.IsPasswordVisible = true;
-        }
-
-        await NavigationHelper.PushAsync(login);
-    }
 }
-
