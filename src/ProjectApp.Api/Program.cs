@@ -536,6 +536,25 @@ await using (var scope = app.Services.CreateAsyncScope())
             {
                 await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Products` ADD COLUMN `Category` VARCHAR(128) NOT NULL DEFAULT '';");
             }
+            
+            // Ensure Products.GtdCode exists
+            var prodGtdExists = false;
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Products' AND COLUMN_NAME = 'GtdCode'";
+                var scalar = await cmd.ExecuteScalarAsync();
+                if (scalar != null && scalar != DBNull.Value)
+                {
+                    var cnt = Convert.ToInt64(scalar);
+                    prodGtdExists = cnt > 0;
+                }
+            }
+            if (!prodGtdExists)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Products` ADD COLUMN `GtdCode` VARCHAR(128) NULL;");
+            }
 
             // Categories table is already created above in the schema patchers section
 
