@@ -537,31 +537,13 @@ await using (var scope = app.Services.CreateAsyncScope())
                 await db.Database.ExecuteSqlRawAsync("ALTER TABLE `Products` ADD COLUMN `Category` VARCHAR(128) NOT NULL DEFAULT '';");
             }
 
-            // Ensure Categories table exists (MySQL)
-            var categoriesExists = false;
-            using (var connC = db.Database.GetDbConnection())
-            {
-                await connC.OpenAsync();
-                await using var cmdC = connC.CreateCommand();
-                cmdC.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Categories'";
-                var scalarC = await cmdC.ExecuteScalarAsync();
-                categoriesExists = scalarC != null && scalarC != DBNull.Value && Convert.ToInt64(scalarC) > 0;
-            }
-            if (!categoriesExists)
-            {
-                var sqlC = @"CREATE TABLE `Categories` (
-  `Id` INT NOT NULL AUTO_INCREMENT,
-  `Name` VARCHAR(128) NOT NULL,
-  PRIMARY KEY (`Id`),
-  UNIQUE INDEX `UX_Categories_Name` (`Name` ASC)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-                await db.Database.ExecuteSqlRawAsync(sqlC);
-            }
+            // Categories table is already created above in the schema patchers section
 
             // Ensure Contracts table exists (MySQL)
             var contractsExists = false;
             using (var conn5 = db.Database.GetDbConnection())
             {
+{{ ... }}
                 await conn5.OpenAsync();
                 await using var cmd5 = conn5.CreateCommand();
                 cmd5.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Contracts'";
