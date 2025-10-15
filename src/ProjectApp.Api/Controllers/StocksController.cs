@@ -20,6 +20,26 @@ public class StocksController : ControllerBase
         _logger = logger;
     }
 
+    [HttpGet("test")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Test(CancellationToken ct)
+    {
+        try
+        {
+            _logger.LogInformation("[StocksController] Test: checking Stocks table");
+            
+            // Just load stocks without joining products
+            var stocks = await _db.Stocks.AsNoTracking().Take(5).ToListAsync(ct);
+            
+            return Ok(new { success = true, count = stocks.Count, stocks });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[StocksController] Test failed: {Message}", ex.Message);
+            return Ok(new { success = false, error = ex.Message, stackTrace = ex.StackTrace });
+        }
+    }
+
     [HttpGet]
     [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(IEnumerable<StockViewDto>), StatusCodes.Status200OK)]
