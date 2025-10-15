@@ -40,6 +40,28 @@ public class StocksController : ControllerBase
         }
     }
 
+    [HttpGet("test-products")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public async Task<IActionResult> TestProducts(CancellationToken ct)
+    {
+        try
+        {
+            _logger.LogInformation("[StocksController] TestProducts: loading products with FromSqlRaw");
+            
+            var products = await _db.Products
+                .FromSqlRaw("SELECT Id, Sku, Name, Unit, Price, Category FROM Products")
+                .Take(5)
+                .ToListAsync(ct);
+            
+            return Ok(new { success = true, count = products.Count, products });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[StocksController] TestProducts failed: {Message}", ex.Message);
+            return Ok(new { success = false, error = ex.Message, stackTrace = ex.StackTrace });
+        }
+    }
+
     [HttpGet]
     [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(IEnumerable<StockViewDto>), StatusCodes.Status200OK)]
