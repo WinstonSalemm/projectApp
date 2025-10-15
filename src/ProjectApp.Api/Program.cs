@@ -365,8 +365,8 @@ await using (var scope = app.Services.CreateAsyncScope())
     var provider = db.Database.ProviderName ?? string.Empty;
     if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
     {
-        // Generate schema from model for MySQL
-        await db.Database.EnsureCreatedAsync();
+        // Apply migrations for MySQL
+        await db.Database.MigrateAsync();
     }
     else
     {
