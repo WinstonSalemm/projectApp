@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Models;
 
@@ -7,10 +8,12 @@ namespace ProjectApp.Api.Repositories;
 public class EfProductRepository : IProductRepository
 {
     private readonly AppDbContext _db;
+    private readonly ILogger<EfProductRepository> _logger;
 
-    public EfProductRepository(AppDbContext db)
+    public EfProductRepository(AppDbContext db, ILogger<EfProductRepository> logger)
     {
         _db = db;
+        _logger = logger;
     }
 
     public async Task<int> CountAsync(string? query, string? category = null, CancellationToken ct = default)
@@ -25,16 +28,26 @@ public class EfProductRepository : IProductRepository
 
     public async Task<IEnumerable<Product>> SearchAsync(string? query, int page, int size, string? category = null, CancellationToken ct = default)
     {
-        if (page < 1) page = 1;
-        if (size < 1) size = 50;
+        try
+        {
+            _logger.LogInformation("[EfProductRepository] SearchAsync: query={Query}, page={Page}, size={Size}, category={Category}", query, page, size, category);
+            if (page < 1) page = 1;
+            if (size < 1) size = 50;
 
-        var items = await ApplyQuery(_db.Products.AsNoTracking(), query, category)
-            .OrderBy(p => p.Id)
-            .Skip((page - 1) * size)
-            .Take(size)
-            .ToListAsync(ct);
+            var items = await ApplyQuery(_db.Products.AsNoTracking(), query, category)
+                .OrderBy(p => p.Id)
+                .Skip((page - 1) * size)
+                .Take(size)
+                .ToListAsync(ct);
 
-        return items;
+            _logger.LogInformation("[EfProductRepository] SearchAsync: returned {Count} items", items.Count);
+            return items;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[EfProductRepository] SearchAsync failed: {Message}", ex.Message);
+            throw;
+        }
     }
 
     private static IQueryable<Product> ApplyQuery(IQueryable<Product> products, string? query, string? category)
