@@ -12,14 +12,23 @@ namespace ProjectApp.Api.Controllers;
 public class StocksController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public StocksController(AppDbContext db) { _db = db; }
+    private readonly ILogger<StocksController> _logger;
+    
+    public StocksController(AppDbContext db, ILogger<StocksController> logger) 
+    { 
+        _db = db;
+        _logger = logger;
+    }
 
     [HttpGet]
     [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(IEnumerable<StockViewDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get([FromQuery] string? query, [FromQuery] string? category, CancellationToken ct)
     {
-        var products = _db.Products.AsNoTracking().AsQueryable();
+        try
+        {
+            _logger.LogInformation("[StocksController] Get: query={Query}, category={Category}", query, category);
+            var products = _db.Products.AsNoTracking().AsQueryable();
         if (!string.IsNullOrWhiteSpace(category))
         {
             var c = category.Trim();
@@ -87,7 +96,14 @@ public class StocksController : ControllerBase
             TotalQty = (grouped.TryGetValue(p.Id, out var agg3) ? agg3.Total : 0m) - (reservedByProduct.TryGetValue(p.Id, out var r3) ? r3.Total : 0m)
         }).ToList();
 
-        return Ok(result);
+            _logger.LogInformation("[StocksController] Get: returning {Count} items", result.Count);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[StocksController] Get failed: {Message}", ex.Message);
+            throw;
+        }
     }
 
     // GET /api/stocks/batches?query=&category=
