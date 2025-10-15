@@ -98,6 +98,46 @@ public class ProductsController : ControllerBase
         }
     }
 
+    [HttpGet("debug")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Debug(CancellationToken ct)
+    {
+        try
+        {
+            _logger.LogInformation("[ProductsController] Debug: checking Products table");
+            
+            // Try to get raw SQL result
+            var conn = _db.Database.GetDbConnection();
+            await conn.OpenAsync(ct);
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT Id, Sku, Name, Unit, Price, Category, GtdCode FROM Products LIMIT 1";
+            
+            var reader = await cmd.ExecuteReaderAsync(ct);
+            var result = new List<Dictionary<string, object?>>();
+            
+            while (await reader.ReadAsync(ct))
+            {
+                var row = new Dictionary<string, object?>();
+                for (int i = 0; i < reader.FieldCount; i++)
+                {
+                    row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                }
+                result.Add(row);
+            }
+            
+            await reader.CloseAsync();
+            await conn.CloseAsync();
+            
+            _logger.LogInformation("[ProductsController] Debug: got {Count} rows", result.Count);
+            return Ok(new { success = true, rows = result });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ProductsController] Debug failed: {Message}", ex.Message);
+            return Ok(new { success = false, error = ex.Message, stackTrace = ex.StackTrace });
+        }
+    }
+
     [HttpGet("lookup")]
     [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Lookup([FromQuery] string ids, CancellationToken ct)
