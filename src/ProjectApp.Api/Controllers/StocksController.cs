@@ -49,40 +49,44 @@ public class StocksController : ControllerBase
         {
             _logger.LogInformation("[StocksController] Get: query={Query}, category={Category}", query, category);
             
-            // Use FromSqlRaw to avoid GtdCode column issue
-            var sql = "SELECT Id, Sku, Name, Unit, Price, Category FROM Products WHERE 1=1";
-            var parameters = new List<object>();
+            // Load all products first, then filter in memory to avoid GtdCode issue
+            var allProducts = await _db.Products
+                .FromSqlRaw("SELECT Id, Sku, Name, Unit, Price, Category FROM Products")
+                .ToListAsync(ct);
+            
+            _logger.LogInformation("[StocksController] Loaded {Count} products from DB", allProducts.Count);
+            
+            var prodList = allProducts.AsQueryable();
             
             if (!string.IsNullOrWhiteSpace(category))
             {
-                sql += " AND Category = {0}";
-                parameters.Add(category.Trim());
+                var c = category.Trim();
+                prodList = prodList.Where(p => p.Category == c);
             }
             if (!string.IsNullOrWhiteSpace(query))
             {
-                var q = query.Trim();
-                sql += " AND (Sku LIKE {" + parameters.Count + "} OR Name LIKE {" + (parameters.Count + 1) + "})";
-                parameters.Add($"%{q}%");
-                parameters.Add($"%{q}%");
+                var q = query.Trim().ToLower();
+                prodList = prodList.Where(p => 
+                    p.Sku.ToLower().Contains(q) || 
+                    p.Name.ToLower().Contains(q));
             }
-            sql += " ORDER BY Id";
             
-            var prodList = await _db.Products
-                .FromSqlRaw(sql, parameters.ToArray())
+            var prodListFinal = prodList
+                .OrderBy(p => p.Id)
                 .Select(p => new { 
                     Id = p.Id, 
                     Sku = p.Sku, 
                     Name = p.Name, 
                     Category = p.Category 
                 })
-                .ToListAsync(ct);
+                .ToList();
 
-        if (prodList.Count == 0)
+        if (prodListFinal.Count == 0)
         {
             return Ok(Array.Empty<StockViewDto>());
         }
 
-        var prodIds = prodList.Select(p => p.Id).ToArray();
+        var prodIds = prodListFinal.Select(p => p.Id).ToArray();
         var stockList = await _db.Stocks
             .AsNoTracking()
             .Where(s => prodIds.Contains(s.ProductId))
@@ -116,7 +120,7 @@ public class StocksController : ControllerBase
                 Total = g.Sum(x => x.Qty)
             });
 
-        var result = prodList.Select(p => new StockViewDto
+        var result = prodListFinal.Select(p => new StockViewDto
         {
             ProductId = p.Id,
             Sku = p.Sku,
