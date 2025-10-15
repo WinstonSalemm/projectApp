@@ -8,5 +8,6 @@ public class Product
     public string Unit { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public string Category { get; set; } = string.Empty;
-    public string? GtdCode { get; set; }
+    // GtdCode removed temporarily - column doesn't exist in Railway MySQL
+    // public string? GtdCode { get; set; }
 }

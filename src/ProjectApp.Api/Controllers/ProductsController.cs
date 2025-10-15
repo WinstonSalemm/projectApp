@@ -110,7 +110,7 @@ public class ProductsController : ControllerBase
             var conn = _db.Database.GetDbConnection();
             await conn.OpenAsync(ct);
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT Id, Sku, Name, Unit, Price, Category, GtdCode FROM Products LIMIT 1";
+            cmd.CommandText = "SELECT Id, Sku, Name, Unit, Price, Category FROM Products LIMIT 1";
             
             var reader = await cmd.ExecuteReaderAsync(ct);
             var result = new List<Dictionary<string, object?>>();
