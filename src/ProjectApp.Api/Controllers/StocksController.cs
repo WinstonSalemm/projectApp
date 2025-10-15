@@ -48,23 +48,34 @@ public class StocksController : ControllerBase
         try
         {
             _logger.LogInformation("[StocksController] Get: query={Query}, category={Category}", query, category);
-            var products = _db.Products.AsNoTracking().AsQueryable();
-        if (!string.IsNullOrWhiteSpace(category))
-        {
-            var c = category.Trim();
-            products = products.Where(p => p.Category == c);
-        }
-        if (!string.IsNullOrWhiteSpace(query))
-        {
-            var q = query.Trim();
-            products = products.Where(p => EF.Functions.Like(p.Sku, $"%{q}%") || EF.Functions.Like(p.Name, $"%{q}%"));
-        }
-
-        // Materialize products first
-        var prodList = await products
-            .Select(p => new { p.Id, p.Sku, p.Name, p.Category })
-            .OrderBy(p => p.Id)
-            .ToListAsync(ct);
+            
+            // Use FromSqlRaw to avoid GtdCode column issue
+            var sql = "SELECT Id, Sku, Name, Unit, Price, Category FROM Products WHERE 1=1";
+            var parameters = new List<object>();
+            
+            if (!string.IsNullOrWhiteSpace(category))
+            {
+                sql += " AND Category = {0}";
+                parameters.Add(category.Trim());
+            }
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var q = query.Trim();
+                sql += " AND (Sku LIKE {" + parameters.Count + "} OR Name LIKE {" + (parameters.Count + 1) + "})";
+                parameters.Add($"%{q}%");
+                parameters.Add($"%{q}%");
+            }
+            sql += " ORDER BY Id";
+            
+            var prodList = await _db.Products
+                .FromSqlRaw(sql, parameters.ToArray())
+                .Select(p => new { 
+                    Id = p.Id, 
+                    Sku = p.Sku, 
+                    Name = p.Name, 
+                    Category = p.Category 
+                })
+                .ToListAsync(ct);
 
         if (prodList.Count == 0)
         {
@@ -145,7 +156,12 @@ public class StocksController : ControllerBase
         }
 
         var prodList = await products
-            .Select(p => new { p.Id, p.Sku, p.Name, p.Category })
+            .Select(p => new { 
+                Id = p.Id, 
+                Sku = p.Sku, 
+                Name = p.Name, 
+                Category = p.Category 
+            })
             .OrderBy(p => p.Id)
             .ToListAsync(ct);
 
