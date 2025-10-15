@@ -365,8 +365,41 @@ await using (var scope = app.Services.CreateAsyncScope())
     var provider = db.Database.ProviderName ?? string.Empty;
     if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
     {
-        // Apply migrations for MySQL
-        await db.Database.MigrateAsync();
+        // Try to apply migrations for MySQL, fallback to EnsureCreated if migrations fail
+        try
+        {
+            var canConnect = await db.Database.CanConnectAsync();
+            if (canConnect)
+            {
+                // Check if any tables exist
+                var conn = db.Database.GetDbConnection();
+                await conn.OpenAsync();
+                var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE()";
+                var tableCount = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                await conn.CloseAsync();
+                
+                if (tableCount == 0)
+                {
+                    // Empty DB - use migrations
+                    await db.Database.MigrateAsync();
+                }
+                else
+                {
+                    // DB exists - ensure schema is created (idempotent)
+                    await db.Database.EnsureCreatedAsync();
+                }
+            }
+            else
+            {
+                await db.Database.MigrateAsync();
+            }
+        }
+        catch
+        {
+            // Fallback to EnsureCreated
+            await db.Database.EnsureCreatedAsync();
+        }
     }
     else
     {
@@ -380,6 +413,29 @@ await using (var scope = app.Services.CreateAsyncScope())
         var provider2 = db.Database.ProviderName ?? string.Empty;
         if (provider2.Contains("MySql", StringComparison.OrdinalIgnoreCase))
         {
+            // Ensure Categories table exists
+            using (var conn = db.Database.GetDbConnection())
+            {
+                await conn.OpenAsync();
+                var checkCmd = conn.CreateCommand();
+                checkCmd.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Categories'";
+                var categoriesExists = Convert.ToInt32(await checkCmd.ExecuteScalarAsync()) > 0;
+                
+                if (!categoriesExists)
+                {
+                    var createCmd = conn.CreateCommand();
+                    createCmd.CommandText = @"
+                        CREATE TABLE IF NOT EXISTS `Categories` (
+                            `Id` int NOT NULL AUTO_INCREMENT,
+                            `Name` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                            PRIMARY KEY (`Id`)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                    ";
+                    await createCmd.ExecuteNonQueryAsync();
+                }
+                await conn.CloseAsync();
+            }
+            
             var costExists = false;
             using (var conn = db.Database.GetDbConnection())
             {
