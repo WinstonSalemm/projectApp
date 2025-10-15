@@ -543,7 +543,6 @@ await using (var scope = app.Services.CreateAsyncScope())
             var contractsExists = false;
             using (var conn5 = db.Database.GetDbConnection())
             {
-{{ ... }}
                 await conn5.OpenAsync();
                 await using var cmd5 = conn5.CreateCommand();
                 cmd5.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Contracts'";
