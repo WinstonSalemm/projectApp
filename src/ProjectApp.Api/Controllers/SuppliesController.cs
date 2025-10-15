@@ -41,10 +41,12 @@ public class SuppliesController : ControllerBase
             if (!exists) return ValidationProblem(detail: $"Product not found: {it.ProductId}");
 
             // Pull product-level GTD code if available
-            var prodGtd = await _db.Products
-                .Where(p => p.Id == it.ProductId)
-                .Select(p => p.GtdCode)
-                .FirstOrDefaultAsync(ct);
+            // Temporarily disabled - GtdCode column doesn't exist in Railway
+            string? prodGtd = null;
+            // var prodGtd = await _db.Products
+            //     .Where(p => p.Id == it.ProductId)
+            //     .Select(p => p.GtdCode)
+            //     .FirstOrDefaultAsync(ct);
 
             // Increase ND40 stock
             var stockNd = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == it.ProductId && s.Register == StockRegister.ND40, ct);

@@ -63,7 +63,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(p => p.Name).IsRequired().HasMaxLength(256);
             b.Property(p => p.Unit).IsRequired().HasMaxLength(16);
             b.Property(p => p.Price).HasColumnType("decimal(18,2)");
-            b.Property(p => p.GtdCode).HasMaxLength(64);
+            // b.Property(p => p.GtdCode).HasMaxLength(64); // Temporarily disabled - column doesn't exist in Railway
             b.HasIndex(p => p.Sku).IsUnique(false);
             b.HasData(seedProducts);
         });
