@@ -60,8 +60,36 @@ public class FinanceController : ControllerBase
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetKpi([FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct)
     {
-        var kpi = await _svc.GetKpiAsync(from, to, ct);
-        return Ok(kpi);
+        try
+        {
+            // Временно упрощенная версия - прямой запрос к БД
+            var dateFrom = from ?? DateTime.UtcNow.AddDays(-30);
+            var dateTo = to ?? DateTime.UtcNow;
+            
+            var sales = await _db.Sales
+                .AsNoTracking()
+                .Where(s => s.CreatedAt >= dateFrom && s.CreatedAt < dateTo)
+                .Include(s => s.Items)
+                .ToListAsync(ct);
+            
+            var revenue = sales.Sum(s => s.Total);
+            var cogs = sales.SelectMany(s => s.Items).Sum(i => i.Qty * i.Cost);
+            var grossProfit = revenue - cogs;
+            var salesCount = sales.Count;
+            
+            return Ok(new
+            {
+                revenue,
+                cogs,
+                grossProfit,
+                salesCount,
+                marginPercent = revenue > 0 ? (grossProfit / revenue) * 100 : 0
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
+        }
     }
 
     [HttpPost("snapshot")]
