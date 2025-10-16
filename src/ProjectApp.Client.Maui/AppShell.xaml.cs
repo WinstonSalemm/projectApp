@@ -19,7 +19,7 @@ public partial class AppShell : Shell
         ["sales"] = "Active sales pipeline",
         ["inventory"] = "Stock availability and movement",
         ["clients"] = "Customer directory and ownership",
-        ["finance"] = "Gross profit and cash-flow analytics",
+        ["analytics"] = "Financial and manager analytics",
         ["settings"] = "Application preferences"
     };
     private string _currentRoute = "sales";
@@ -77,7 +77,9 @@ public partial class AppShell : Shell
         RegisterRoute<UnregisteredClientPage>("clients/unregistered");
         RegisterRoute<StocksPage>("stocks/list");
         RegisterRoute<HistoryTabsPage>("history/tabs");
-        RegisterRoute<FinanceDashboardPage>("finance/dashboard");
+        RegisterRoute<FinanceAnalyticsPage>("analytics/finance");
+        RegisterRoute<ManagerAnalyticsPage>("analytics/managers");
+        RegisterRoute<ProductCostsPage>("analytics/products");
         RegisterRoute<SettingsPage>("settings");
     }
 
@@ -109,8 +111,8 @@ public partial class AppShell : Shell
             _currentRoute = "inventory";
         else if (ReferenceEquals(CurrentItem, ClientsTab))
             _currentRoute = "clients";
-        else if (ReferenceEquals(CurrentItem, FinanceTab))
-            _currentRoute = "finance";
+        else if (ReferenceEquals(CurrentItem, AnalyticsTab))
+            _currentRoute = "analytics";
         else if (ReferenceEquals(CurrentItem, SettingsTab))
             _currentRoute = "settings";
 
@@ -162,8 +164,8 @@ public partial class AppShell : Shell
         try
         {
             bool isAdmin = string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
-            if (FinanceTab != null) FinanceTab.IsVisible = isAdmin;
-            if (FinanceRailButton != null) FinanceRailButton.IsVisible = isAdmin;
+            if (AnalyticsTab != null) AnalyticsTab.IsVisible = isAdmin;
+            if (AnalyticsRailButton != null) AnalyticsRailButton.IsVisible = isAdmin;
             if (DashboardRailButton != null) DashboardRailButton.IsVisible = isAdmin;
             if (DashboardTab != null) DashboardTab.IsVisible = isAdmin;
 
@@ -231,9 +233,9 @@ public partial class AppShell : Shell
                 case "clients":
                     if (ClientsTab != null) CurrentItem = ClientsTab;
                     break;
-                case "finance":
-                    if (FinanceTab?.IsVisible == true)
-                        CurrentItem = FinanceTab;
+                case "analytics":
+                    if (AnalyticsTab?.IsVisible == true)
+                        CurrentItem = AnalyticsTab;
                     break;
                 case "settings":
                     if (SettingsTab != null) CurrentItem = SettingsTab;
