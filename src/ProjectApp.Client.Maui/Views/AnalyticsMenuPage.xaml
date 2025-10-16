@@ -5,52 +5,97 @@
              Title="Аналитика"
              BackgroundColor="{DynamicResource Color.Background}">
   
-  <ScrollView Padding="16">
-    <VerticalStackLayout Spacing="16">
-      <Label Text="📊 Аналитика" FontSize="28" FontAttributes="Bold" Margin="0,8,0,24"/>
+  <ScrollView Padding="24">
+    <VerticalStackLayout Spacing="20">
+      <Label Text="📊 Аналитика" FontSize="32" FontAttributes="Bold" Margin="0,8,0,32"/>
       
       <!-- Финансовая аналитика -->
-      <Border StrokeThickness="0" BackgroundColor="{DynamicResource Color.Primary}" Padding="20" StrokeShape="RoundRectangle 12">
+      <Border x:Name="FinanceCard" 
+              StrokeThickness="0" 
+              BackgroundColor="#6366F1" 
+              Padding="24" 
+              StrokeShape="RoundRectangle 16"
+              Shadow="{Shadow Brush=Black, Opacity=0.1, Radius=8, Offset='0,4'}"
+              CursorBehavior="Pointer">
         <Border.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnFinancesTapped"/>
+          <PointerGestureRecognizer PointerEntered="OnCardPointerEntered" PointerExited="OnCardPointerExited"/>
         </Border.GestureRecognizers>
-        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
-          <Label Grid.Column="0" Text="💰" FontSize="32"/>
-          <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
-            <Label Text="Финансовая аналитика" FontSize="18" FontAttributes="Bold" TextColor="White"/>
-            <Label Text="Выручка, прибыль, маржинальность" FontSize="14" TextColor="White" Opacity="0.8"/>
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20">
+          <Border Grid.Column="0" 
+                  WidthRequest="64" 
+                  HeightRequest="64" 
+                  BackgroundColor="#FFFFFF20" 
+                  StrokeThickness="0" 
+                  StrokeShape="RoundRectangle 12"
+                  VerticalOptions="Center">
+            <Label Text="💰" FontSize="36" HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+          </Border>
+          <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+            <Label Text="Финансовая аналитика" FontSize="20" FontAttributes="Bold" TextColor="White"/>
+            <Label Text="Выручка, прибыль, маржинальность" FontSize="14" TextColor="White" Opacity="0.85"/>
           </VerticalStackLayout>
-          <Label Grid.Column="2" Text="›" FontSize="32" TextColor="White" VerticalOptions="Center"/>
+          <Label Grid.Column="2" Text="›" FontSize="40" TextColor="White" VerticalOptions="Center" Opacity="0.7"/>
         </Grid>
       </Border>
       
       <!-- Аналитика по менеджерам -->
-      <Border StrokeThickness="0" BackgroundColor="{DynamicResource Color.Success}" Padding="20" StrokeShape="RoundRectangle 12">
+      <Border x:Name="ManagersCard"
+              StrokeThickness="0" 
+              BackgroundColor="#10B981" 
+              Padding="24" 
+              StrokeShape="RoundRectangle 16"
+              Shadow="{Shadow Brush=Black, Opacity=0.1, Radius=8, Offset='0,4'}"
+              CursorBehavior="Pointer">
         <Border.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnManagersTapped"/>
+          <PointerGestureRecognizer PointerEntered="OnCardPointerEntered" PointerExited="OnCardPointerExited"/>
         </Border.GestureRecognizers>
-        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
-          <Label Grid.Column="0" Text="👥" FontSize="32"/>
-          <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
-            <Label Text="Аналитика по менеджерам" FontSize="18" FontAttributes="Bold" TextColor="White"/>
-            <Label Text="Обороты, клиенты, график продаж" FontSize="14" TextColor="White" Opacity="0.8"/>
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20">
+          <Border Grid.Column="0" 
+                  WidthRequest="64" 
+                  HeightRequest="64" 
+                  BackgroundColor="#FFFFFF20" 
+                  StrokeThickness="0" 
+                  StrokeShape="RoundRectangle 12"
+                  VerticalOptions="Center">
+            <Label Text="👥" FontSize="36" HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+          </Border>
+          <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+            <Label Text="Аналитика по менеджерам" FontSize="20" FontAttributes="Bold" TextColor="White"/>
+            <Label Text="Обороты, клиенты, график продаж" FontSize="14" TextColor="White" Opacity="0.85"/>
           </VerticalStackLayout>
-          <Label Grid.Column="2" Text="›" FontSize="32" TextColor="White" VerticalOptions="Center"/>
+          <Label Grid.Column="2" Text="›" FontSize="40" TextColor="White" VerticalOptions="Center" Opacity="0.7"/>
         </Grid>
       </Border>
       
       <!-- Управление себестоимостью -->
-      <Border StrokeThickness="0" BackgroundColor="{DynamicResource Color.Warning}" Padding="20" StrokeShape="RoundRectangle 12">
+      <Border x:Name="ProductsCard"
+              StrokeThickness="0" 
+              BackgroundColor="#F59E0B" 
+              Padding="24" 
+              StrokeShape="RoundRectangle 16"
+              Shadow="{Shadow Brush=Black, Opacity=0.1, Radius=8, Offset='0,4'}"
+              CursorBehavior="Pointer">
         <Border.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnProductCostsTapped"/>
+          <PointerGestureRecognizer PointerEntered="OnCardPointerEntered" PointerExited="OnCardPointerExited"/>
         </Border.GestureRecognizers>
-        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
-          <Label Grid.Column="0" Text="📦" FontSize="32"/>
-          <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
-            <Label Text="Управление себестоимостью" FontSize="18" FontAttributes="Bold" TextColor="White"/>
-            <Label Text="Себестоимость товаров, маржа" FontSize="14" TextColor="White" Opacity="0.8"/>
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20">
+          <Border Grid.Column="0" 
+                  WidthRequest="64" 
+                  HeightRequest="64" 
+                  BackgroundColor="#FFFFFF20" 
+                  StrokeThickness="0" 
+                  StrokeShape="RoundRectangle 12"
+                  VerticalOptions="Center">
+            <Label Text="📦" FontSize="36" HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+          </Border>
+          <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+            <Label Text="Управление себестоимостью" FontSize="20" FontAttributes="Bold" TextColor="White"/>
+            <Label Text="Себестоимость товаров, маржа" FontSize="14" TextColor="White" Opacity="0.85"/>
           </VerticalStackLayout>
-          <Label Grid.Column="2" Text="›" FontSize="32" TextColor="White" VerticalOptions="Center"/>
+          <Label Grid.Column="2" Text="›" FontSize="40" TextColor="White" VerticalOptions="Center" Opacity="0.7"/>
         </Grid>
       </Border>
       

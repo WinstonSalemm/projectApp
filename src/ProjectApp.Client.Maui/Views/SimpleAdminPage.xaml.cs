@@ -28,8 +28,7 @@ public partial class SimpleAdminPage : ContentPage
 
     private async void OnAnalyticsClicked(object? sender, EventArgs e)
     {
-        var analyticsPage = App.Services.GetRequiredService<AnalyticsPage>();
-        await Navigation.PushAsync(analyticsPage);
+        await Navigation.PushAsync(new AnalyticsMenuPage());
     }
 
     private async void OnSettingsClicked(object? sender, EventArgs e)
