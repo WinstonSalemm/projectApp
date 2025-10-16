@@ -5,6 +5,9 @@
              x:Class="ProjectApp.Client.Maui.Views.PaymentSelectPage"
              x:DataType="viewModels:PaymentSelectViewModel"
              Title="Выбор вида продажи">
+  <ContentPage.ToolbarItems>
+    <ToolbarItem Text="Выход" Clicked="OnLogoutClicked" />
+  </ContentPage.ToolbarItems>
   <ScrollView>
     <VerticalStackLayout Padding="24" Spacing="16">
       <Label Text="Выберите вид продажи" FontAttributes="Bold" FontSize="24"/>

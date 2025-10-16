@@ -19,6 +19,10 @@ public partial class App : Application
         _services = services;
         _auth = auth;
         Services = services;
+        
+        // Always logout on app start so user must login again
+        _auth.Logout();
+        
         ApplyAppThemePalette();
 
         // Global UI exception handlers to avoid hard crash in debug and show message
@@ -58,13 +62,21 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        if (_auth.IsAuthenticated)
+        if (_auth.IsAuthenticated && string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase))
         {
+            // Admin goes to shell with tabs
             var shell = _services.GetRequiredService<AppShell>();
             return new Window(shell);
         }
+        else if (_auth.IsAuthenticated)
+        {
+            // Manager goes to payment selection without tabs
+            var paymentPage = _services.GetRequiredService<PaymentSelectPage>();
+            return new Window(new NavigationPage(paymentPage));
+        }
         else
         {
+            // Not authenticated - show user select
             var select = _services.GetRequiredService<UserSelectPage>();
             return new Window(new NavigationPage(select));
         }

@@ -46,20 +46,54 @@ public partial class UserSelectViewModel : ObservableObject
         }
 
         _auth.LoginOffline(userName, info.DisplayName, info.Role);
-        await NavigateToShellAsync();
+        
+        // Manager goes directly to payment selection, NOT to shell with tabs
+        var paymentPage = _services.GetRequiredService<Views.PaymentSelectPage>();
+        NavigationHelper.SetRoot(new NavigationPage(paymentPage));
     }
 
     [RelayCommand]
     private async Task LoginAdminAsync()
     {
-        var loginPage = _services.GetRequiredService<Views.LoginPage>();
-        if (loginPage.BindingContext is LoginViewModel vm)
+        try
         {
-            vm.UserName = "admin";
-            vm.IsPasswordVisible = true;
-        }
+            // Show password prompt dialog
+            var mainPage = Application.Current?.MainPage;
+            if (mainPage == null)
+                return;
 
-        await NavigationHelper.PushAsync(loginPage);
+            var password = await mainPage.DisplayPromptAsync(
+                "Вход администратора",
+                "Введите пароль:",
+                "Войти",
+                "Отмена",
+                placeholder: "Пароль",
+                maxLength: 50,
+                keyboard: Keyboard.Default,
+                initialValue: "");
+
+            if (string.IsNullOrWhiteSpace(password))
+                return;
+
+            // Try to login with admin credentials
+            var success = await _auth.LoginAsync("admin", password);
+            if (!success)
+            {
+                await NavigationHelper.DisplayAlert("Ошибка", $"Неверный пароль. {_auth.LastErrorMessage}", "OK");
+                return;
+            }
+
+            // Navigate to simple admin page (temporarily instead of AppShell)
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                var adminPage = _services.GetRequiredService<Views.SimpleAdminPage>();
+                NavigationHelper.SetRoot(new NavigationPage(adminPage));
+            });
+        }
+        catch (Exception ex)
+        {
+            await NavigationHelper.DisplayAlert("Ошибка входа", $"Не удалось войти: {ex.Message}", "OK");
+        }
     }
 
     private async Task NavigateToShellAsync()

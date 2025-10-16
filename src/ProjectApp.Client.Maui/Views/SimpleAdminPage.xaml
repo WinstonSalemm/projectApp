@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.SimpleAdminPage"
+             Title="Админ-панель">
+  <ScrollView>
+    <VerticalStackLayout Padding="24" Spacing="16">
+      <Label Text="Админ-панель" FontSize="32" FontAttributes="Bold"/>
+      <Label Text="Добро пожаловать, администратор!" FontSize="18"/>
+      
+      <Button Text="Склад" HeightRequest="64" FontSize="18" Margin="0,32,0,0" Clicked="OnStocksClicked"/>
+      <Button Text="Клиенты" HeightRequest="64" FontSize="18" Clicked="OnClientsClicked"/>
+      <Button Text="Аналитика" HeightRequest="64" FontSize="18" Clicked="OnAnalyticsClicked"/>
+      <Button Text="Настройки" HeightRequest="64" FontSize="18" Clicked="OnSettingsClicked"/>
+      <Button Text="Выход" HeightRequest="64" FontSize="18" BackgroundColor="Red" TextColor="White" Clicked="OnLogoutClicked" Margin="0,32,0,0"/>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

@@ -228,4 +228,10 @@ public class AuthService
         Preferences.Remove(DisplayNameKey);
         Preferences.Remove(ExpiresKey);
     }
+
+    public void Logout()
+    {
+        ClearPersisted();
+        ClearInMemory();
+    }
 }

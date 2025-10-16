@@ -26,18 +26,33 @@ public partial class AppShell : Shell
 
     public AppShell(IServiceProvider services, AuthService auth)
     {
-        InitializeComponent();
-        _services = services;
-        _auth = auth;
-        _compactBreakpoint = GetResourceDouble("Breakpoint.Compact", 800);
-        _mediumBreakpoint = GetResourceDouble("Breakpoint.Medium", 1200);
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("[AppShell] Constructor started");
+            InitializeComponent();
+            System.Diagnostics.Debug.WriteLine("[AppShell] InitializeComponent completed");
+            
+            _services = services;
+            _auth = auth;
+            _compactBreakpoint = GetResourceDouble("Breakpoint.Compact", 800);
+            _mediumBreakpoint = GetResourceDouble("Breakpoint.Medium", 1200);
 
-        RegisterRoutes();
-        RefreshRoleState();
+            System.Diagnostics.Debug.WriteLine("[AppShell] RegisterRoutes starting");
+            RegisterRoutes();
+            System.Diagnostics.Debug.WriteLine("[AppShell] RefreshRoleState starting");
+            RefreshRoleState();
+            System.Diagnostics.Debug.WriteLine("[AppShell] Event handlers starting");
 
-        Loaded += OnShellLoaded;
-        SizeChanged += OnShellSizeChanged;
-        UpdateTitleBar();
+            Loaded += OnShellLoaded;
+            SizeChanged += OnShellSizeChanged;
+            UpdateTitleBar();
+            System.Diagnostics.Debug.WriteLine("[AppShell] Constructor completed successfully");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppShell] Constructor FAILED: {ex}");
+            throw;
+        }
     }
 
     private void RegisterRoutes()
@@ -251,7 +266,13 @@ public partial class AppShell : Shell
             : "Project control centre";
 
         TitleBar.Title = title;
-        TitleBar.Subtitle = subtitle;
+        TitleBar.Subtitle = subtitle ?? "ProjectApp";
+    }
+
+    private void OnLogoutClicked(object? sender, EventArgs e)
+    {
+        _auth.Logout();
+        var userSelectPage = _services.GetRequiredService<UserSelectPage>();
+        NavigationHelper.SetRoot(new NavigationPage(userSelectPage));
     }
 }
-

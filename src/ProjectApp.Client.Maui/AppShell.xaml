@@ -34,6 +34,16 @@
                         IsVisible="True" />
   </Shell.TitleView>
 
+  <Shell.FlyoutHeader>
+    <Grid BackgroundColor="{StaticResource Color.Primary}" Padding="16" HeightRequest="120">
+      <Label Text="ProjectApp" FontSize="24" FontAttributes="Bold" VerticalOptions="Center" TextColor="White"/>
+    </Grid>
+  </Shell.FlyoutHeader>
+
+  <Shell.FlyoutFooter>
+    <Button Text="Выход" Margin="16" Clicked="OnLogoutClicked" BackgroundColor="{StaticResource Color.Error}" TextColor="White"/>
+  </Shell.FlyoutFooter>
+
   <Shell.FlyoutContent>
     <Grid Background="{DynamicResource Color.Surface}" Padding="20,28" RowSpacing="{StaticResource Space.6}">
       <Grid.RowDefinitions>

@@ -4,45 +4,67 @@
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.ProductSelectPage"
              x:Name="Root"
-             Title="Выбор товара">
-  <ContentPage.Content>
-    <Grid Padding="12" RowDefinitions="Auto,*" RowSpacing="12">
-      <Grid Grid.Row="0" ColumnDefinitions="*,Auto,200,Auto,Auto" ColumnSpacing="8">
-        <Entry Grid.Column="0" Placeholder="Поиск (SKU или название)" Text="{Binding Query}"/>
-        <Label Grid.Column="1" Text="Категория:" VerticalTextAlignment="Center"/>
-        <Picker Grid.Column="2" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}"/>
-        <Button Grid.Column="3" Text="Искать" Command="{Binding SearchAsyncCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8"/>
-        <Button Grid.Column="4" Text="Новый товар" Clicked="OnCreateClicked" Style="{StaticResource OutlinedButton}"/>
+             Title="Каталог товаров">
+  <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="0">
+    <!-- Поиск -->
+    <Border Grid.Row="0" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeThickness="0,0,0,1" Stroke="{DynamicResource Color.Border}">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <Entry Grid.Column="0" Placeholder="🔍 Поиск товаров..." Text="{Binding Query}" HeightRequest="48" FontSize="16"/>
+        <Button Grid.Column="1" Text="Поиск" Command="{Binding SearchAsyncCommand}" HeightRequest="48" WidthRequest="120"/>
       </Grid>
+    </Border>
 
-      <CollectionView Grid.Row="1" ItemsSource="{Binding Results}" SelectionMode="Single" SelectionChanged="OnSelectionChanged">
+    <!-- Категории -->
+    <Border Grid.Row="1" BackgroundColor="{DynamicResource Color.Surface.Alt}" Padding="16,12" StrokeThickness="0,0,0,1" Stroke="{DynamicResource Color.Border}">
+      <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+        <HorizontalStackLayout x:Name="CategoriesStack" Spacing="8" />
+      </ScrollView>
+    </Border>
+
+    <!-- Заголовок -->
+    <Border Grid.Row="2" BackgroundColor="{DynamicResource Color.Surface}" Padding="16,12" StrokeThickness="0,0,0,1" Stroke="{DynamicResource Color.Border}">
+      <Label Text="Выберите товар" FontSize="20" FontAttributes="Bold"/>
+    </Border>
+
+    <!-- Товары Grid -->
+    <ScrollView Grid.Row="3">
+      <CollectionView ItemsSource="{Binding Results}" Margin="16">
+        <CollectionView.ItemsLayout>
+          <GridItemsLayout Orientation="Vertical" Span="3" HorizontalItemSpacing="16" VerticalItemSpacing="16"/>
+        </CollectionView.ItemsLayout>
         <CollectionView.ItemTemplate>
           <DataTemplate>
-            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" Padding="8" ColumnSpacing="12">
-              <VerticalStackLayout>
-                <Label Text="{Binding Name}" FontAttributes="Bold"/>
-                <Label Text="{Binding Sku}" FontSize="12" TextColor="Gray"/>
-                <Label Text="{Binding Price, Converter={StaticResource CurrencyConverter}, StringFormat='Рекоменд.: {0}'}" FontSize="12"/>
+            <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="0" StrokeShape="RoundRectangle 8">
+              <Grid RowDefinitions="*,Auto" RowSpacing="0">
+                <!-- Контент -->
+                <VerticalStackLayout Padding="16" Spacing="8">
+                  <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" LineBreakMode="WordWrap" MaxLines="2"/>
+                  <Label Text="{Binding Sku}" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                  <Label Text="{Binding Price, StringFormat='{0:N0} сум'}" FontSize="22" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}" Margin="0,8,0,0"/>
+                  
+                  <!-- Остатки -->
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="0,8,0,0">
+                    <Label Grid.Column="0" Text="📦" FontSize="16"/>
+                    <Label Grid.Column="1" Text="{Binding TotalQty, StringFormat='В наличии: {0:N0} шт'}" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" VerticalTextAlignment="Center"/>
+                  </Grid>
+                </VerticalStackLayout>
 
-              </VerticalStackLayout>
-              <Label Grid.Column="1" Text="{Binding Nd40Qty, StringFormat='ND-40: {0:N0}'}" VerticalTextAlignment="Center"/>
-              <Label Grid.Column="2" Text="{Binding Im40Qty, StringFormat='IM-40: {0:N0}'}" VerticalTextAlignment="Center"/>
-              <Label Grid.Column="3" Text="{Binding TotalQty, StringFormat='Всего: {0:N0}'}" VerticalTextAlignment="Center"/>
-              <Button Grid.Column="4" Text="Выбрать" CommandParameter="{Binding .}" Clicked="OnPickClicked"/>
-
-            </Grid>
+                <!-- Кнопка выбора -->
+                <Button Grid.Row="1" Text="Добавить" CommandParameter="{Binding .}" Clicked="OnPickClicked" HeightRequest="48" FontSize="16" FontAttributes="Bold"/>
+              </Grid>
+            </Border>
           </DataTemplate>
         </CollectionView.ItemTemplate>
         <CollectionView.EmptyView>
-          <VerticalStackLayout Padding="12" Spacing="6">
-            <Label Text="Товары не найдены" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
-            <Label Text="Измените запрос/категорию и повторите поиск" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
-
+          <VerticalStackLayout Padding="32" Spacing="12" HorizontalOptions="Center" VerticalOptions="Center">
+            <Label Text="🔍" FontSize="48" HorizontalTextAlignment="Center"/>
+            <Label Text="Товары не найдены" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+            <Label Text="Попробуйте изменить запрос или выбрать другую категорию" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" HorizontalTextAlignment="Center"/>
           </VerticalStackLayout>
         </CollectionView.EmptyView>
       </CollectionView>
-    </Grid>
-  </ContentPage.Content>
+    </ScrollView>
+  </Grid>
 </ContentPage>
 
 

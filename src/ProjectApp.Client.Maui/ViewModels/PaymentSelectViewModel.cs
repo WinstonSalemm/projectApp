@@ -51,13 +51,13 @@ public partial class PaymentSelectViewModel : ObservableObject
 
         async Task OnYes()
         {
-            var startPage = _services.GetRequiredService<SaleStartPage>();
-            if (startPage.BindingContext is SaleStartViewModel svm)
-            {
-                svm.SelectedPaymentType = pt;
-            }
-
-            await NavigationHelper.PushAsync(startPage);
+            // Initialize sale session with payment type
+            var session = _services.GetRequiredService<SaleSession>();
+            session.SetPaymentType(pt);
+            
+            // Open product catalog directly
+            var productPage = _services.GetRequiredService<ProductSelectPage>();
+            await NavigationHelper.PushAsync(productPage);
         }
 
         Task OnNo()

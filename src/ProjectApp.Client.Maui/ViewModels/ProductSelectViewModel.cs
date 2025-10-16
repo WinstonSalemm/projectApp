@@ -1,9 +1,13 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using ProjectApp.Client.Maui.Models;
 using ProjectApp.Client.Maui.Services;
-using System.Collections.ObjectModel;
 
 namespace ProjectApp.Client.Maui.ViewModels;
 
@@ -85,13 +89,23 @@ public partial class ProductSelectViewModel : ObservableObject
             var list = await _catalog.SearchAsync(Query, SelectedCategory);
             _logger.LogInformation("[ProductSelectViewModel] SearchAsync received {Count} products", list?.Count() ?? 0);
             
-            var stockList = await _stocks.GetStocksAsync(Query, SelectedCategory);
-            _logger.LogInformation("[ProductSelectViewModel] SearchAsync received {Count} stocks", stockList?.Count() ?? 0);
-            
-            var stockMap = stockList.ToDictionary(s => s.ProductId, s => s);
-            foreach (var p in list)
+            // Try to load stocks, but don't crash if it fails
+            var stockList = Enumerable.Empty<dynamic>();
+            try
             {
-                stockMap.TryGetValue(p.Id, out var stock);
+                stockList = (await _stocks.GetStocksAsync(Query, SelectedCategory)) ?? Enumerable.Empty<dynamic>();
+                _logger.LogInformation("[ProductSelectViewModel] SearchAsync received {Count} stocks", stockList.Count());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[ProductSelectViewModel] Failed to load stocks, continuing without stock info");
+            }
+            
+            var stockMap = stockList?.ToDictionary(s => (int)s.ProductId, s => s) ?? new Dictionary<int, dynamic>();
+            foreach (var p in list ?? Enumerable.Empty<dynamic>())
+            {
+                dynamic? stock = null;
+                stockMap.TryGetValue(p.Id, out stock);
                 Results.Add(new ProductRow
                 {
                     Id = p.Id,
@@ -99,9 +113,9 @@ public partial class ProductSelectViewModel : ObservableObject
                     Name = p.Name,
                     Unit = p.Unit,
                     Price = p.Price,
-                    Nd40Qty = stock?.Nd40Qty ?? 0,
-                    Im40Qty = stock?.Im40Qty ?? 0,
-                    TotalQty = stock?.TotalQty ?? 0
+                    Nd40Qty = stock != null ? (decimal)stock.Nd40Qty : 0,
+                    Im40Qty = stock != null ? (decimal)stock.Im40Qty : 0,
+                    TotalQty = stock != null ? (decimal)stock.TotalQty : 0
                 });
             }
             _logger.LogInformation("[ProductSelectViewModel] SearchAsync completed: {Count} results", Results.Count);

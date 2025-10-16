@@ -169,7 +169,12 @@ public class StocksController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<BatchStockViewDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByBatches([FromQuery] string? query, [FromQuery] string? category, CancellationToken ct)
     {
-        var products = _db.Products.AsNoTracking().AsQueryable();
+        // Load all products using FromSqlRaw to avoid GtdCode issue
+        var allProducts = await _db.Products
+            .FromSqlRaw("SELECT Id, Sku, Name, Unit, Price, Category FROM Products")
+            .ToListAsync(ct);
+        
+        var products = allProducts.AsQueryable();
         if (!string.IsNullOrWhiteSpace(category))
         {
             var c = category.Trim();
@@ -177,11 +182,11 @@ public class StocksController : ControllerBase
         }
         if (!string.IsNullOrWhiteSpace(query))
         {
-            var q = query.Trim();
-            products = products.Where(p => EF.Functions.Like(p.Sku, $"%{q}%") || EF.Functions.Like(p.Name, $"%{q}%"));
+            var q = query.Trim().ToLower();
+            products = products.Where(p => p.Sku.ToLower().Contains(q) || p.Name.ToLower().Contains(q));
         }
 
-        var prodList = await products
+        var prodList = products
             .Select(p => new { 
                 Id = p.Id, 
                 Sku = p.Sku, 
@@ -189,7 +194,7 @@ public class StocksController : ControllerBase
                 Category = p.Category 
             })
             .OrderBy(p => p.Id)
-            .ToListAsync(ct);
+            .ToList();
 
         if (prodList.Count == 0)
         {
