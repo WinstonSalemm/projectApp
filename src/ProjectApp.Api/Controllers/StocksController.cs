@@ -122,34 +122,16 @@ public class StocksController : ControllerBase
                 Total = g.Sum(x => x.Qty)
             });
 
-        // Subtract active reservations from availability
-        var prodIdsSet = prodList.Select(p => p.Id).ToHashSet();
-        var reserved = await _db.ReservationItems
-            .AsNoTracking()
-            .Where(ri => prodIdsSet.Contains(ri.ProductId))
-            .Join(_db.Reservations.AsNoTracking(), ri => ri.ReservationId, r => r.Id,
-                (ri, r) => new { ri.ProductId, ri.Register, ri.Qty, r.Status, r.ReservedUntil })
-            .Where(x => x.Status == ReservationStatus.Active && x.ReservedUntil >= DateTime.UtcNow)
-            .ToListAsync(ct);
-
-        var reservedByProduct = reserved
-            .GroupBy(x => x.ProductId)
-            .ToDictionary(g => g.Key, g => new
-            {
-                Nd40 = g.Where(x => x.Register == StockRegister.ND40).Sum(x => x.Qty),
-                Im40 = g.Where(x => x.Register == StockRegister.IM40).Sum(x => x.Qty),
-                Total = g.Sum(x => x.Qty)
-            });
-
+        // TEMPORARY: Skip reservations to simplify
         var result = prodListFinal.Select(p => new StockViewDto
         {
             ProductId = p.Id,
             Sku = p.Sku,
             Name = p.Name,
             Category = p.Category ?? string.Empty,
-            Nd40Qty = (grouped.TryGetValue(p.Id, out var agg) ? agg.Nd40 : 0m) - (reservedByProduct.TryGetValue(p.Id, out var r) ? r.Nd40 : 0m),
-            Im40Qty = (grouped.TryGetValue(p.Id, out var agg2) ? agg2.Im40 : 0m) - (reservedByProduct.TryGetValue(p.Id, out var r2) ? r2.Im40 : 0m),
-            TotalQty = (grouped.TryGetValue(p.Id, out var agg3) ? agg3.Total : 0m) - (reservedByProduct.TryGetValue(p.Id, out var r3) ? r3.Total : 0m)
+            Nd40Qty = grouped.TryGetValue(p.Id, out var agg) ? agg.Nd40 : 0m,
+            Im40Qty = grouped.TryGetValue(p.Id, out var agg2) ? agg2.Im40 : 0m,
+            TotalQty = grouped.TryGetValue(p.Id, out var agg3) ? agg3.Total : 0m
         }).ToList();
 
             _logger.LogInformation("[StocksController] Get: returning {Count} items", result.Count);
