@@ -65,11 +65,10 @@ public class ApiStocksService : IStocksService
                     var data2 = await resp2.Content.ReadFromJsonAsync<List<StockViewDto>>(cancellationToken: ct);
                     return data2 ?? new();
                 }
-                // Fallback: return empty on failure
-                return new();
             }
-            // Non-success: return empty to avoid crashing the UI
-            return new();
+            // Throw exception instead of silently returning empty
+            var errorContent = await resp.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException($"Stocks API failed: {resp.StatusCode} - {errorContent}");
         }
 
             var list = await fetchAsync(url);

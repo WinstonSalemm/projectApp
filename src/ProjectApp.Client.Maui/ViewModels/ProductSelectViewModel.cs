@@ -99,6 +99,8 @@ public partial class ProductSelectViewModel : ObservableObject
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "[ProductSelectViewModel] Failed to load stocks, continuing without stock info");
+                // Temporary: show error to user
+                await NavigationHelper.DisplayAlert("Ошибка загрузки остатков", $"Не удалось загрузить остатки: {ex.Message}", "OK");
             }
             
             var stockMap = stockList?.ToDictionary(s => (int)s.ProductId, s => s) ?? new Dictionary<int, dynamic>();
