@@ -94,4 +94,27 @@ public partial class AnalyticsPage : ContentPage
     {
         _vm.LoadFinanceKpiCommand.Execute(null);
     }
+
+    private void OnProductsTabTapped(object? sender, EventArgs e)
+    {
+        // Переключаем табы
+        TabFinance.BackgroundColor = Colors.Transparent;
+        TabManagers.BackgroundColor = Colors.Transparent;
+        TabProducts.BackgroundColor = (Color)Application.Current!.Resources["Color.Primary"];
+        
+        FinanceContent.IsVisible = false;
+        ManagersContent.IsVisible = false;
+        ProductsContent.IsVisible = true;
+        
+        // Загружаем товары
+        _vm.LoadProductCostsCommand.Execute(null);
+    }
+
+    private async void OnSaveCostClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button button && button.CommandParameter is AnalyticsViewModel.ProductCostRow product)
+        {
+            await _vm.SaveProductCost(product);
+        }
+    }
 }

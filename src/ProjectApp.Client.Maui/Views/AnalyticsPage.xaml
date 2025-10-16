@@ -21,6 +21,13 @@
         </Border.GestureRecognizers>
         <Label Text="Менеджеры" TextColor="{DynamicResource Color.Text.Primary}" FontSize="16"/>
       </Border>
+      
+      <Border x:Name="TabProducts" Padding="20,16" BackgroundColor="Transparent">
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Tapped="OnProductsTabTapped"/>
+        </Border.GestureRecognizers>
+        <Label Text="Товары" TextColor="{DynamicResource Color.Text.Primary}" FontSize="16"/>
+      </Border>
     </HorizontalStackLayout>
 
     <!-- Контент -->
@@ -206,6 +213,62 @@
               </Border>
             </DataTemplate>
           </BindableLayout.ItemTemplate>
+          </VerticalStackLayout>
+        </VerticalStackLayout>
+      </ScrollView>
+
+      <!-- Products Tab Content -->
+      <ScrollView x:Name="ProductsContent" IsVisible="False" Padding="16">
+        <VerticalStackLayout Spacing="16">
+          <Label Text="📦 Управление себестоимостью" FontSize="24" FontAttributes="Bold" Margin="0,0,0,16"/>
+          
+          <!-- Список товаров -->
+          <VerticalStackLayout BindableLayout.ItemsSource="{Binding ProductCosts}" Spacing="12">
+            <BindableLayout.EmptyView>
+              <VerticalStackLayout Padding="32" Spacing="12" HorizontalOptions="Center">
+                <Label Text="📦" FontSize="48" HorizontalTextAlignment="Center"/>
+                <Label Text="Загрузка товаров..." FontSize="16" TextColor="{DynamicResource Color.Text.Secondary}" HorizontalTextAlignment="Center"/>
+              </VerticalStackLayout>
+            </BindableLayout.EmptyView>
+            
+            <BindableLayout.ItemTemplate>
+              <DataTemplate>
+                <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" Margin="0,0,0,12" StrokeShape="RoundRectangle 12">
+                  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
+                    <!-- SKU и название -->
+                    <VerticalStackLayout Grid.Row="0" Spacing="4">
+                      <Label Text="{Binding Sku}" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                      <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold"/>
+                    </VerticalStackLayout>
+                    
+                    <!-- Текущая себестоимость -->
+                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                      <Label Grid.Column="0" Text="💸 Себестоимость:" FontSize="14" VerticalTextAlignment="Center"/>
+                      <Entry Grid.Column="1" Text="{Binding Cost}" Keyboard="Numeric" Placeholder="0" FontSize="14"/>
+                      <Button Grid.Column="2" Text="💾" Clicked="OnSaveCostClicked" CommandParameter="{Binding}" Padding="12,8" BackgroundColor="{DynamicResource Color.Primary}"/>
+                    </Grid>
+                    
+                    <!-- Средняя цена продажи -->
+                    <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                      <Label Grid.Column="0" Text="💰 Сред. цена продажи:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                      <Label Grid.Column="1" Text="{Binding AveragePrice, StringFormat='{0:N0} сум'}" FontSize="14" FontAttributes="Bold"/>
+                    </Grid>
+                    
+                    <!-- Маржинальность -->
+                    <Grid Grid.Row="3" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                      <Label Grid.Column="0" Text="📈 Маржинальность:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                      <Label Grid.Column="1" Text="{Binding MarginPercent, StringFormat='{0:F1}%'}" FontSize="14" FontAttributes="Bold" TextColor="{DynamicResource Color.Success}"/>
+                    </Grid>
+                    
+                    <!-- Прибыль с единицы -->
+                    <Grid Grid.Row="4" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                      <Label Grid.Column="0" Text="✅ Прибыль/ед:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                      <Label Grid.Column="1" Text="{Binding ProfitPerUnit, StringFormat='{0:N0} сум'}" FontSize="14" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}"/>
+                    </Grid>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </BindableLayout.ItemTemplate>
           </VerticalStackLayout>
         </VerticalStackLayout>
       </ScrollView>

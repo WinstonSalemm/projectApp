@@ -33,8 +33,22 @@ public partial class AnalyticsViewModel : ObservableObject
         public int ClientsCount { get; set; }
         public double BarWidth { get; set; } // Ширина бара для графика (в пикселях)
     }
+    
+    public partial class ProductCostRow : ObservableObject
+    {
+        public int ProductId { get; set; }
+        public string Sku { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        
+        [ObservableProperty] private decimal cost;
+        
+        public decimal AveragePrice { get; set; }
+        public decimal MarginPercent => AveragePrice > 0 ? ((AveragePrice - Cost) / AveragePrice) * 100 : 0;
+        public decimal ProfitPerUnit => AveragePrice - Cost;
+    }
 
     public ObservableCollection<ManagerStatRow> ManagerStats { get; } = new();
+    public ObservableCollection<ProductCostRow> ProductCosts { get; } = new();
 
     public AnalyticsViewModel(ILogger<AnalyticsViewModel> logger)
     {
@@ -204,5 +218,98 @@ public partial class AnalyticsViewModel : ObservableObject
         public decimal TotalRevenue { get; set; }
         public decimal OwnClientsRevenue { get; set; }
         public int ClientsCount { get; set; }
+    }
+    
+    [RelayCommand]
+    public async Task LoadProductCosts()
+    {
+        try
+        {
+            IsLoading = true;
+            ProductCosts.Clear();
+
+            var client = new HttpClient 
+            { 
+                BaseAddress = new Uri("https://tranquil-upliftment-production.up.railway.app") 
+            };
+
+            // Загружаем товары с аналитикой
+            var response = await client.GetAsync("/api/products");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("[AnalyticsViewModel] Failed to load products: {StatusCode}", response.StatusCode);
+                return;
+            }
+
+            var products = await response.Content.ReadFromJsonAsync<List<ProductDto>>();
+            
+            if (products != null)
+            {
+                await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    foreach (var product in products.OrderBy(p => p.Sku))
+                    {
+                        ProductCosts.Add(new ProductCostRow
+                        {
+                            ProductId = product.Id,
+                            Sku = product.Sku,
+                            Name = product.Name,
+                            Cost = product.Cost,
+                            AveragePrice = product.Price // Используем текущую цену как среднюю
+                        });
+                    }
+                });
+            }
+
+            _logger.LogInformation("[AnalyticsViewModel] Loaded {Count} products", ProductCosts.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AnalyticsViewModel] Failed to load products");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+    
+    public async Task SaveProductCost(ProductCostRow product)
+    {
+        try
+        {
+            var client = new HttpClient 
+            { 
+                BaseAddress = new Uri("https://tranquil-upliftment-production.up.railway.app") 
+            };
+
+            var response = await client.PutAsJsonAsync($"/api/products/{product.ProductId}/cost", new { cost = product.Cost });
+            
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("[AnalyticsViewModel] Updated cost for product {ProductId}", product.ProductId);
+                await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    await Microsoft.Maui.Controls.Application.Current!.MainPage!.DisplayAlert("Успех", "Себестоимость обновлена", "OK");
+                });
+            }
+            else
+            {
+                _logger.LogWarning("[AnalyticsViewModel] Failed to update cost: {StatusCode}", response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AnalyticsViewModel] Failed to save product cost");
+        }
+    }
+    
+    private class ProductDto
+    {
+        public int Id { get; set; }
+        public string Sku { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public decimal Cost { get; set; }
     }
 }

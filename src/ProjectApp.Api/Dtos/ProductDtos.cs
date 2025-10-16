@@ -7,6 +7,8 @@ public class ProductDto
     public string Name { get; set; } = string.Empty;
     public string Sku { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
+    public decimal Price { get; set; } // Алиас для UnitPrice
+    public decimal Cost { get; set; } // Себестоимость
     public string Category { get; set; } = string.Empty;
 }
 

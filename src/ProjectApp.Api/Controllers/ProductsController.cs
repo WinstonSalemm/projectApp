@@ -46,6 +46,8 @@ public class ProductsController : ControllerBase
                 Name = p.Name,
                 Sku = p.Sku,
                 UnitPrice = p.Price,
+                Price = p.Price,
+                Cost = p.Cost,
                 Category = p.Category
             }).ToList();
 
@@ -242,5 +244,37 @@ public class ProductsController : ControllerBase
         await _db.SaveChangesAsync(ct);
 
         return Ok(new { added = toAdd.Count, total = items.Length });
+    }
+
+    // PUT /api/products/{id}/cost - обновить себестоимость товара (только админ)
+    [HttpPut("{id}/cost")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> UpdateCost(int id, [FromBody] UpdateCostRequest request, CancellationToken ct = default)
+    {
+        try
+        {
+            var product = await _db.Products.FindAsync(new object[] { id }, ct);
+            if (product == null)
+            {
+                return NotFound(new { error = "Product not found" });
+            }
+
+            product.Cost = request.Cost;
+            await _db.SaveChangesAsync(ct);
+
+            _logger.LogInformation("[ProductsController] Updated cost for product {ProductId}: {Cost}", id, request.Cost);
+            return Ok(new { id = product.Id, sku = product.Sku, cost = product.Cost });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ProductsController] UpdateCost failed for product {ProductId}", id);
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    public class UpdateCostRequest
+    {
+        public decimal Cost { get; set; }
     }
 }
