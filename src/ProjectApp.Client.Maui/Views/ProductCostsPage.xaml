@@ -11,6 +11,37 @@
     <VerticalStackLayout Spacing="16">
       <Label Text="📦 Управление себестоимостью" FontSize="24" FontAttributes="Bold" Margin="0,0,0,16"/>
       
+      <!-- Фильтры -->
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,0,8">
+        <!-- Поиск -->
+        <Border Grid.Column="0" 
+                StrokeThickness="1" 
+                Stroke="{DynamicResource Color.Border}" 
+                BackgroundColor="{DynamicResource Color.Surface}" 
+                Padding="12,8" 
+                StrokeShape="RoundRectangle 8">
+          <Entry Text="{Binding SearchQuery}" 
+                 Placeholder="🔍 Поиск по названию или SKU..." 
+                 FontSize="14"
+                 BackgroundColor="Transparent"
+                 TextColor="{DynamicResource Color.Text.Primary}"/>
+        </Border>
+        
+        <!-- Фильтр категорий -->
+        <Border Grid.Column="1" 
+                StrokeThickness="1" 
+                Stroke="{DynamicResource Color.Border}" 
+                BackgroundColor="{DynamicResource Color.Surface}" 
+                Padding="12,8" 
+                StrokeShape="RoundRectangle 8"
+                MinimumWidthRequest="200">
+          <Picker ItemsSource="{Binding Categories}" 
+                  SelectedItem="{Binding SelectedCategory}"
+                  FontSize="14"
+                  TextColor="{DynamicResource Color.Text.Primary}"/>
+        </Border>
+      </Grid>
+      
       <!-- Список товаров -->
       <VerticalStackLayout BindableLayout.ItemsSource="{Binding ProductCosts}" Spacing="12">
         <BindableLayout.EmptyView>
@@ -21,7 +52,7 @@
         </BindableLayout.EmptyView>
         
         <BindableLayout.ItemTemplate>
-          <DataTemplate>
+          <DataTemplate x:DataType="vm:AnalyticsViewModel+ProductCostRow">
             <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" Margin="0,0,0,12" StrokeShape="RoundRectangle 12">
               <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
                 <!-- SKU и название -->

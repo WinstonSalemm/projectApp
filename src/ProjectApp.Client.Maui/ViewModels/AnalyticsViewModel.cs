@@ -39,8 +39,11 @@ public partial class AnalyticsViewModel : ObservableObject
         public int ProductId { get; set; }
         public string Sku { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
         
-        [ObservableProperty] private decimal cost;
+        [ObservableProperty] 
+        [NotifyPropertyChangedFor(nameof(MarginPercent), nameof(ProfitPerUnit))]
+        private decimal cost;
         
         public decimal AveragePrice { get; set; }
         public decimal MarginPercent => AveragePrice > 0 ? ((AveragePrice - Cost) / AveragePrice) * 100 : 0;
@@ -49,6 +52,12 @@ public partial class AnalyticsViewModel : ObservableObject
 
     public ObservableCollection<ManagerStatRow> ManagerStats { get; } = new();
     public ObservableCollection<ProductCostRow> ProductCosts { get; } = new();
+    
+    private List<ProductCostRow> _allProducts = new();
+    
+    [ObservableProperty] private string searchQuery = string.Empty;
+    [ObservableProperty] private string selectedCategory = "Все категории";
+    public ObservableCollection<string> Categories { get; } = new() { "Все категории" };
 
     public AnalyticsViewModel(ILogger<AnalyticsViewModel> logger)
     {
@@ -242,27 +251,57 @@ public partial class AnalyticsViewModel : ObservableObject
                 return;
             }
 
+            var responseText = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation("[AnalyticsViewModel] API Response: {Response}", responseText.Length > 500 ? responseText.Substring(0, 500) + "..." : responseText);
+            
             var pagedResult = await response.Content.ReadFromJsonAsync<PagedResultDto>();
             
             if (pagedResult?.Items != null)
             {
+                _logger.LogInformation("[AnalyticsViewModel] Got {Count} products from API", pagedResult.Items.Count);
+                
                 await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
                 {
+                    _allProducts.Clear();
+                    Categories.Clear();
+                    Categories.Add("Все категории");
+                    
+                    var categories = new HashSet<string>();
+                    
                     foreach (var product in pagedResult.Items.OrderBy(p => p.Sku))
                     {
-                        ProductCosts.Add(new ProductCostRow
+                        _logger.LogInformation("[AnalyticsViewModel] Adding product: {Sku} - {Name}", product.Sku, product.Name);
+                        var row = new ProductCostRow
                         {
                             ProductId = product.Id,
                             Sku = product.Sku,
                             Name = product.Name,
                             Cost = product.Cost,
-                            AveragePrice = product.Price // Используем текущую цену как среднюю
-                        });
+                            AveragePrice = product.Price, // Используем текущую цену как среднюю
+                            Category = product.Category ?? "Без категории"
+                        };
+                        _allProducts.Add(row);
+                        
+                        if (!string.IsNullOrEmpty(product.Category))
+                        {
+                            categories.Add(product.Category);
+                        }
                     }
+                    
+                    foreach (var cat in categories.OrderBy(c => c))
+                    {
+                        Categories.Add(cat);
+                    }
+                    
+                    ApplyFilters();
                 });
             }
+            else
+            {
+                _logger.LogWarning("[AnalyticsViewModel] pagedResult or Items is null");
+            }
 
-            _logger.LogInformation("[AnalyticsViewModel] Loaded {Count} products", ProductCosts.Count);
+            _logger.LogInformation("[AnalyticsViewModel] Loaded {Count} products to UI", ProductCosts.Count);
         }
         catch (Exception ex)
         {
@@ -311,6 +350,43 @@ public partial class AnalyticsViewModel : ObservableObject
         public string Name { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public decimal Cost { get; set; }
+        public string? Category { get; set; }
+    }
+    
+    partial void OnSearchQueryChanged(string value)
+    {
+        ApplyFilters();
+    }
+    
+    partial void OnSelectedCategoryChanged(string value)
+    {
+        ApplyFilters();
+    }
+    
+    private void ApplyFilters()
+    {
+        var filtered = _allProducts.AsEnumerable();
+        
+        // Фильтр по категории
+        if (!string.IsNullOrEmpty(SelectedCategory) && SelectedCategory != "Все категории")
+        {
+            filtered = filtered.Where(p => p.Category == SelectedCategory);
+        }
+        
+        // Поиск по имени или SKU
+        if (!string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            var query = SearchQuery.ToLower();
+            filtered = filtered.Where(p => 
+                p.Name.ToLower().Contains(query) || 
+                p.Sku.ToLower().Contains(query));
+        }
+        
+        ProductCosts.Clear();
+        foreach (var product in filtered.OrderBy(p => p.Sku))
+        {
+            ProductCosts.Add(product);
+        }
     }
     
     private class PagedResultDto
