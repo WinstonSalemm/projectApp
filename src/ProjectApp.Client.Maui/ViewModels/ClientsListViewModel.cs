@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Net.Http.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.Controls;
@@ -14,12 +15,16 @@ public partial class ClientsListViewModel : ObservableObject
     private readonly IServiceProvider _services;
 
     public ObservableCollection<ClientListItem> Items { get; } = new();
+    public ObservableCollection<string> Managers { get; } = new();
 
     [ObservableProperty]
     private string query = string.Empty;
 
     [ObservableProperty]
     private ClientType? selectedType = null; // null = all
+
+    [ObservableProperty]
+    private string? selectedManager = null;
 
     [ObservableProperty]
     private bool showOnlyMine = true;
@@ -33,7 +38,48 @@ public partial class ClientsListViewModel : ObservableObject
         _auth = auth;
         _services = services;
         showOnlyMine = !string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+        _ = LoadManagersAsync();
         _ = LoadAsync();
+    }
+
+    private async Task LoadManagersAsync()
+    {
+        try
+        {
+            // Загружаем список пользователей из API
+            var client = new System.Net.Http.HttpClient 
+            { 
+                BaseAddress = new Uri("https://tranquil-upliftment-production.up.railway.app") 
+            };
+            
+            var response = await client.GetAsync("/api/users");
+            if (response.IsSuccessStatusCode)
+            {
+                var userList = await response.Content.ReadFromJsonAsync<List<UserItem>>();
+                var users = userList?.Select(u => u.UserName ?? u.DisplayName).Where(n => !string.IsNullOrWhiteSpace(n)).ToList() ?? new List<string>();
+                
+                await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    Managers.Clear();
+                    Managers.Add("Все менеджеры");
+                    foreach (var u in users)
+                    {
+                        if (!string.IsNullOrWhiteSpace(u))
+                            Managers.Add(u);
+                    }
+                });
+            }
+        }
+        catch { }
+    }
+    
+    private class UserItem
+    {
+        public int Id { get; set; }
+        public string? UserName { get; set; }
+        public string? DisplayName { get; set; }
+        public string? Role { get; set; }
+        public bool IsActive { get; set; }
     }
 
     [RelayCommand]
@@ -45,7 +91,17 @@ public partial class ClientsListViewModel : ObservableObject
             IsLoading = true;
             string? owner = null;
             var isAdmin = string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
-            if (!isAdmin || ShowOnlyMine) owner = _auth.UserName;
+            
+            // Фильтр по менеджеру (если выбран конкретный)
+            if (!string.IsNullOrWhiteSpace(SelectedManager) && SelectedManager != "Все менеджеры")
+            {
+                owner = SelectedManager;
+            }
+            else if (!isAdmin || ShowOnlyMine)
+            {
+                owner = _auth.UserName;
+            }
+            
             var (items, total) = await _clients.ListAsync(string.IsNullOrWhiteSpace(Query) ? null : Query, SelectedType, owner, page, 50);
             await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
             {

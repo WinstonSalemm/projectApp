@@ -19,10 +19,12 @@ public class UsersController(AppDbContext db, IPasswordHasher hasher) : Controll
     public record ResetPasswordRequest(string NewPassword);
 
     [HttpGet]
+    [AllowAnonymous] // Разрешаем доступ без авторизации для фильтра по менеджерам
     public async Task<ActionResult<IEnumerable<UserDto>>> GetAll(CancellationToken ct)
     {
         var users = await db.Users
             .AsNoTracking()
+            .Where(u => u.IsActive) // Только активные пользователи
             .OrderBy(u => u.UserName)
             .Select(u => new UserDto(u.Id, u.UserName, u.DisplayName, u.Role, u.IsActive, u.CreatedAt))
             .ToListAsync(ct);

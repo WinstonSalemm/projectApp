@@ -15,6 +15,8 @@ public class ClientListItem
     public ClientType Type { get; set; }
     public string? OwnerUserName { get; set; }
     public DateTime CreatedAt { get; set; }
+    public decimal TotalRevenue { get; set; }
+    public bool HasOwner => !string.IsNullOrWhiteSpace(OwnerUserName);
 }
 
 public class ClientCreateDraft

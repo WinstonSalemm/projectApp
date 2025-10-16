@@ -74,6 +74,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<SaleSession>();
         builder.Services.AddSingleton<IAudioManager>(sp => AudioManager.Current);
         builder.Services.AddSingleton<ApiCatalogService>();
+        builder.Services.AddSingleton<ApiClientsService>();
         builder.Services.AddSingleton<ApiSalesService>();
         builder.Services.AddSingleton<ApiSuppliesService>();
         builder.Services.AddSingleton<ApiStocksService>();

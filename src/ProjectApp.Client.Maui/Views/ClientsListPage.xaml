@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
@@ -6,7 +6,7 @@
              xmlns:controls="clr-namespace:ProjectApp.Client.Maui.Controls"
              x:Class="ProjectApp.Client.Maui.Views.ClientsListPage"
              x:Name="Page"
-             Title="Clients">
+             Title="Клиенты">
   <ContentPage.Resources>
     <ResourceDictionary>
       <GridItemsLayout x:Key="ItemsLayout.Compact"
@@ -67,23 +67,23 @@
                 Wrap="Wrap"
                 AlignItems="Center"
                 JustifyContent="SpaceBetween">
-      <SearchBar Placeholder="Search by name or phone"
+      <SearchBar Placeholder="Поиск по имени или телефону"
                  Text="{Binding Query}"
                  FlexLayout.Grow="1"
-                 SemanticProperties.Description="Search clients by name, phone or company" />
-      <Button Text="Refresh"
+                 SemanticProperties.Description="Поиск клиентов по имени, телефону или компании" />
+      <Button Text="Обновить"
               Style="{StaticResource Button.Secondary}"
               Command="{Binding LoadCommand}"
               Margin="0,0,0,8"
               ContentLayout="Left,8"
               ImageSource="{StaticResource IconRefresh}" />
-      <Button Text="Add client"
+      <Button Text="Добавить клиента"
               Style="{StaticResource Button.Primary}"
               Command="{Binding OpenCreateCommand}"
               Margin="0,0,0,8"
               ContentLayout="Left,8"
               ImageSource="{StaticResource IconAdd}"
-              SemanticProperties.Description="Create new client" />
+              SemanticProperties.Description="Создать нового клиента" />
     </FlexLayout>
 
     <Border Grid.Row="1"
@@ -92,10 +92,10 @@
                   Direction="Row"
                   Wrap="Wrap"
                   AlignItems="Center">
-        <Label Text="Type"
+        <Label Text="Тип"
                FontAttributes="Bold"
-               SemanticProperties.Description="Client type filter label" />
-        <Picker Title="Select type"
+               SemanticProperties.Description="Фильтр по типу клиента" />
+        <Picker Title="Выберите тип"
                 SelectedItem="{Binding SelectedType}"
                 WidthRequest="200">
           <Picker.ItemsSource>
@@ -106,16 +106,26 @@
           </Picker.ItemsSource>
         </Picker>
 
+        <Label Text="Менеджер"
+               FontAttributes="Bold"
+               Margin="16,0,8,0"
+               SemanticProperties.Description="Фильтр по менеджеру" />
+        <Picker Title="Все менеджеры"
+                SelectedItem="{Binding SelectedManager}"
+                ItemsSource="{Binding Managers}"
+                ItemDisplayBinding="{Binding .}"
+                WidthRequest="200" />
+
         <Border Style="{StaticResource Chip.Standard}">
           <HorizontalStackLayout Spacing="{StaticResource Space.2}" VerticalOptions="Center">
-            <Label Text="Only mine"
+            <Label Text="Только мои"
                    VerticalTextAlignment="Center" />
             <Switch IsToggled="{Binding ShowOnlyMine}"
-                    SemanticProperties.Description="Show only clients created by me" />
+                    SemanticProperties.Description="Показать только моих клиентов" />
           </HorizontalStackLayout>
         </Border>
 
-        <Button Text="Unregistered"
+        <Button Text="Незарегистрированные"
                 Style="{StaticResource Button.Tertiary}"
                 Command="{Binding OpenUnregisteredCommand}"
                 Margin="0,0,0,8" />
@@ -129,24 +139,38 @@
                     SelectionMode="None">
       <CollectionView.ItemTemplate>
         <DataTemplate>
-          <controls:ListItemView Title="{Binding Name}"
-                                 Subtitle="{Binding Phone}"
-                                 Meta="{Binding OwnerUserName, StringFormat='Owner: {0}'}"
-                                 Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenDetailCommand}"
-                                 CommandParameter="{Binding .}">
-            <controls:ListItemView.TrailingContent>
-              <Border Style="{StaticResource Chip.Standard}">
-                <Label Text="{Binding Type, Converter={StaticResource ClientTypeToRuConverter}}"
-                       FontSize="{StaticResource Font.Size.Caption}" />
-              </Border>
-            </controls:ListItemView.TrailingContent>
-          </controls:ListItemView>
+          <Border Style="{StaticResource Card.Container}" Padding="12" Margin="0,0,0,8">
+            <Border.GestureRecognizers>
+              <TapGestureRecognizer Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenDetailCommand}" CommandParameter="{Binding .}" />
+            </Border.GestureRecognizers>
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6">
+              <!-- Имя и тип -->
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <Label Grid.Column="0" Text="{Binding Name}" FontSize="16" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
+                <Border Grid.Column="1" Style="{StaticResource Chip.Standard}">
+                  <Label Text="{Binding Type, Converter={StaticResource ClientTypeToRuConverter}}" FontSize="11"/>
+                </Border>
+              </Grid>
+              
+              <!-- Телефон -->
+              <Label Grid.Row="1" Text="{Binding Phone}" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}"/>
+              
+              <!-- Оборот -->
+              <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="0,4,0,0">
+                <Label Grid.Column="0" Text="💰" FontSize="14"/>
+                <Label Grid.Column="1" Text="{Binding TotalRevenue, StringFormat='Оборот: {0:N0} сум'}" FontSize="13" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}"/>
+              </Grid>
+              
+              <!-- Менеджер (если есть) -->
+              <Label Grid.Row="3" Text="{Binding OwnerUserName, StringFormat='Менеджер: {0}'}" FontSize="11" TextColor="{DynamicResource Color.Text.Secondary}" IsVisible="{Binding HasOwner}"/>
+            </Grid>
+          </Border>
         </DataTemplate>
       </CollectionView.ItemTemplate>
       <CollectionView.EmptyView>
-        <controls:EmptyStateView Title="No clients yet"
-                                 Description="Create a new client card to populate the list."
-                                 ActionText="Create client"
+        <controls:EmptyStateView Title="Клиентов пока нет"
+                                 Description="Создайте карточку клиента для добавления в список"
+                                 ActionText="Создать клиента"
                                  ActionCommand="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCreateCommand}" />
       </CollectionView.EmptyView>
     </CollectionView>
