@@ -7,6 +7,7 @@ public class Product
     public string Name { get; set; } = string.Empty;
     public string Unit { get; set; } = string.Empty;
     public decimal Price { get; set; }
+    public decimal Cost { get; set; } = 0; // Себестоимость
     public string Category { get; set; } = string.Empty;
     // GtdCode removed temporarily - column doesn't exist in Railway MySQL
     // public string? GtdCode { get; set; }
