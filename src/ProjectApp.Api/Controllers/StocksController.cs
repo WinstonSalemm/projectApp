@@ -63,7 +63,6 @@ public class StocksController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(IEnumerable<StockViewDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get([FromQuery] string? query, [FromQuery] string? category, CancellationToken ct)
     {
@@ -165,7 +164,6 @@ public class StocksController : ControllerBase
 
     // GET /api/stocks/batches?query=&category=
     [HttpGet("batches")]
-    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(IEnumerable<BatchStockViewDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByBatches([FromQuery] string? query, [FromQuery] string? category, CancellationToken ct)
     {
