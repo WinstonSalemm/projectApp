@@ -1,322 +1,114 @@
 using System;
 
-
-
 using System.Collections.Generic;
-
-
 
 using System.Collections.ObjectModel;
 
-
-
 using System.Linq;
 
-
+using System.Net.Http.Json;
 
 using System.Threading.Tasks;
 
-
-
 using CommunityToolkit.Mvvm.ComponentModel;
-
-
 
 using CommunityToolkit.Mvvm.Input;
 
-
-
 using Microsoft.Extensions.Logging;
-
-
 
 using Microsoft.Maui.ApplicationModel;
 
-
-
 using ProjectApp.Client.Maui.Models;
-
-
 
 using ProjectApp.Client.Maui.Services;
 
-
-
-
-
-
-
 namespace ProjectApp.Client.Maui.ViewModels;
-
-
-
-
-
-
 
 public partial class SaleStartViewModel : ObservableObject
 
-
-
 {
-
-
-
     private const string AllCategoriesLabel = "Все категории";
-
-
-
-
-
-
 
     private readonly ICatalogService _catalog;
 
-
-
     private readonly AuthService _authService;
-
-
 
     private readonly ILogger<SaleStartViewModel> _logger;
 
-
-
     private readonly SaleSession _session;
 
-
-
-
-
-
-
-            private static readonly (string Id, string Name, bool AdminOnly)[] ManagerDirectory =
-    {
-        ("liliya", "Лилия", false),
-        ("timur", "Тимур", false),
-        ("albert", "Альберт", false),
-        ("alisher", "Алишер", false),
-        ("rasim", "Расим", false),
-        ("valeriy", "Валерий", false),
-        ("shop", "Магазин", false),
-        ("admin", "Администратор", true)
-    };
-
-
-
-
-
-
-
+        
     public ObservableCollection<CategoryDto> Categories { get; } = new();
-
-
 
     public ObservableCollection<UserDto> Managers { get; } = new();
 
-
-
     public ObservableCollection<StoreOption> Stores { get; } = new();
-
-
 
     public ObservableCollection<SaleMethodOption> SaleMethods { get; } = new();
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private CategoryDto? selectedCategory;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private UserDto? selectedManager;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private StoreOption? selectedStore;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private SaleMethodOption? selectedSaleMethod;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private PaymentType selectedPaymentType = PaymentType.CashWithReceipt;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private bool isCategoriesLoading;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private bool isCategoriesError;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private bool isManagersLoading;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private bool isStoresLoading;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private bool isSaleMethodsLoading;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private string? categoriesErrorMessage;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private bool showCategoriesEmptyState;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private bool canSelectSaleMethods;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private string? stepValidationMessage;
 
-
-
-
-
-
-
     [ObservableProperty]
-
-
 
     private bool hasStepValidationMessage;
 
-
-
-
-
-
-
     [ObservableProperty]
 
-
-
     private bool showCategoriesSection;
-
-
-
-
 
     public SaleStartViewModel(ICatalogService catalog, AuthService authService, ILogger<SaleStartViewModel> logger, SaleSession session)
     {
@@ -413,8 +205,6 @@ public partial class SaleStartViewModel : ObservableObject
             IsCategoriesLoading = false;
         }
     }
-
-
     [RelayCommand]
     private async Task LoadManagersAsync()
     {
@@ -425,16 +215,36 @@ public partial class SaleStartViewModel : ObservableObject
         try
         {
             IsManagersLoading = true;
+            
+            // Загружаем реальных пользователей из API
+            var client = new System.Net.Http.HttpClient 
+            { 
+                BaseAddress = new Uri("https://tranquil-upliftment-production.up.railway.app") 
+            };
+            
+            var response = await client.GetAsync("/api/users");
+            List<UserDto> userList = new();
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var apiUsers = await response.Content.ReadFromJsonAsync<List<ApiUserDto>>();
+                userList = apiUsers?.Where(u => u.IsActive)
+                    .Select(u => new UserDto 
+                    { 
+                        Id = u.UserName ?? "", 
+                        DisplayName = u.DisplayName ?? u.UserName ?? "" 
+                    })
+                    .ToList() ?? new List<UserDto>();
+            }
+            
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 Managers.Clear();
-                var isAdmin = string.Equals(_authService.Role, "Admin", StringComparison.OrdinalIgnoreCase);
-                foreach (var entry in ManagerDirectory)
+                foreach (var user in userList)
                 {
-                    if (entry.AdminOnly && !isAdmin)
-                        continue;
-                    Managers.Add(new UserDto { Id = entry.Id, DisplayName = entry.Name });
+                    Managers.Add(user);
                 }
+                
                 var preselected = Managers.FirstOrDefault(m =>
                     !string.IsNullOrWhiteSpace(_authService.UserName) &&
                     string.Equals(m.Id, _authService.UserName, StringComparison.OrdinalIgnoreCase));
@@ -443,7 +253,7 @@ public partial class SaleStartViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load managers");
+            _logger.LogError(ex, "Failed to load managers from API");
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 Managers.Clear();
@@ -455,6 +265,15 @@ public partial class SaleStartViewModel : ObservableObject
             IsManagersLoading = false;
             UpdateStepState();
         }
+    }
+    
+    private class ApiUserDto
+    {
+        public int Id { get; set; }
+        public string? UserName { get; set; }
+        public string? DisplayName { get; set; }
+        public string? Role { get; set; }
+        public bool IsActive { get; set; }
     }
 
 private async Task LoadStoresAsync()
