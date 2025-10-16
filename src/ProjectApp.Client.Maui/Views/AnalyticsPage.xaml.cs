@@ -17,6 +17,7 @@ public partial class AnalyticsPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        _vm.LoadFinanceKpiCommand.Execute(null);
         _vm.LoadManagerStatsCommand.Execute(null);
     }
 
@@ -69,5 +70,28 @@ public partial class AnalyticsPage : ContentPage
         
         // Перезагружаем данные
         _vm.LoadManagerStatsCommand.Execute(null);
+    }
+
+    private void OnFinanceMonthTapped(object? sender, EventArgs e)
+    {
+        FinancePeriodMonth.BackgroundColor = (Color)Application.Current!.Resources["Color.Primary"];
+        FinancePeriodYear.BackgroundColor = Colors.Transparent;
+        _vm.Period = "month";
+        _vm.PeriodLabel = "За текущий месяц";
+        _vm.LoadFinanceKpiCommand.Execute(null);
+    }
+
+    private void OnFinanceYearTapped(object? sender, EventArgs e)
+    {
+        FinancePeriodMonth.BackgroundColor = Colors.Transparent;
+        FinancePeriodYear.BackgroundColor = (Color)Application.Current!.Resources["Color.Primary"];
+        _vm.Period = "year";
+        _vm.PeriodLabel = "За текущий год";
+        _vm.LoadFinanceKpiCommand.Execute(null);
+    }
+
+    private void OnFinanceRefreshTapped(object? sender, EventArgs e)
+    {
+        _vm.LoadFinanceKpiCommand.Execute(null);
     }
 }

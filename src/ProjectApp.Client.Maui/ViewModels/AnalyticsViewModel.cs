@@ -15,6 +15,14 @@ public partial class AnalyticsViewModel : ObservableObject
     [ObservableProperty] private bool hasStats;
     [ObservableProperty] private string period = "month"; // "month" or "year"
     [ObservableProperty] private string periodLabel = "За текущий месяц";
+    
+    // Finance KPI
+    [ObservableProperty] private decimal financeRevenue;
+    [ObservableProperty] private decimal financeGrossProfit;
+    [ObservableProperty] private decimal financeMargin;
+    [ObservableProperty] private int financeSalesCount;
+    [ObservableProperty] private double financeCostPercent;
+    [ObservableProperty] private double financeProfitPercent;
 
     public class ManagerStatRow
     {
@@ -31,6 +39,78 @@ public partial class AnalyticsViewModel : ObservableObject
     public AnalyticsViewModel(ILogger<AnalyticsViewModel> logger)
     {
         _logger = logger;
+    }
+    
+    [RelayCommand]
+    public async Task LoadFinanceKpi()
+    {
+        try
+        {
+            IsLoading = true;
+            
+            var client = new HttpClient 
+            { 
+                BaseAddress = new Uri("https://tranquil-upliftment-production.up.railway.app") 
+            };
+
+            // Определяем период
+            var now = DateTime.UtcNow;
+            DateTime from, to;
+            
+            if (Period == "year")
+            {
+                from = new DateTime(now.Year, 1, 1);
+                to = new DateTime(now.Year + 1, 1, 1);
+            }
+            else
+            {
+                from = new DateTime(now.Year, now.Month, 1);
+                to = from.AddMonths(1);
+            }
+
+            // Загружаем KPI (без авторизации для теста, потом добавим токен)
+            var url = $"/api/finance/kpi?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}";
+            var response = await client.GetAsync(url);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("[AnalyticsViewModel] Failed to load finance KPI: {StatusCode}", response.StatusCode);
+                return;
+            }
+
+            var kpi = await response.Content.ReadFromJsonAsync<FinanceKpiDto>();
+            
+            if (kpi != null)
+            {
+                await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    FinanceRevenue = kpi.Revenue;
+                    FinanceGrossProfit = kpi.GrossProfit;
+                    FinanceMargin = kpi.Revenue > 0 ? (kpi.GrossProfit / kpi.Revenue) * 100 : 0;
+                    FinanceSalesCount = kpi.SalesCount;
+                    FinanceCostPercent = kpi.Revenue > 0 ? (double)(kpi.Cogs / kpi.Revenue) : 0;
+                    FinanceProfitPercent = kpi.Revenue > 0 ? (double)(kpi.GrossProfit / kpi.Revenue) : 0;
+                });
+            }
+
+            _logger.LogInformation("[AnalyticsViewModel] Loaded finance KPI");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AnalyticsViewModel] Failed to load finance KPI");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+    
+    private class FinanceKpiDto
+    {
+        public decimal Revenue { get; set; }
+        public decimal Cogs { get; set; }
+        public decimal GrossProfit { get; set; }
+        public int SalesCount { get; set; }
     }
 
     [RelayCommand]
