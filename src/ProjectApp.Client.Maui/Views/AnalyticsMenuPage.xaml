@@ -15,8 +15,7 @@
               BackgroundColor="#6366F1" 
               Padding="24" 
               StrokeShape="RoundRectangle 16"
-              Shadow="{Shadow Brush=Black, Opacity=0.1, Radius=8, Offset='0,4'}"
-              CursorBehavior="Pointer">
+              Shadow="{Shadow Brush=Black, Opacity=0.1, Radius=8, Offset='0,4'}">
         <Border.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnFinancesTapped"/>
           <PointerGestureRecognizer PointerEntered="OnCardPointerEntered" PointerExited="OnCardPointerExited"/>
@@ -45,8 +44,7 @@
               BackgroundColor="#10B981" 
               Padding="24" 
               StrokeShape="RoundRectangle 16"
-              Shadow="{Shadow Brush=Black, Opacity=0.1, Radius=8, Offset='0,4'}"
-              CursorBehavior="Pointer">
+              Shadow="{Shadow Brush=Black, Opacity=0.1, Radius=8, Offset='0,4'}">
         <Border.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnManagersTapped"/>
           <PointerGestureRecognizer PointerEntered="OnCardPointerEntered" PointerExited="OnCardPointerExited"/>
@@ -75,8 +73,7 @@
               BackgroundColor="#F59E0B" 
               Padding="24" 
               StrokeShape="RoundRectangle 16"
-              Shadow="{Shadow Brush=Black, Opacity=0.1, Radius=8, Offset='0,4'}"
-              CursorBehavior="Pointer">
+              Shadow="{Shadow Brush=Black, Opacity=0.1, Radius=8, Offset='0,4'}">
         <Border.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnProductCostsTapped"/>
           <PointerGestureRecognizer PointerEntered="OnCardPointerEntered" PointerExited="OnCardPointerExited"/>
