@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.ClientSelectPage"
+             Title="Выбор клиента"
+             BackgroundColor="{DynamicResource Color.Background}">
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="16" RowSpacing="16">
+    
+    <!-- Поиск -->
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <Entry Grid.Column="0" Placeholder="Поиск по имени, телефону, ИНН..." Text="{Binding Query}" ReturnCommand="{Binding SearchCommand}" BackgroundColor="{DynamicResource Color.Surface}" TextColor="{DynamicResource Color.Text.Primary}" PlaceholderColor="{DynamicResource Color.Text.Secondary}" HeightRequest="48" FontSize="16"/>
+      <Button Grid.Column="1" Text="Поиск" Command="{Binding SearchCommand}" WidthRequest="120" HeightRequest="48" FontSize="16"/>
+    </Grid>
+
+    <!-- Фильтр по типу -->
+    <HorizontalStackLayout Grid.Row="1" Spacing="12">
+      <Border StrokeThickness="0" BackgroundColor="{DynamicResource Color.Primary}" Padding="16,8" StrokeShape="RoundRectangle 20">
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Tapped="OnAllTypesClicked"/>
+        </Border.GestureRecognizers>
+        <Label Text="Все" TextColor="White" FontSize="14" FontAttributes="Bold"/>
+      </Border>
+      
+      <Border StrokeThickness="0" BackgroundColor="{DynamicResource Color.Primary}" Padding="16,8" StrokeShape="RoundRectangle 20">
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Tapped="OnLegalClicked"/>
+        </Border.GestureRecognizers>
+        <Label Text="Юр.лица" TextColor="White" FontSize="14" FontAttributes="Bold"/>
+      </Border>
+      
+      <Border StrokeThickness="0" BackgroundColor="{DynamicResource Color.Primary}" Padding="16,8" StrokeShape="RoundRectangle 20">
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Tapped="OnIndividualClicked"/>
+        </Border.GestureRecognizers>
+        <Label Text="Физ.лица" TextColor="White" FontSize="14" FontAttributes="Bold"/>
+      </Border>
+    </HorizontalStackLayout>
+
+    <!-- Список клиентов -->
+    <ScrollView Grid.Row="2">
+      <VerticalStackLayout BindableLayout.ItemsSource="{Binding Clients}" Spacing="12">
+        <BindableLayout.EmptyView>
+          <VerticalStackLayout Padding="32" Spacing="12" HorizontalOptions="Center" VerticalOptions="Center">
+            <Label Text="👥" FontSize="48" HorizontalTextAlignment="Center"/>
+            <Label Text="Клиенты не найдены" FontSize="18" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+            <Label Text="Добавьте первого клиента" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" HorizontalTextAlignment="Center"/>
+          </VerticalStackLayout>
+        </BindableLayout.EmptyView>
+        <BindableLayout.ItemTemplate>
+          <DataTemplate>
+            <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 8">
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer CommandParameter="{Binding .}" Tapped="OnClientSelected"/>
+              </Border.GestureRecognizers>
+              <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                <!-- Имя и тип -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                  <Label Grid.Column="0" Text="{Binding Name}" FontSize="18" FontAttributes="Bold"/>
+                  <Border Grid.Column="1" StrokeThickness="0" BackgroundColor="{DynamicResource Color.Primary}" Padding="8,4" StrokeShape="RoundRectangle 4">
+                    <Label Text="{Binding TypeLabel}" TextColor="White" FontSize="11" FontAttributes="Bold"/>
+                  </Border>
+                </Grid>
+                
+                <!-- Телефон -->
+                <Label Grid.Row="1" Text="{Binding Phone}" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                
+                <!-- ИНН (если есть) -->
+                <Label Grid.Row="2" Text="{Binding Inn}" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}" IsVisible="{Binding HasInn}"/>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </BindableLayout.ItemTemplate>
+      </VerticalStackLayout>
+    </ScrollView>
+
+    <!-- Кнопки действий -->
+    <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="12">
+      <Button Grid.Column="0" Text="➕ Добавить клиента" Command="{Binding AddClientCommand}" HeightRequest="48" FontSize="16" FontAttributes="Bold"/>
+      <Button Grid.Column="1" Text="❌ Без клиента" Clicked="OnSkipClient" HeightRequest="48" FontSize="16" FontAttributes="Bold" BackgroundColor="{DynamicResource Color.Text.Secondary}"/>
+    </Grid>
+  </Grid>
+</ContentPage>

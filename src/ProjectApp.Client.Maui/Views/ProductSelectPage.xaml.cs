@@ -50,8 +50,18 @@ public partial class ProductSelectPage : ContentPage
 
     private async void OnSelectClientClicked(object? sender, EventArgs e)
     {
-        // TODO: Open client selection page
-        await NavigationHelper.DisplayAlert("Выбор клиента", "Страница выбора клиента в разработке", "OK");
+        var clientPage = _services.GetRequiredService<ClientSelectPage>();
+        
+        var tcs = new TaskCompletionSource<(int? Id, string Name)>();
+        void Handler(object? s, (int? Id, string Name) client) => tcs.TrySetResult(client);
+        clientPage.ClientSelected += Handler;
+        
+        await Navigation.PushAsync(clientPage);
+        var selected = await tcs.Task;
+        clientPage.ClientSelected -= Handler;
+        await Navigation.PopAsync();
+        
+        _vm.SetClient(selected.Id, selected.Name);
     }
 
     private void OnPickClicked(object? sender, EventArgs e)
