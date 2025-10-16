@@ -28,8 +28,8 @@ public partial class SimpleAdminPage : ContentPage
 
     private async void OnAnalyticsClicked(object? sender, EventArgs e)
     {
-        var financePage = App.Services.GetRequiredService<FinanceDashboardPage>();
-        await Navigation.PushAsync(financePage);
+        var analyticsPage = App.Services.GetRequiredService<AnalyticsPage>();
+        await Navigation.PushAsync(analyticsPage);
     }
 
     private async void OnSettingsClicked(object? sender, EventArgs e)

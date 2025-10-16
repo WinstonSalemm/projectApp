@@ -16,6 +16,7 @@ public partial class ClientsListViewModel : ObservableObject
 
     public ObservableCollection<ClientListItem> Items { get; } = new();
     public ObservableCollection<string> Managers { get; } = new();
+    private readonly Dictionary<string, string> _managerDisplayToUserName = new(); // DisplayName -> UserName
 
     [ObservableProperty]
     private string query = string.Empty;
@@ -56,16 +57,25 @@ public partial class ClientsListViewModel : ObservableObject
             if (response.IsSuccessStatusCode)
             {
                 var userList = await response.Content.ReadFromJsonAsync<List<UserItem>>();
-                var users = userList?.Select(u => u.UserName ?? u.DisplayName).Where(n => !string.IsNullOrWhiteSpace(n)).ToList() ?? new List<string>();
+                // Используем DisplayName для отображения, но сохраняем UserName для фильтрации
+                var users = userList?
+                    .Where(u => !string.IsNullOrWhiteSpace(u.DisplayName) || !string.IsNullOrWhiteSpace(u.UserName))
+                    .OrderBy(u => u.DisplayName ?? u.UserName)
+                    .ToList() ?? new List<UserItem>();
                 
                 await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     Managers.Clear();
+                    _managerDisplayToUserName.Clear();
                     Managers.Add("Все менеджеры");
                     foreach (var u in users)
                     {
-                        if (!string.IsNullOrWhiteSpace(u))
-                            Managers.Add(u);
+                        var displayName = u.DisplayName ?? u.UserName ?? "";
+                        if (!string.IsNullOrWhiteSpace(displayName))
+                        {
+                            Managers.Add(displayName);
+                            _managerDisplayToUserName[displayName] = u.UserName ?? displayName;
+                        }
                     }
                 });
             }
@@ -95,7 +105,8 @@ public partial class ClientsListViewModel : ObservableObject
             // Фильтр по менеджеру (если выбран конкретный)
             if (!string.IsNullOrWhiteSpace(SelectedManager) && SelectedManager != "Все менеджеры")
             {
-                owner = SelectedManager;
+                // Конвертируем DisplayName обратно в UserName для фильтрации
+                owner = _managerDisplayToUserName.TryGetValue(SelectedManager, out var userName) ? userName : SelectedManager;
             }
             else if (!isAdmin || ShowOnlyMine)
             {

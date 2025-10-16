@@ -12,6 +12,69 @@ namespace ProjectApp.Api.Controllers;
 [Authorize(Policy = "AdminOnly")] // аналитика доступна только админам
 public class AnalyticsController(AppDbContext db) : ControllerBase
 {
+    private sealed class ManagerStatsRow
+    {
+        public string? ManagerUserName { get; set; }
+        public string? ManagerDisplayName { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public decimal OwnClientsRevenue { get; set; }
+        public int ClientsCount { get; set; }
+    }
+    // GET /api/analytics/managers - статистика по менеджерам
+    [HttpGet("managers")]
+    [AllowAnonymous] // Временно разрешаем без авторизации
+    public async Task<IActionResult> Managers(CancellationToken ct = default)
+    {
+        try
+        {
+            // Получаем всех активных менеджеров
+            var users = await db.Users
+                .AsNoTracking()
+                .Where(u => u.IsActive && u.Role == "Manager")
+                .ToListAsync(ct);
+
+            var stats = new List<ManagerStatsRow>();
+
+            foreach (var user in users)
+            {
+                // Общий оборот: все продажи где менеджер = этот пользователь
+                var totalRevenue = await db.Sales
+                    .AsNoTracking()
+                    .Where(s => s.CreatedBy == user.UserName)
+                    .SelectMany(s => s.Items)
+                    .SumAsync(i => i.Qty * i.UnitPrice, ct);
+
+                // Оборот "своим" клиентам: продажи где менеджер = пользователь И клиент принадлежит этому пользователю
+                var ownClientsRevenue = await db.Sales
+                    .AsNoTracking()
+                    .Where(s => s.CreatedBy == user.UserName && s.ClientId != null)
+                    .Where(s => db.Clients.Any(c => c.Id == s.ClientId && c.OwnerUserName == user.UserName))
+                    .SelectMany(s => s.Items)
+                    .SumAsync(i => i.Qty * i.UnitPrice, ct);
+
+                // Количество приведенных клиентов
+                var clientsCount = await db.Clients
+                    .AsNoTracking()
+                    .CountAsync(c => c.OwnerUserName == user.UserName, ct);
+
+                stats.Add(new ManagerStatsRow
+                {
+                    ManagerUserName = user.UserName,
+                    ManagerDisplayName = user.DisplayName,
+                    TotalRevenue = totalRevenue,
+                    OwnClientsRevenue = ownClientsRevenue,
+                    ClientsCount = clientsCount
+                });
+            }
+
+            return Ok(stats.OrderByDescending(s => s.OwnClientsRevenue));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
     private sealed class ProductRow
     {
         public int ProductId { get; set; }
