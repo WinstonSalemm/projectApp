@@ -42,4 +42,32 @@ public partial class AnalyticsPage : ContentPage
         // Загружаем статистику
         _vm.LoadManagerStatsCommand.Execute(null);
     }
+
+    private void OnMonthPeriodTapped(object? sender, EventArgs e)
+    {
+        // Переключаем стиль кнопок
+        PeriodMonth.BackgroundColor = (Color)Application.Current!.Resources["Color.Primary"];
+        PeriodYear.BackgroundColor = Colors.Transparent;
+        
+        // Обновляем период
+        _vm.Period = "month";
+        _vm.PeriodLabel = "За текущий месяц";
+        
+        // Перезагружаем данные
+        _vm.LoadManagerStatsCommand.Execute(null);
+    }
+
+    private void OnYearPeriodTapped(object? sender, EventArgs e)
+    {
+        // Переключаем стиль кнопок
+        PeriodMonth.BackgroundColor = Colors.Transparent;
+        PeriodYear.BackgroundColor = (Color)Application.Current!.Resources["Color.Primary"];
+        
+        // Обновляем период
+        _vm.Period = "year";
+        _vm.PeriodLabel = "За текущий год";
+        
+        // Перезагружаем данные
+        _vm.LoadManagerStatsCommand.Execute(null);
+    }
 }

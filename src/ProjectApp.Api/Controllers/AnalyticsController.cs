@@ -23,10 +23,14 @@ public class AnalyticsController(AppDbContext db) : ControllerBase
     // GET /api/analytics/managers - статистика по менеджерам
     [HttpGet("managers")]
     [AllowAnonymous] // Временно разрешаем без авторизации
-    public async Task<IActionResult> Managers(CancellationToken ct = default)
+    public async Task<IActionResult> Managers([FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct = default)
     {
         try
         {
+            // Определяем период (по умолчанию - текущий месяц)
+            var dateFrom = from ?? new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+            var dateTo = to ?? dateFrom.AddMonths(1);
+            
             // Получаем всех активных менеджеров
             var users = await db.Users
                 .AsNoTracking()
@@ -37,22 +41,22 @@ public class AnalyticsController(AppDbContext db) : ControllerBase
 
             foreach (var user in users)
             {
-                // Общий оборот: все продажи где менеджер = этот пользователь
+                // Общий оборот: все продажи где менеджер = этот пользователь ЗА ПЕРИОД
                 var totalRevenue = await db.Sales
                     .AsNoTracking()
-                    .Where(s => s.CreatedBy == user.UserName)
+                    .Where(s => s.CreatedBy == user.UserName && s.CreatedAt >= dateFrom && s.CreatedAt < dateTo)
                     .SelectMany(s => s.Items)
                     .SumAsync(i => i.Qty * i.UnitPrice, ct);
 
-                // Оборот "своим" клиентам: продажи где менеджер = пользователь И клиент принадлежит этому пользователю
+                // Оборот "своим" клиентам: продажи где менеджер = пользователь И клиент принадлежит этому пользователю ЗА ПЕРИОД
                 var ownClientsRevenue = await db.Sales
                     .AsNoTracking()
-                    .Where(s => s.CreatedBy == user.UserName && s.ClientId != null)
+                    .Where(s => s.CreatedBy == user.UserName && s.ClientId != null && s.CreatedAt >= dateFrom && s.CreatedAt < dateTo)
                     .Where(s => db.Clients.Any(c => c.Id == s.ClientId && c.OwnerUserName == user.UserName))
                     .SelectMany(s => s.Items)
                     .SumAsync(i => i.Qty * i.UnitPrice, ct);
 
-                // Количество приведенных клиентов
+                // Количество приведенных клиентов (всего, не за период)
                 var clientsCount = await db.Clients
                     .AsNoTracking()
                     .CountAsync(c => c.OwnerUserName == user.UserName, ct);
@@ -67,7 +71,7 @@ public class AnalyticsController(AppDbContext db) : ControllerBase
                 });
             }
 
-            return Ok(stats.OrderByDescending(s => s.OwnClientsRevenue));
+            return Ok(stats.OrderByDescending(s => s.TotalRevenue));
         }
         catch (Exception ex)
         {

@@ -11,6 +11,10 @@ public partial class AnalyticsViewModel : ObservableObject
     private readonly ILogger<AnalyticsViewModel> _logger;
 
     [ObservableProperty] private bool isLoading;
+    [ObservableProperty] private bool hasNoStats;
+    [ObservableProperty] private bool hasStats;
+    [ObservableProperty] private string period = "month"; // "month" or "year"
+    [ObservableProperty] private string periodLabel = "За текущий месяц";
 
     public class ManagerStatRow
     {
@@ -19,6 +23,7 @@ public partial class AnalyticsViewModel : ObservableObject
         public decimal OwnClientsRevenue { get; set; }
         public double OwnClientsPercentage { get; set; }
         public int ClientsCount { get; set; }
+        public double BarWidth { get; set; } // Ширина бара для графика (в пикселях)
     }
 
     public ObservableCollection<ManagerStatRow> ManagerStats { get; } = new();
@@ -41,8 +46,24 @@ public partial class AnalyticsViewModel : ObservableObject
                 BaseAddress = new Uri("https://tranquil-upliftment-production.up.railway.app") 
             };
 
+            // Определяем период
+            var now = DateTime.UtcNow;
+            DateTime from, to;
+            
+            if (Period == "year")
+            {
+                from = new DateTime(now.Year, 1, 1); // С 1 января текущего года
+                to = new DateTime(now.Year + 1, 1, 1); // До 1 января следующего года
+            }
+            else // month
+            {
+                from = new DateTime(now.Year, now.Month, 1); // С 1 числа текущего месяца
+                to = from.AddMonths(1); // До 1 числа следующего месяца
+            }
+
             // Загружаем статистику по менеджерам
-            var response = await client.GetAsync("/api/analytics/managers");
+            var url = $"/api/analytics/managers?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}";
+            var response = await client.GetAsync(url);
             
             if (!response.IsSuccessStatusCode)
             {
@@ -56,8 +77,15 @@ public partial class AnalyticsViewModel : ObservableObject
             {
                 await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    foreach (var stat in stats.OrderByDescending(s => s.OwnClientsRevenue))
+                    var maxRevenue = stats.Max(s => s.TotalRevenue);
+                    const double maxBarWidth = 300.0; // Максимальная ширина бара в пикселях
+                    
+                    foreach (var stat in stats.OrderByDescending(s => s.TotalRevenue))
                     {
+                        var barWidth = maxRevenue > 0 
+                            ? (double)(stat.TotalRevenue / maxRevenue) * maxBarWidth 
+                            : 0;
+                        
                         ManagerStats.Add(new ManagerStatRow
                         {
                             ManagerName = stat.ManagerDisplayName ?? stat.ManagerUserName ?? "Неизвестно",
@@ -66,13 +94,18 @@ public partial class AnalyticsViewModel : ObservableObject
                             OwnClientsPercentage = stat.TotalRevenue > 0 
                                 ? (double)(stat.OwnClientsRevenue / stat.TotalRevenue * 100) 
                                 : 0,
-                            ClientsCount = stat.ClientsCount
+                            ClientsCount = stat.ClientsCount,
+                            BarWidth = Math.Max(barWidth, 10) // Минимум 10px чтобы было видно
                         });
                     }
+                    
+                    // Проверяем есть ли хоть одна продажа
+                    HasNoStats = stats.All(s => s.TotalRevenue == 0);
+                    HasStats = !HasNoStats;
                 });
             }
 
-            _logger.LogInformation("[AnalyticsViewModel] Loaded {Count} manager stats", ManagerStats.Count);
+            _logger.LogInformation("[AnalyticsViewModel] Loaded {Count} manager stats, HasNoStats={HasNoStats}", ManagerStats.Count, HasNoStats);
         }
         catch (Exception ex)
         {

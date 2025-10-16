@@ -35,15 +35,64 @@
 
       <!-- Managers Tab Content -->
       <ScrollView x:Name="ManagersContent" IsVisible="False" Padding="16">
-        <VerticalStackLayout Spacing="16" BindableLayout.ItemsSource="{Binding ManagerStats}">
-          <Label Text="👥 Аналитика по менеджерам" FontSize="24" FontAttributes="Bold" Margin="0,0,0,16"/>
+        <VerticalStackLayout Spacing="16">
+          <Label Text="👥 Аналитика по менеджерам" FontSize="24" FontAttributes="Bold" Margin="0,0,0,8"/>
           
-          <BindableLayout.EmptyView>
-            <VerticalStackLayout Padding="32" Spacing="12" HorizontalOptions="Center">
-              <Label Text="📊" FontSize="48" HorizontalTextAlignment="Center"/>
-              <Label Text="Загрузка статистики..." FontSize="16" TextColor="{DynamicResource Color.Text.Secondary}" HorizontalTextAlignment="Center"/>
+          <!-- Переключатель периода -->
+          <HorizontalStackLayout Spacing="12" Margin="0,0,0,16">
+            <Border x:Name="PeriodMonth" Padding="16,8" BackgroundColor="{DynamicResource Color.Primary}" StrokeThickness="0" StrokeShape="RoundRectangle 20">
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnMonthPeriodTapped"/>
+              </Border.GestureRecognizers>
+              <Label Text="Месяц" TextColor="White" FontSize="14" FontAttributes="Bold"/>
+            </Border>
+            
+            <Border x:Name="PeriodYear" Padding="16,8" BackgroundColor="Transparent" StrokeThickness="1" Stroke="{DynamicResource Color.Border}" StrokeShape="RoundRectangle 20">
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnYearPeriodTapped"/>
+              </Border.GestureRecognizers>
+              <Label Text="Год" TextColor="{DynamicResource Color.Text.Primary}" FontSize="14"/>
+            </Border>
+          </HorizontalStackLayout>
+          
+          <!-- Если нет статистики - показываем сообщение -->
+          <VerticalStackLayout IsVisible="{Binding HasNoStats}" Padding="32" Spacing="12" HorizontalOptions="Center">
+            <Label Text="📊" FontSize="48" HorizontalTextAlignment="Center"/>
+            <Label Text="Продаж пока нет" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+            <Label Text="Нету ручек, нет конфетки" FontSize="16" TextColor="{DynamicResource Color.Text.Secondary}" HorizontalTextAlignment="Center" Margin="0,4,0,8"/>
+            <Label Text="Создайте первую продажу для отображения статистики" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" HorizontalTextAlignment="Center"/>
+          </VerticalStackLayout>
+          
+          <!-- График продаж -->
+          <Border IsVisible="{Binding HasStats}" StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" Margin="0,0,0,16" StrokeShape="RoundRectangle 12">
+            <VerticalStackLayout Spacing="12">
+              <Label Text="📊 График продаж" FontSize="18" FontAttributes="Bold"/>
+              <Label Text="{Binding PeriodLabel}" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+              
+              <!-- Бары для каждого менеджера -->
+              <VerticalStackLayout BindableLayout.ItemsSource="{Binding ManagerStats}" Spacing="8" Margin="0,12,0,0">
+                <BindableLayout.ItemTemplate>
+                  <DataTemplate>
+                    <Grid ColumnDefinitions="120,*,80" ColumnSpacing="12" HeightRequest="40">
+                      <!-- Имя менеджера -->
+                      <Label Grid.Column="0" Text="{Binding ManagerName}" FontSize="13" VerticalTextAlignment="Center" LineBreakMode="TailTruncation"/>
+                      
+                      <!-- Визуальный бар -->
+                      <Grid Grid.Column="1" VerticalOptions="Center">
+                        <BoxView HeightRequest="24" HorizontalOptions="Start" WidthRequest="{Binding BarWidth}" Color="{DynamicResource Color.Primary}" CornerRadius="4"/>
+                      </Grid>
+                      
+                      <!-- Сумма -->
+                      <Label Grid.Column="2" Text="{Binding TotalRevenue, StringFormat='{0:N0}'}" FontSize="12" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="End"/>
+                    </Grid>
+                  </DataTemplate>
+                </BindableLayout.ItemTemplate>
+              </VerticalStackLayout>
             </VerticalStackLayout>
-          </BindableLayout.EmptyView>
+          </Border>
+          
+          <!-- Список менеджеров -->
+          <VerticalStackLayout BindableLayout.ItemsSource="{Binding ManagerStats}" Spacing="12">
           
           <BindableLayout.ItemTemplate>
             <DataTemplate>
@@ -79,6 +128,7 @@
               </Border>
             </DataTemplate>
           </BindableLayout.ItemTemplate>
+          </VerticalStackLayout>
         </VerticalStackLayout>
       </ScrollView>
     </Grid>
