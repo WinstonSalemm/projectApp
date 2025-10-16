@@ -34,8 +34,27 @@ public partial class ProductSelectViewModel : ObservableObject
         public decimal TotalQty { get; set; }
     }
 
+    public partial class CartItem : ObservableObject
+    {
+        public int ProductId { get; set; }
+        public string Sku { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        [ObservableProperty] private decimal unitPrice;
+        [ObservableProperty] private decimal qty = 1;
+        
+        public decimal Total => UnitPrice * Qty;
+        
+        partial void OnUnitPriceChanged(decimal value) => OnPropertyChanged(nameof(Total));
+        partial void OnQtyChanged(decimal value) => OnPropertyChanged(nameof(Total));
+    }
+
     public ObservableCollection<ProductRow> Results { get; } = new();
     public ObservableCollection<string> Categories { get; } = new();
+    public ObservableCollection<CartItem> CartItems { get; } = new();
+    
+    [ObservableProperty] private decimal cartTotal;
+    [ObservableProperty] private int? selectedClientId;
+    [ObservableProperty] private string selectedClientName = "Выберите клиента...";
 
     [ObservableProperty] private bool isBusy;
 
@@ -99,8 +118,6 @@ public partial class ProductSelectViewModel : ObservableObject
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "[ProductSelectViewModel] Failed to load stocks, continuing without stock info");
-                // Temporary: show error to user
-                await NavigationHelper.DisplayAlert("Ошибка загрузки остатков", $"Не удалось загрузить остатки: {ex.Message}", "OK");
             }
             
             var stockMap = stockList?.ToDictionary(s => (int)s.ProductId, s => s) ?? new Dictionary<int, dynamic>();
@@ -129,6 +146,60 @@ public partial class ProductSelectViewModel : ObservableObject
             ErrorMessage = $"Ошибка поиска товаров: {ex.Message}";
         }
         finally { IsBusy = false; }
+    }
+
+    public void AddToCart(ProductRow product)
+    {
+        var existing = CartItems.FirstOrDefault(x => x.ProductId == product.Id);
+        if (existing != null)
+        {
+            existing.Qty++;
+        }
+        else
+        {
+            var item = new CartItem
+            {
+                ProductId = product.Id,
+                Sku = product.Sku,
+                Name = product.Name,
+                UnitPrice = product.Price,
+                Qty = 1
+            };
+            item.PropertyChanged += (s, e) => RecalculateTotal();
+            CartItems.Add(item);
+        }
+        RecalculateTotal();
+    }
+
+    public void RemoveFromCart(CartItem item)
+    {
+        CartItems.Remove(item);
+        RecalculateTotal();
+    }
+
+    private void RecalculateTotal()
+    {
+        CartTotal = CartItems.Sum(x => x.Total);
+    }
+
+    public void SetClient(int? clientId, string clientName)
+    {
+        SelectedClientId = clientId;
+        SelectedClientName = string.IsNullOrWhiteSpace(clientName) ? "Выберите клиента..." : clientName;
+    }
+
+    [RelayCommand]
+    public async Task Checkout()
+    {
+        if (CartItems.Count == 0)
+        {
+            await NavigationHelper.DisplayAlert("Корзина пуста", "Добавьте товары для оформления продажи", "OK");
+            return;
+        }
+        
+        // TODO: Implement checkout logic - send sale with ClientId (can be null)
+        var clientInfo = SelectedClientId.HasValue ? $"Клиент ID: {SelectedClientId}" : "Без клиента";
+        await NavigationHelper.DisplayAlert("Оформление продажи", $"Функция в разработке\n{clientInfo}\nТоваров: {CartItems.Count}\nИтого: {CartTotal:N0} сум", "OK");
     }
 }
 

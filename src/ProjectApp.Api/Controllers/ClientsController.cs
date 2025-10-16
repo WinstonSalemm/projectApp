@@ -12,47 +12,33 @@ namespace ProjectApp.Api.Controllers;
 public class ClientsController(AppDbContext db) : ControllerBase
 {
     [HttpGet]
-    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(IEnumerable<Client>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> List([FromQuery] string? q, [FromQuery] ClientType? type, [FromQuery] string? owner, [FromQuery] int page = 1, [FromQuery] int size = 50)
+    public async Task<IActionResult> List([FromQuery] string? q, [FromQuery] ClientType? type, [FromQuery] int page = 1, [FromQuery] int size = 50)
     {
         var query = db.Clients.AsNoTracking().AsQueryable();
-        var isAdmin = User.IsInRole("Admin");
-        // Default: managers see only their own; admin can see all
-        var effectiveOwner = isAdmin ? owner : (User?.Identity?.Name ?? owner);
-        if (!string.IsNullOrWhiteSpace(effectiveOwner))
-            query = query.Where(c => c.OwnerUserName == effectiveOwner);
         if (type.HasValue) query = query.Where(c => c.Type == type.Value);
         if (!string.IsNullOrWhiteSpace(q))
         {
             var s = q.Trim();
-            query = query.Where(c => EF.Functions.Like(c.Name, $"%{s}%") || EF.Functions.Like(c.Phone ?? "", $"%{s}%"));
+            query = query.Where(c => EF.Functions.Like(c.Name, $"%{s}%") || EF.Functions.Like(c.Phone ?? "", $"%{s}%") || EF.Functions.Like(c.Inn ?? "", $"%{s}%"));
         }
         page = Math.Max(1, page); size = Math.Clamp(size, 1, 200);
         var total = await query.CountAsync();
-        var items = await query.OrderBy(c => c.Id).Skip((page-1)*size).Take(size).ToListAsync();
+        var items = await query.OrderByDescending(c => c.CreatedAt).Skip((page-1)*size).Take(size).ToListAsync();
         return Ok(new { items, total, page, size });
     }
 
     [HttpGet("{id:int}")]
-    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(Client), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Get(int id)
     {
         var c = await db.Clients.FindAsync(id);
         if (c is null) return NotFound();
-        var isAdmin = User.IsInRole("Admin");
-        if (!isAdmin)
-        {
-            var user = User?.Identity?.Name;
-            if (!string.Equals(c.OwnerUserName, user, StringComparison.OrdinalIgnoreCase)) return Forbid();
-        }
         return Ok(c);
     }
 
     [HttpPost]
-    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(Client), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] ClientCreateDto dto)
     {
@@ -63,7 +49,7 @@ public class ClientsController(AppDbContext db) : ControllerBase
             Phone = dto.Phone,
             Inn = dto.Inn,
             Type = dto.Type,
-            OwnerUserName = User?.Identity?.Name,
+            OwnerUserName = null, // No auth, no owner tracking
             CreatedAt = DateTime.UtcNow
         };
         db.Clients.Add(c);

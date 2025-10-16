@@ -1,7 +1,6 @@
 using Microsoft.Maui.Controls;
 using ProjectApp.Client.Maui.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Specialized;
 
 namespace ProjectApp.Client.Maui.Views;
 
@@ -18,12 +17,6 @@ public partial class ProductSelectPage : ContentPage
         BindingContext = vm;
         _vm = vm;
         _services = services;
-        
-        // Subscribe to categories changes
-        _vm.Categories.CollectionChanged += OnCategoriesChanged;
-        
-        // Initial load
-        LoadCategories();
     }
 
     protected override void OnAppearing()
@@ -35,64 +28,30 @@ public partial class ProductSelectPage : ContentPage
         }
     }
 
-    private void OnCategoriesChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    private void OnAllCategoriesClicked(object? sender, EventArgs e)
     {
-        LoadCategories();
+        _vm.SelectedCategory = null;
+        _vm.SearchAsyncCommand.Execute(null);
     }
 
-    private void LoadCategories()
+    private void OnAddToCart(object? sender, EventArgs e)
     {
-        CategoriesStack.Clear();
-        
-        // "Все" button
-        var allButton = new Button
-        {
-            Text = "Все",
-            HeightRequest = 36,
-            Padding = new Thickness(16, 0),
-            BackgroundColor = _vm.SelectedCategory == null ? Colors.Blue : Colors.Transparent,
-            TextColor = _vm.SelectedCategory == null ? Colors.White : Colors.Gray,
-            BorderColor = Colors.Gray,
-            BorderWidth = 1,
-            CornerRadius = 18
-        };
-        allButton.Clicked += (s, e) =>
-        {
-            _vm.SelectedCategory = null;
-            _vm.SearchAsyncCommand.Execute(null);
-            LoadCategories();
-        };
-        CategoriesStack.Add(allButton);
-
-        // Category buttons
-        foreach (var category in _vm.Categories)
-        {
-            var isSelected = _vm.SelectedCategory == category;
-            var btn = new Button
-            {
-                Text = category.ToString(),
-                HeightRequest = 36,
-                Padding = new Thickness(16, 0),
-                BackgroundColor = isSelected ? Colors.Blue : Colors.Transparent,
-                TextColor = isSelected ? Colors.White : Colors.Gray,
-                BorderColor = Colors.Gray,
-                BorderWidth = 1,
-                CornerRadius = 18
-            };
-            var cat = category;
-            btn.Clicked += (s, e) =>
-            {
-                _vm.SelectedCategory = cat;
-                _vm.SearchAsyncCommand.Execute(null);
-                LoadCategories();
-            };
-            CategoriesStack.Add(btn);
-        }
+        if (sender is not Button btn) return;
+        if (btn.CommandParameter is not ProductSelectViewModel.ProductRow product) return;
+        _vm.AddToCart(product);
     }
 
-    private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    private void OnRemoveFromCart(object? sender, EventArgs e)
     {
-        // no-op; we use button click to confirm
+        if (sender is not Button btn) return;
+        if (btn.CommandParameter is not ProductSelectViewModel.CartItem item) return;
+        _vm.RemoveFromCart(item);
+    }
+
+    private async void OnSelectClientClicked(object? sender, EventArgs e)
+    {
+        // TODO: Open client selection page
+        await NavigationHelper.DisplayAlert("Выбор клиента", "Страница выбора клиента в разработке", "OK");
     }
 
     private void OnPickClicked(object? sender, EventArgs e)
