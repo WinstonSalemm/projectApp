@@ -234,7 +234,7 @@ public partial class AnalyticsViewModel : ObservableObject
             };
 
             // Загружаем товары с аналитикой
-            var response = await client.GetAsync("/api/products");
+            var response = await client.GetAsync("/api/products?size=1000");
             
             if (!response.IsSuccessStatusCode)
             {
@@ -242,13 +242,13 @@ public partial class AnalyticsViewModel : ObservableObject
                 return;
             }
 
-            var products = await response.Content.ReadFromJsonAsync<List<ProductDto>>();
+            var pagedResult = await response.Content.ReadFromJsonAsync<PagedResultDto>();
             
-            if (products != null)
+            if (pagedResult?.Items != null)
             {
                 await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    foreach (var product in products.OrderBy(p => p.Sku))
+                    foreach (var product in pagedResult.Items.OrderBy(p => p.Sku))
                     {
                         ProductCosts.Add(new ProductCostRow
                         {
@@ -311,5 +311,13 @@ public partial class AnalyticsViewModel : ObservableObject
         public string Name { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public decimal Cost { get; set; }
+    }
+    
+    private class PagedResultDto
+    {
+        public List<ProductDto> Items { get; set; } = new();
+        public int Total { get; set; }
+        public int Page { get; set; }
+        public int Size { get; set; }
     }
 }

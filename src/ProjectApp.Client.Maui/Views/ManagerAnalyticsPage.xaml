@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             x:Class="ProjectApp.Client.Maui.Views.ManagerAnalyticsPage"
+             x:DataType="vm:AnalyticsViewModel"
+             Title="Аналитика по менеджерам"
+             BackgroundColor="{DynamicResource Color.Background}">
+  
+  <ScrollView Padding="16">
+    <VerticalStackLayout Spacing="16">
+      <Label Text="👥 Аналитика по менеджерам" FontSize="24" FontAttributes="Bold" Margin="0,0,0,8"/>
+      
+      <!-- Переключатель периода -->
+      <HorizontalStackLayout Spacing="12" Margin="0,0,0,16">
+        <Border x:Name="PeriodMonth" Padding="16,8" BackgroundColor="{DynamicResource Color.Primary}" StrokeThickness="0" StrokeShape="RoundRectangle 20">
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnMonthTapped"/>
+          </Border.GestureRecognizers>
+          <Label Text="Месяц" TextColor="White" FontSize="14" FontAttributes="Bold"/>
+        </Border>
+        
+        <Border x:Name="PeriodYear" Padding="16,8" BackgroundColor="Transparent" StrokeThickness="1" Stroke="{DynamicResource Color.Border}" StrokeShape="RoundRectangle 20">
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnYearTapped"/>
+          </Border.GestureRecognizers>
+          <Label Text="Год" TextColor="{DynamicResource Color.Text.Primary}" FontSize="14"/>
+        </Border>
+      </HorizontalStackLayout>
+      
+      <!-- График продаж -->
+      <Border IsVisible="{Binding HasStats}" StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" Margin="0,0,0,16" StrokeShape="RoundRectangle 12">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="📊 График продаж" FontSize="18" FontAttributes="Bold"/>
+          <Label Text="{Binding PeriodLabel}" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+          
+          <!-- Бары для каждого менеджера -->
+          <VerticalStackLayout BindableLayout.ItemsSource="{Binding ManagerStats}" Spacing="8" Margin="0,12,0,0">
+            <BindableLayout.ItemTemplate>
+              <DataTemplate>
+                <Grid ColumnDefinitions="120,*,80" ColumnSpacing="12" HeightRequest="40">
+                  <Label Grid.Column="0" Text="{Binding ManagerName}" FontSize="13" VerticalTextAlignment="Center" LineBreakMode="TailTruncation"/>
+                  <Grid Grid.Column="1" VerticalOptions="Center">
+                    <BoxView HeightRequest="24" HorizontalOptions="Start" WidthRequest="{Binding BarWidth}" Color="{DynamicResource Color.Primary}" CornerRadius="4"/>
+                  </Grid>
+                  <Label Grid.Column="2" Text="{Binding TotalRevenue, StringFormat='{0:N0}'}" FontSize="12" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="End"/>
+                </Grid>
+              </DataTemplate>
+            </BindableLayout.ItemTemplate>
+          </VerticalStackLayout>
+        </VerticalStackLayout>
+      </Border>
+      
+      <!-- Список менеджеров -->
+      <VerticalStackLayout BindableLayout.ItemsSource="{Binding ManagerStats}" Spacing="12">
+        <BindableLayout.ItemTemplate>
+          <DataTemplate>
+            <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12">
+              <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="12">
+                <Label Grid.Row="0" Text="{Binding ManagerName}" FontSize="20" FontAttributes="Bold"/>
+                
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                  <Label Grid.Column="0" Text="💰 Общий оборот:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                  <Label Grid.Column="1" Text="{Binding TotalRevenue, StringFormat='{0:N0} сум'}" FontSize="14" FontAttributes="Bold"/>
+                </Grid>
+                
+                <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                  <Label Grid.Column="0" Text="✅ Оборот своим клиентам:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                  <Label Grid.Column="1" Text="{Binding OwnClientsRevenue, StringFormat='{0:N0} сум'}" FontSize="14" FontAttributes="Bold" TextColor="{DynamicResource Color.Success}"/>
+                </Grid>
+                
+                <Grid Grid.Row="3" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                  <Label Grid.Column="0" Text="📈 Доля своих клиентов:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                  <Label Grid.Column="1" Text="{Binding OwnClientsPercentage, StringFormat='{0:F1}%'}" FontSize="14" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}"/>
+                </Grid>
+                
+                <Grid Grid.Row="4" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                  <Label Grid.Column="0" Text="👤 Приведенных клиентов:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                  <Label Grid.Column="1" Text="{Binding ClientsCount}" FontSize="14" FontAttributes="Bold"/>
+                </Grid>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </BindableLayout.ItemTemplate>
+      </VerticalStackLayout>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>
