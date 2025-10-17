@@ -2,11 +2,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 # копим кэш на restore
-COPY ProjectApp.Api/ProjectApp.Api.csproj ProjectApp.Api/
-RUN dotnet restore ProjectApp.Api/ProjectApp.Api.csproj
+COPY ProjectApp.Api.csproj .
+RUN dotnet restore ProjectApp.Api.csproj
 # остальной код
-COPY ProjectApp.Api/ ProjectApp.Api/
-WORKDIR /src/ProjectApp.Api
+COPY . .
 RUN dotnet publish ProjectApp.Api.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 # ====== RUNTIME ======
