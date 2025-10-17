@@ -43,8 +43,8 @@ public class ManagerKpiService
             
             // Продажи менеджеров
             var salesStats = await (from s in _db.Sales
-                                   where s.CreatedAt >= startDate && s.CreatedAt < endDate && s.ManagerUserName != null
-                                   group s by s.ManagerUserName into g
+                                   where s.CreatedAt >= startDate && s.CreatedAt < endDate && s.CreatedBy != null
+                                   group s by s.CreatedBy into g
                                    select new
                                    {
                                        Manager = g.Key!,
@@ -55,8 +55,8 @@ public class ManagerKpiService
 
             // Брони менеджеров
             var reservationsStats = await (from r in _db.Reservations
-                                          where r.CreatedAt >= startDate && r.CreatedAt < endDate && r.ManagerUserName != null
-                                          group r by r.ManagerUserName into g
+                                          where r.CreatedAt >= startDate && r.CreatedAt < endDate && r.CreatedBy != null
+                                          group r by r.CreatedBy into g
                                           select new
                                           {
                                               Manager = g.Key!,
@@ -65,17 +65,16 @@ public class ManagerKpiService
 
             // Клиенты менеджеров
             var clientsStats = await (from c in _db.Clients
-                                     where c.ManagerUserName != null
-                                     group c by c.ManagerUserName into g
+                                     where c.OwnerUserName != null
+                                     group c by c.OwnerUserName into g
                                      select new
                                      {
                                          Manager = g.Key!,
                                          ClientsCount = g.Count()
                                      }).ToListAsync();
 
-            // Бонусы менеджеров
+            // Бонусы менеджеров (за весь период)
             var bonusStats = await (from b in _db.ManagerBonuses
-                                   where b.Month >= startDate && b.Month < endDate
                                    group b by b.ManagerUserName into g
                                    select new
                                    {

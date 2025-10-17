@@ -113,7 +113,7 @@ public class TelegramService(IHttpClientFactory httpClientFactory, IOptions<Tele
         if (chatIds.Count == 0) return false;
         
         // Отправляем владельцу (первый chatId в списке)
-        var ownerChatId = chatIds[0];
+        var ownerChatId = chatIds.First();
         return await SendMessageAsync(ownerChatId, text, "HTML", null, ct);
     }
 }

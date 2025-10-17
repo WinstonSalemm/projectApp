@@ -175,10 +175,16 @@ public class AlertsService
                 foreach (var r in longReservations.Take(5))
                 {
                     var daysOld = (int)(DateTime.UtcNow - r.CreatedAt).TotalDays;
+                    var clientName = "N/A";
+                    if (r.ClientId.HasValue)
+                    {
+                        var client = await _db.Clients.FindAsync(r.ClientId.Value);
+                        clientName = client?.Name ?? "N/A";
+                    }
                     message += $"📋 Бронь #{r.Id}\n";
-                    message += $"   Клиент: {r.ClientName}\n";
+                    message += $"   Клиент: {clientName}\n";
                     message += $"   Создана: {daysOld} дн. назад\n";
-                    message += $"   Срок: {r.ValidUntil:dd.MM.yyyy}\n\n";
+                    message += $"   Срок: {r.ReservedUntil:dd.MM.yyyy}\n\n";
                 }
 
                 if (longReservations.Count > 5)
@@ -215,7 +221,7 @@ public class AlertsService
             message += $"📊 Продажа #{sale.Id}\n";
             message += $"👤 Клиент: {sale.ClientName}\n";
             message += $"💵 Сумма: <b>{total:N0} UZS</b>\n";
-            message += $"👨‍💼 Менеджер: {sale.ManagerUserName ?? "Не указан"}\n";
+            message += $"👨‍💼 Менеджер: {sale.CreatedBy ?? "Не указан"}\n";
             message += $"📦 Товаров: {sale.Items.Count}\n";
             message += $"🕐 Время: {sale.CreatedAt:dd.MM.yyyy HH:mm}\n";
 

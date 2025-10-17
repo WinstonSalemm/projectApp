@@ -1,5 +1,6 @@
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Integrations.Telegram;
+using ProjectApp.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace ProjectApp.Api.Services;
@@ -71,12 +72,12 @@ public class AutoReportsService
             message += $"├ Клиенты должны: <b>{dashboard.ClientDebts:N0} UZS</b>\n";
             message += $"└ Просроченных: <b>{dashboard.OverdueDebts.Count}</b>\n\n";
 
-            if (dashboard.TopProductsToday.Any())
+            if (dashboard.Top5ProductsToday.Any())
             {
                 message += "🏆 <b>ТОП-5 ТОВАРОВ ДНЯ:</b>\n";
-                for (int i = 0; i < Math.Min(5, dashboard.TopProductsToday.Count); i++)
+                for (int i = 0; i < Math.Min(5, dashboard.Top5ProductsToday.Count); i++)
                 {
-                    var p = dashboard.TopProductsToday[i];
+                    var p = dashboard.Top5ProductsToday[i];
                     message += $"{i + 1}. {p.ProductName}\n";
                     message += $"   💰 {p.TotalRevenue:N0} UZS ({p.TotalQuantity} шт)\n";
                 }
@@ -135,8 +136,8 @@ public class AutoReportsService
 
             // Топ менеджеры
             var topManagers = await (from s in _db.Sales
-                                    where s.CreatedAt >= weekStart && s.CreatedAt < weekEnd.AddDays(1) && s.ManagerUserName != null
-                                    group s by s.ManagerUserName into g
+                                    where s.CreatedAt >= weekStart && s.CreatedAt < weekEnd.AddDays(1) && s.CreatedBy != null
+                                    group s by s.CreatedBy into g
                                     select new
                                     {
                                         Manager = g.Key,
