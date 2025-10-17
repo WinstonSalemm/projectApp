@@ -259,6 +259,11 @@ builder.Services.AddScoped<ProjectApp.Api.Services.DemandForecastService>();
 builder.Services.AddScoped<ProjectApp.Api.Services.PromotionService>();
 builder.Services.AddScoped<ProjectApp.Api.Services.DiscountValidationService>();
 
+// Financial System (Owner Dashboard)
+builder.Services.AddScoped<ProjectApp.Api.Services.CashboxService>();
+builder.Services.AddScoped<ProjectApp.Api.Services.OperatingExpensesService>();
+builder.Services.AddScoped<ProjectApp.Api.Services.OwnerDashboardService>();
+
 // Finance module
 builder.Services.Configure<FinanceSettings>(builder.Configuration.GetSection("Finance"));
 // Register FinanceSettings as singleton for services that need it directly (not via IOptions)
