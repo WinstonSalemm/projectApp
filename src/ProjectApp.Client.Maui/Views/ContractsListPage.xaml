@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
@@ -22,33 +22,38 @@
         </CollectionView.Header>
         <CollectionView.ItemTemplate>
           <DataTemplate>
-            <Frame Style="{StaticResource CardFrame}"
+            <Frame Style="{StaticResource CardFrame}" Padding="16" Margin="0,0,0,12"
                    BackgroundColor="{Binding Status, Converter={conv:ContractStatusToColorConverter}, ConverterParameter=bg}"
                    BorderColor="{Binding Status, Converter={conv:ContractStatusToColorConverter}, ConverterParameter=border}">
-              <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
-                <VerticalStackLayout>
-                  <Label Text="{Binding OrgName}" FontAttributes="Bold"/>
-                  <Label Text="{Binding Inn}" FontSize="12"/>
-                  <Label Text="{Binding Phone}" FontSize="12"/>
-                  <Label Text="{Binding CreatedAt, Converter={conv:DateTimeToRuConverter}, StringFormat='РЎРѕР·РґР°РЅ: {0}'}" FontSize="12"/>
-                  <Label Text="{Binding Note}" FontSize="12"/>
-                </VerticalStackLayout>
-                <!-- Status badge -->
-                <Frame Grid.Column="1" Style="{StaticResource BadgeFrame}"
-                       BackgroundColor="{Binding Status, Converter={conv:ContractStatusToColorConverter}, ConverterParameter=bg}"
-                       BorderColor="{Binding Status, Converter={conv:ContractStatusToColorConverter}, ConverterParameter=border}">
-                  <Label Text="{Binding Status, Converter={conv:ContractStatusToTextConverter}}" FontSize="12"
-                         TextColor="{Binding Status, Converter={conv:ContractStatusToColorConverter}, ConverterParameter=text}"/>
-                </Frame>
-                <Button Grid.Column="2" Text="РћРїР»Р°С‡РµРЅ" Style="{StaticResource OutlinedButton}"
-                        Clicked="OnPaidClicked"/>
-                <Button Grid.Column="3" Text="Р§Р°СЃС‚РёС‡РЅРѕ" Style="{StaticResource OutlinedButton}"
-                        Clicked="OnPartialClicked"/>
-                <Button Grid.Column="4" Text="РћС‚РјРµРЅР°" Style="{StaticResource OutlinedButton}"
-                        Clicked="OnCancelClicked"/>
-                <Button Grid.Column="5" Text="Р—Р°РєСЂС‹С‚" Clicked="OnClosedClicked"/>
-                <Button Grid.Column="6" Text="РР·РјРµРЅРёС‚СЊ" Clicked="OnEditClicked" CommandParameter="{Binding Id}" ImageSource="{StaticResource IconEdit}" ContentLayout="Left,8"
-                        IsVisible="{Binding Source={x:Reference Name=Root}, Path=BindingContext.IsAdmin}"/>
+              <Frame.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding Source={x:Reference Root}, Path=BindingContext.OpenDetailsCommand}" CommandParameter="{Binding .}"/>
+              </Frame.GestureRecognizers>
+              <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                <!-- Заголовок -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                  <VerticalStackLayout Grid.Column="0" Spacing="4">
+                    <Label Text="{Binding OrgName}" FontSize="18" FontAttributes="Bold"/>
+                    <Label Text="{Binding Inn, StringFormat='ИНН: {0}'}" FontSize="13" TextColor="{StaticResource MutedTextColor}" IsVisible="{Binding Inn, Converter={conv:IsNotNullOrEmptyConverter}}"/>
+                    <Label Text="{Binding Phone, StringFormat='Тел: {0}'}" FontSize="13" TextColor="{StaticResource MutedTextColor}" IsVisible="{Binding Phone, Converter={conv:IsNotNullOrEmptyConverter}}"/>
+                  </VerticalStackLayout>
+                  <Frame Grid.Column="1" Style="{StaticResource BadgeFrame}"
+                         BackgroundColor="{Binding Status, Converter={conv:ContractStatusToColorConverter}, ConverterParameter=bg}"
+                         BorderColor="{Binding Status, Converter={conv:ContractStatusToColorConverter}, ConverterParameter=border}">
+                    <Label Text="{Binding Status, Converter={conv:ContractStatusToTextConverter}}" FontSize="13" FontAttributes="Bold"
+                           TextColor="{Binding Status, Converter={conv:ContractStatusToColorConverter}, ConverterParameter=text}"/>
+                  </Frame>
+                </Grid>
+
+                <!-- Дата -->
+                <Label Grid.Row="1" Text="{Binding CreatedAt, Converter={conv:DateTimeToRuConverter}, StringFormat='Создан: {0}'}" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+
+                <!-- Кнопка деталей -->
+                <Button Grid.Row="2" 
+                        Text="📋 Подробнее"
+                        Command="{Binding Source={x:Reference Root}, Path=BindingContext.OpenDetailsCommand}"
+                        CommandParameter="{Binding .}"
+                        FontSize="14"
+                        Padding="12,8"/>
               </Grid>
             </Frame>
           </DataTemplate>

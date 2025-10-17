@@ -37,6 +37,9 @@ public class ReservationsService
 
         var days = dto.Paid ? _opts.PaidDays : _opts.UnpaidDays;
         var now = DateTime.UtcNow;
+        
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        
         var res = new Reservation
         {
             ClientId = dto.ClientId,
@@ -48,27 +51,150 @@ public class ReservationsService
             Note = string.IsNullOrWhiteSpace(dto.Source) ? dto.Note : $"{dto.Note} (src:{dto.Source})"
         };
 
+        // Будем собирать информацию о списании по партиям
+        var batchConsumptions = new Dictionary<ReservationItem, List<(int batchId, StockRegister register, decimal qty, decimal unitCost)>>();
+
         foreach (var it in dto.Items)
         {
-            if (!products.TryGetValue(it.ProductId, out var p)) throw new InvalidOperationException($"Product not found: {it.ProductId}");
-            if (it.Qty <= 0) throw new InvalidOperationException("Qty must be > 0");
-            res.Items.Add(new ReservationItem
+            if (!products.TryGetValue(it.ProductId, out var p)) 
+                throw new InvalidOperationException($"Product not found: {it.ProductId}");
+            if (it.Qty <= 0) 
+                throw new InvalidOperationException("Qty must be > 0");
+
+            var resItem = new ReservationItem
             {
                 ProductId = p.Id,
-                Register = it.Register,
+                Register = StockRegister.ND40, // По умолчанию будем пытаться взять с ND-40
                 Qty = it.Qty,
                 Sku = p.Sku,
                 Name = p.Name,
                 UnitPrice = p.Price
-            });
+            };
+            res.Items.Add(resItem);
+
+            // Списываем товар: сначала с ND-40, потом с IM-40
+            var consumptions = new List<(int batchId, StockRegister register, decimal qty, decimal unitCost)>();
+            
+            // 1) Пытаемся взять с ND-40
+            var stockNd = await _db.Stocks.FirstOrDefaultAsync(
+                s => s.ProductId == p.Id && s.Register == StockRegister.ND40, ct);
+            var availableNd = stockNd?.Qty ?? 0m;
+            var takeNd = Math.Min(availableNd, it.Qty);
+
+            if (takeNd > 0)
+            {
+                var (batches, _) = await DeductFromBatchesAsync(p.Id, StockRegister.ND40, takeNd, ct);
+                foreach (var b in batches)
+                {
+                    consumptions.Add((b.batchId, StockRegister.ND40, b.qty, b.unitCost));
+                }
+                stockNd!.Qty -= takeNd;
+            }
+
+            // 2) Остаток берем с IM-40
+            var remain = it.Qty - takeNd;
+            if (remain > 0)
+            {
+                var stockIm = await _db.Stocks.FirstOrDefaultAsync(
+                    s => s.ProductId == p.Id && s.Register == StockRegister.IM40, ct);
+                
+                if (stockIm == null || stockIm.Qty < remain)
+                {
+                    var available = stockIm?.Qty ?? 0m;
+                    throw new InvalidOperationException(
+                        $"Недостаточно товара '{p.Name}' на складе. Требуется {remain}, доступно {available} в IM-40");
+                }
+
+                var (batches, _) = await DeductFromBatchesAsync(p.Id, StockRegister.IM40, remain, ct);
+                foreach (var b in batches)
+                {
+                    consumptions.Add((b.batchId, StockRegister.IM40, b.qty, b.unitCost));
+                }
+                stockIm.Qty -= remain;
+            }
+
+            batchConsumptions[resItem] = consumptions;
         }
 
         _db.Reservations.Add(res);
+        await _db.SaveChangesAsync(ct); // Сохраняем чтобы получить ID
+
+        // Сохраняем связи с партиями
+        foreach (var item in res.Items)
+        {
+            if (!batchConsumptions.TryGetValue(item, out var list)) continue;
+            
+            foreach (var (batchId, register, qty, unitCost) in list)
+            {
+                _db.ReservationItemBatches.Add(new ReservationItemBatch
+                {
+                    ReservationItemId = item.Id,
+                    BatchId = batchId,
+                    RegisterAtReservation = register,
+                    Qty = qty,
+                    UnitCost = unitCost
+                });
+
+                // Логируем транзакцию
+                _db.InventoryTransactions.Add(new InventoryTransaction
+                {
+                    ProductId = item.ProductId,
+                    Register = register,
+                    Type = InventoryTransactionType.Reservation,
+                    Qty = -qty,
+                    UnitCost = unitCost,
+                    BatchId = batchId,
+                    ReservationId = res.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = createdBy,
+                    Note = $"reservation #{res.Id}"
+                });
+            }
+        }
+
         await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
 
         await LogAsync(res.Id, "Created", createdBy, $"Items:{res.Items.Count}; Paid:{res.Paid}; Until:{res.ReservedUntil:o}", ct);
 
         return res;
+    }
+
+    /// <summary>
+    /// Списать товар из партий по FIFO
+    /// </summary>
+    private async Task<(List<(int batchId, decimal qty, decimal unitCost)> batches, decimal avgCost)> DeductFromBatchesAsync(
+        int productId, StockRegister register, decimal qty, CancellationToken ct)
+    {
+        var remain = qty;
+        var totalCost = 0m;
+        var result = new List<(int batchId, decimal qty, decimal unitCost)>();
+
+        var batches = await _db.Batches
+            .Where(b => b.ProductId == productId && b.Register == register && b.Qty > 0)
+            .OrderBy(b => b.CreatedAt).ThenBy(b => b.Id)
+            .ToListAsync(ct);
+
+        foreach (var batch in batches)
+        {
+            if (remain <= 0) break;
+
+            var take = Math.Min(batch.Qty, remain);
+            if (take > 0)
+            {
+                totalCost += take * batch.UnitCost;
+                batch.Qty -= take;
+                remain -= take;
+                result.Add((batch.Id, take, batch.UnitCost));
+            }
+        }
+
+        if (remain > 0)
+            throw new InvalidOperationException(
+                $"Недостаточно партий для товара #{productId} в {register}. Не хватает {remain}");
+
+        var avgCost = qty == 0 ? 0 : decimal.Round(totalCost / qty, 2, MidpointRounding.AwayFromZero);
+        return (result, avgCost);
     }
 
     public async Task<bool> AddPhotoAndNotifyAsync(int reservationId, Stream fileStream, string fileName, string userName, CancellationToken ct = default)
@@ -150,13 +276,72 @@ public class ReservationsService
 
     public async Task<bool> ReleaseAsync(int reservationId, string? reason, string userName, CancellationToken ct = default)
     {
-        var res = await _db.Reservations.Include(r => r.Items).FirstOrDefaultAsync(r => r.Id == reservationId, ct);
+        var res = await _db.Reservations
+            .Include(r => r.Items)
+            .FirstOrDefaultAsync(r => r.Id == reservationId, ct);
+        
         if (res == null) return false;
         if (res.Status != ReservationStatus.Active) return false;
+
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+        // Возвращаем товар в те же партии, откуда брали
+        foreach (var item in res.Items)
+        {
+            var batches = await _db.ReservationItemBatches
+                .Where(b => b.ReservationItemId == item.Id)
+                .ToListAsync(ct);
+
+            foreach (var itemBatch in batches)
+            {
+                // Находим партию
+                var batch = await _db.Batches.FirstOrDefaultAsync(b => b.Id == itemBatch.BatchId, ct);
+                if (batch == null) continue; // Партия удалена? Пропускаем
+
+                // Возвращаем товар в партию
+                batch.Qty += itemBatch.Qty;
+
+                // Обновляем остатки на складе
+                var stock = await _db.Stocks.FirstOrDefaultAsync(
+                    s => s.ProductId == item.ProductId && s.Register == itemBatch.RegisterAtReservation, ct);
+                
+                if (stock != null)
+                {
+                    stock.Qty += itemBatch.Qty;
+                }
+                else
+                {
+                    // Создаем запись если её нет
+                    _db.Stocks.Add(new Stock
+                    {
+                        ProductId = item.ProductId,
+                        Register = itemBatch.RegisterAtReservation,
+                        Qty = itemBatch.Qty
+                    });
+                }
+
+                // Логируем транзакцию возврата
+                _db.InventoryTransactions.Add(new InventoryTransaction
+                {
+                    ProductId = item.ProductId,
+                    Register = itemBatch.RegisterAtReservation,
+                    Type = InventoryTransactionType.ReservationCancelled,
+                    Qty = itemBatch.Qty,
+                    UnitCost = itemBatch.UnitCost,
+                    BatchId = batch.Id,
+                    ReservationId = res.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userName,
+                    Note = $"reservation #{res.Id} cancelled"
+                });
+            }
+        }
 
         res.Status = ReservationStatus.Released;
         res.ReservedUntil = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        
         await LogAsync(res.Id, "Released", userName, reason, ct);
 
         // Notify text about release

@@ -82,6 +82,20 @@ public partial class ContractsListViewModel : ObservableObject
         UpdateLocal(item, "Cancelled");
     }
 
+    [RelayCommand]
+    private async Task OpenDetails(ContractListItem? item)
+    {
+        if (item is null) return;
+        
+        var detailsPage = App.Services.GetRequiredService<Views.ContractDetailsPage>();
+        if (detailsPage.BindingContext is ContractDetailsViewModel vm)
+        {
+            vm.ContractId = item.Id;
+        }
+        
+        await Shell.Current.Navigation.PushAsync(detailsPage);
+    }
+
     private void UpdateLocal(ContractListItem item, string newStatus)
     {
         try

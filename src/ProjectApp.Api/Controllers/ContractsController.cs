@@ -123,14 +123,20 @@ public class ContractsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(ContractDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById([FromRoute] int id, CancellationToken ct)
     {
         await EnsureSchemaAsync(ct);
-        var c = await _db.Contracts.AsNoTracking().Include(x => x.Items).FirstOrDefaultAsync(x => x.Id == id, ct);
+        var c = await _db.Contracts
+            .AsNoTracking()
+            .Include(x => x.Items)
+            .Include(x => x.Payments)
+            .Include(x => x.Deliveries)
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (c is null) return NotFound();
+        
         var dto = new ContractDto
         {
             Id = c.Id,
@@ -140,20 +146,41 @@ public class ContractsController : ControllerBase
             Status = c.Status.ToString(),
             CreatedAt = c.CreatedAt,
             Note = c.Note,
+            TotalAmount = c.TotalAmount,
+            PaidAmount = c.PaidAmount,
+            TotalItemsCount = c.TotalItemsCount,
+            DeliveredItemsCount = c.DeliveredItemsCount,
             Items = c.Items.Select(i => new ContractItemDto
             {
+                Id = i.Id,
                 ProductId = i.ProductId,
+                Sku = i.Sku,
                 Name = i.Name,
                 Unit = i.Unit,
                 Qty = i.Qty,
+                DeliveredQty = i.DeliveredQty,
                 UnitPrice = i.UnitPrice
-            }).ToList()
+            }).ToList(),
+            Payments = c.Payments.Select(p => new ContractPaymentDto
+            {
+                Amount = p.Amount,
+                Method = p.Method.ToString(),
+                PaidAt = p.PaidAt,
+                Note = p.Note
+            }).OrderByDescending(p => p.PaidAt).ToList(),
+            Deliveries = c.Deliveries.Select(d => new ContractDeliveryDto
+            {
+                ContractItemId = d.ContractItemId,
+                Qty = d.Qty,
+                DeliveredAt = d.DeliveredAt,
+                Note = d.Note
+            }).OrderByDescending(d => d.DeliveredAt).ToList()
         };
         return Ok(dto);
     }
 
     [HttpPost]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(ContractDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] ContractCreateDto dto, CancellationToken ct)
     {
@@ -161,57 +188,39 @@ public class ContractsController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.OrgName))
             return ValidationProblem(detail: "OrgName is required");
 
-        // Validate items for stock deduction (ProductId required)
         if (dto.Items == null || dto.Items.Count == 0)
             return ValidationProblem(detail: "At least one item is required");
-        if (dto.Items.Any(i => !i.ProductId.HasValue || i.ProductId.Value <= 0))
-            return ValidationProblem(detail: "Each item must have a valid ProductId to deduct stock");
+        
         if (dto.Items.Any(i => i.Qty <= 0 || i.UnitPrice < 0))
             return ValidationProblem(detail: "Invalid item: Qty must be > 0 and UnitPrice >= 0");
 
-        // 1) Deduct stocks immediately from IM-40 by creating a Sale with PaymentType.Contract
-        try
-        {
-            var saleDto = new SaleCreateDto
-            {
-                ClientId = null,
-                ClientName = dto.OrgName?.Trim() ?? string.Empty,
-                PaymentType = PaymentType.Contract,
-                Items = dto.Items.Select(i => new SaleCreateItemDto
-                {
-                    ProductId = i.ProductId!.Value,
-                    Qty = i.Qty,
-                    UnitPrice = i.UnitPrice
-                }).ToList()
-            };
-            var sale = await _calculator.BuildAndCalculateAsync(saleDto, ct);
-            sale.CreatedBy = User?.Identity?.Name;
-            await _sales.AddAsync(sale, ct);
-        }
-        catch (ArgumentException ex)
-        {
-            return ValidationProblem(detail: ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return ValidationProblem(detail: ex.Message);
-        }
+        // Загружаем товары для заполнения SKU
+        var productIds = dto.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value).ToList();
+        var products = await _db.Products
+            .Where(p => productIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, ct);
 
-        var status = Enum.TryParse<ContractStatus>(dto.Status, true, out var st) ? st : ContractStatus.Signed;
+        var totalAmount = dto.Items.Sum(i => i.Qty * i.UnitPrice);
+        
         var c = new Contract
         {
             OrgName = dto.OrgName.Trim(),
             Inn = string.IsNullOrWhiteSpace(dto.Inn) ? null : dto.Inn.Trim(),
             Phone = string.IsNullOrWhiteSpace(dto.Phone) ? null : dto.Phone.Trim(),
-            Status = status,
+            Status = ContractStatus.Active,
             CreatedAt = DateTime.UtcNow,
+            CreatedBy = User?.Identity?.Name,
             Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim(),
+            TotalAmount = totalAmount,
+            TotalItemsCount = dto.Items.Count,
             Items = dto.Items.Select(i => new ContractItem
             {
                 ProductId = i.ProductId,
-                Name = string.IsNullOrWhiteSpace(i.Name) ? string.Empty : i.Name.Trim(),
+                Sku = i.ProductId.HasValue && products.TryGetValue(i.ProductId.Value, out var p) ? p.Sku : "",
+                Name = string.IsNullOrWhiteSpace(i.Name) ? "" : i.Name.Trim(),
                 Unit = string.IsNullOrWhiteSpace(i.Unit) ? "шт" : i.Unit.Trim(),
                 Qty = i.Qty,
+                DeliveredQty = 0,
                 UnitPrice = i.UnitPrice
             }).ToList()
         };
@@ -347,6 +356,131 @@ public class ContractsController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return ValidationProblem(detail: ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return Problem(detail: ex.Message);
+        }
+    }
+
+    [HttpPost("{id:int}/items")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AddItem([FromRoute] int id, [FromBody] ContractItemDto dto, CancellationToken ct)
+    {
+        try
+        {
+            var contract = await _db.Contracts.FirstOrDefaultAsync(c => c.Id == id, ct);
+            if (contract == null) return NotFound();
+
+            if (contract.Status == ContractStatus.Closed || contract.Status == ContractStatus.Cancelled)
+                return ValidationProblem(detail: "Cannot add items to closed or cancelled contract");
+
+            // Загружаем товар если указан ProductId
+            Product? product = null;
+            if (dto.ProductId.HasValue)
+            {
+                product = await _db.Products.FirstOrDefaultAsync(p => p.Id == dto.ProductId.Value, ct);
+            }
+
+            var item = new ContractItem
+            {
+                ContractId = id,
+                ProductId = dto.ProductId,
+                Sku = product?.Sku ?? dto.Sku,
+                Name = string.IsNullOrWhiteSpace(dto.Name) ? (product?.Name ?? "") : dto.Name,
+                Unit = string.IsNullOrWhiteSpace(dto.Unit) ? "шт" : dto.Unit,
+                Qty = dto.Qty,
+                DeliveredQty = 0,
+                UnitPrice = dto.UnitPrice
+            };
+
+            _db.ContractItems.Add(item);
+            
+            // Обновляем суммы
+            contract.TotalAmount += item.Qty * item.UnitPrice;
+            contract.TotalItemsCount++;
+            
+            await _db.SaveChangesAsync(ct);
+
+            return Created($"/api/contracts/{id}/items/{item.Id}", new { id = item.Id });
+        }
+        catch (Exception ex)
+        {
+            return Problem(detail: ex.Message);
+        }
+    }
+
+    [HttpDelete("{id:int}/items/{itemId:int}")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> DeleteItem([FromRoute] int id, [FromRoute] int itemId, CancellationToken ct)
+    {
+        try
+        {
+            var contract = await _db.Contracts.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == id, ct);
+            if (contract == null) return NotFound();
+
+            var item = contract.Items.FirstOrDefault(i => i.Id == itemId);
+            if (item == null) return NotFound();
+
+            if (item.DeliveredQty > 0)
+                return ValidationProblem(detail: "Cannot delete item that has been partially delivered");
+
+            if (contract.Status == ContractStatus.Closed || contract.Status == ContractStatus.Cancelled)
+                return ValidationProblem(detail: "Cannot delete items from closed or cancelled contract");
+
+            // Обновляем суммы
+            contract.TotalAmount -= item.Qty * item.UnitPrice;
+            contract.TotalItemsCount--;
+
+            _db.ContractItems.Remove(item);
+            await _db.SaveChangesAsync(ct);
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return Problem(detail: ex.Message);
+        }
+    }
+
+    [HttpPut("{id:int}/items/{itemId:int}")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateItem([FromRoute] int id, [FromRoute] int itemId, [FromBody] ContractItemDto dto, CancellationToken ct)
+    {
+        try
+        {
+            var contract = await _db.Contracts.Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == id, ct);
+            if (contract == null) return NotFound();
+
+            var item = contract.Items.FirstOrDefault(i => i.Id == itemId);
+            if (item == null) return NotFound();
+
+            if (item.DeliveredQty > 0 && dto.Qty < item.DeliveredQty)
+                return ValidationProblem(detail: $"Cannot set quantity below delivered amount ({item.DeliveredQty})");
+
+            if (contract.Status == ContractStatus.Closed || contract.Status == ContractStatus.Cancelled)
+                return ValidationProblem(detail: "Cannot update items in closed or cancelled contract");
+
+            // Обновляем сумму договора
+            var oldItemTotal = item.Qty * item.UnitPrice;
+            var newItemTotal = dto.Qty * dto.UnitPrice;
+            contract.TotalAmount = contract.TotalAmount - oldItemTotal + newItemTotal;
+
+            // Обновляем позицию
+            item.Qty = dto.Qty;
+            item.UnitPrice = dto.UnitPrice;
+            if (!string.IsNullOrWhiteSpace(dto.Name))
+                item.Name = dto.Name;
+
+            await _db.SaveChangesAsync(ct);
+
+            return NoContent();
         }
         catch (Exception ex)
         {

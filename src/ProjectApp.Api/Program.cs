@@ -239,6 +239,18 @@ builder.Services.AddHostedService<ProjectApp.Api.Services.InventoryCleanupJob>()
 // Contracts service
 builder.Services.AddScoped<ProjectApp.Api.Services.ContractsService>();
 
+// Manager bonuses service
+builder.Services.AddScoped<ProjectApp.Api.Services.ManagerBonusService>();
+
+// Client classification service
+builder.Services.AddScoped<ProjectApp.Api.Services.ClientClassificationService>();
+
+// Analytics services
+builder.Services.AddScoped<ProjectApp.Api.Services.ABCAnalysisService>();
+builder.Services.AddScoped<ProjectApp.Api.Services.DemandForecastService>();
+builder.Services.AddScoped<ProjectApp.Api.Services.PromotionService>();
+builder.Services.AddScoped<ProjectApp.Api.Services.DiscountValidationService>();
+
 // Finance module
 builder.Services.Configure<FinanceSettings>(builder.Configuration.GetSection("Finance"));
 // Register FinanceSettings as singleton for services that need it directly (not via IOptions)

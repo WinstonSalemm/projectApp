@@ -10,5 +10,8 @@ public enum InventoryTransactionType
     Adjust = 5,
     Reserve = 6,
     Release = 7,
-    Reprice = 8
+    Reprice = 8,
+    Reservation = 9,              // Бронирование товара
+    ReservationCancelled = 10,    // Отмена бронирования
+    ContractDelivery = 11         // Отгрузка по договору
 }

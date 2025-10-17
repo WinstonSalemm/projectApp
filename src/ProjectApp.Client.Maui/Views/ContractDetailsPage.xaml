@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             x:Class="ProjectApp.Client.Maui.Views.ContractDetailsPage"
+             x:DataType="vm:ContractDetailsViewModel"
+             Title="Детали договора"
+             BackgroundColor="{DynamicResource Color.Background}">
+
+  <ScrollView Padding="16">
+    <VerticalStackLayout Spacing="16">
+      
+      <!-- Загрузка -->
+      <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"/>
+
+      <!-- Заголовок -->
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <VerticalStackLayout Grid.Column="0" Spacing="4">
+          <Label Text="{Binding OrgName}" FontSize="24" FontAttributes="Bold"/>
+          <Label Text="{Binding Inn, StringFormat='ИНН: {0}'}" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" IsVisible="{Binding Inn, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+          <Label Text="{Binding Phone, StringFormat='Тел: {0}'}" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" IsVisible="{Binding Phone, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+        </VerticalStackLayout>
+        
+        <Border Grid.Column="1" 
+                BackgroundColor="{Binding StatusColor}" 
+                Padding="12,6" 
+                StrokeThickness="0" 
+                StrokeShape="RoundRectangle 8">
+          <Label Text="{Binding StatusLabel}" TextColor="White" FontSize="13" FontAttributes="Bold"/>
+        </Border>
+      </Grid>
+
+      <!-- Финансы -->
+      <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="💰 Финансы" FontSize="18" FontAttributes="Bold"/>
+          
+          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+            <Label Grid.Row="0" Grid.Column="0" Text="Сумма договора:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+            <Label Grid.Row="0" Grid.Column="1" Text="{Binding TotalAmount, StringFormat='{0:N0} сум'}" FontSize="14" FontAttributes="Bold"/>
+            
+            <Label Grid.Row="1" Grid.Column="0" Text="Оплачено:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+            <Label Grid.Row="1" Grid.Column="1" Text="{Binding PaidAmount, StringFormat='{0:N0} сум'}" FontSize="14" FontAttributes="Bold" TextColor="{DynamicResource Color.Success}"/>
+            
+            <Label Grid.Row="2" Grid.Column="0" Text="Остаток:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+            <Label Grid.Row="2" Grid.Column="1" Text="{Binding RemainingAmount, StringFormat='{0:N0} сум'}" FontSize="14" FontAttributes="Bold" TextColor="{DynamicResource Color.Warning}"/>
+          </Grid>
+
+          <Button Text="💵 Добавить оплату" 
+                  Command="{Binding AddPaymentCommand}"
+                  IsEnabled="{Binding IsPaid, Converter={StaticResource InvertedBoolConverter}}"
+                  BackgroundColor="{DynamicResource Color.Primary}"
+                  TextColor="White"/>
+        </VerticalStackLayout>
+      </Border>
+
+      <!-- Позиции договора -->
+      <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="📦 Позиции" FontSize="18" FontAttributes="Bold"/>
+          
+          <VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}" Spacing="12">
+            <BindableLayout.ItemTemplate>
+              <DataTemplate x:DataType="vm:ContractDetailsViewModel+ContractItemRow">
+                <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" Padding="12" StrokeShape="RoundRectangle 8">
+                  <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                    <VerticalStackLayout Grid.Row="0" Spacing="4">
+                      <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold"/>
+                      <Label Text="{Binding Sku}" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                    </VerticalStackLayout>
+
+                    <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                      <VerticalStackLayout Grid.Column="0">
+                        <Label Text="Количество" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                        <Label Text="{Binding Qty, StringFormat='{0:N2}'}" FontSize="14" FontAttributes="Bold"/>
+                      </VerticalStackLayout>
+                      <VerticalStackLayout Grid.Column="1">
+                        <Label Text="Отгружено" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                        <Label Text="{Binding DeliveredQty, StringFormat='{0:N2}'}" FontSize="14" FontAttributes="Bold" TextColor="{DynamicResource Color.Success}"/>
+                      </VerticalStackLayout>
+                      <VerticalStackLayout Grid.Column="2">
+                        <Label Text="Остаток" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                        <Label Text="{Binding RemainingQty, StringFormat='{0:N2}'}" FontSize="14" FontAttributes="Bold" TextColor="{DynamicResource Color.Warning}"/>
+                      </VerticalStackLayout>
+                    </Grid>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                      <Button Grid.Column="0"
+                              Text="📤 Отгрузить"
+                              Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ContractDetailsViewModel}}, Path=DeliverItemCommand}"
+                              CommandParameter="{Binding .}"
+                              IsEnabled="{Binding IsDelivered, Converter={StaticResource InvertedBoolConverter}}"
+                              BackgroundColor="{DynamicResource Color.Success}"
+                              TextColor="White"
+                              FontSize="13"/>
+                      
+                      <Button Grid.Column="1"
+                              Text="🗑️"
+                              Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ContractDetailsViewModel}}, Path=DeleteItemCommand}"
+                              CommandParameter="{Binding .}"
+                              IsEnabled="{Binding DeliveredQty, Converter={StaticResource IsZeroConverter}}"
+                              BackgroundColor="{DynamicResource Color.Error}"
+                              TextColor="White"
+                              FontSize="13"
+                              WidthRequest="50"/>
+                    </Grid>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </BindableLayout.ItemTemplate>
+          </VerticalStackLayout>
+        </VerticalStackLayout>
+      </Border>
+
+      <!-- История оплат -->
+      <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12" IsVisible="{Binding Payments.Count, Converter={StaticResource IntToBoolConverter}}">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="💳 История оплат" FontSize="18" FontAttributes="Bold"/>
+          
+          <VerticalStackLayout BindableLayout.ItemsSource="{Binding Payments}" Spacing="8">
+            <BindableLayout.ItemTemplate>
+              <DataTemplate x:DataType="vm:ContractDetailsViewModel+PaymentRow">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="8">
+                  <VerticalStackLayout Grid.Column="0">
+                    <Label Text="{Binding Amount, StringFormat='{0:N0} сум'}" FontSize="15" FontAttributes="Bold"/>
+                    <Label Text="{Binding PaidAt, StringFormat='{0:dd.MM.yyyy HH:mm}'}" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                  </VerticalStackLayout>
+                  <Label Grid.Column="1" Text="{Binding Method}" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}" VerticalTextAlignment="Center"/>
+                </Grid>
+              </DataTemplate>
+            </BindableLayout.ItemTemplate>
+          </VerticalStackLayout>
+        </VerticalStackLayout>
+      </Border>
+
+      <!-- История отгрузок -->
+      <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12" IsVisible="{Binding Deliveries.Count, Converter={StaticResource IntToBoolConverter}}">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="🚚 История отгрузок" FontSize="18" FontAttributes="Bold"/>
+          
+          <VerticalStackLayout BindableLayout.ItemsSource="{Binding Deliveries}" Spacing="8">
+            <BindableLayout.ItemTemplate>
+              <DataTemplate x:DataType="vm:ContractDetailsViewModel+DeliveryRow">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="8">
+                  <VerticalStackLayout Grid.Column="0">
+                    <Label Text="{Binding ItemName}" FontSize="14" FontAttributes="Bold"/>
+                    <Label Text="{Binding DeliveredAt, StringFormat='{0:dd.MM.yyyy HH:mm}'}" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                  </VerticalStackLayout>
+                  <Label Grid.Column="1" Text="{Binding Qty, StringFormat='{0:N2}'}" FontSize="15" FontAttributes="Bold" VerticalTextAlignment="Center"/>
+                </Grid>
+              </DataTemplate>
+            </BindableLayout.ItemTemplate>
+          </VerticalStackLayout>
+        </VerticalStackLayout>
+      </Border>
+
+      <!-- Кнопка закрытия -->
+      <Button Text="✅ Закрыть договор"
+              Command="{Binding CloseContractCommand}"
+              IsVisible="{Binding CanClose}"
+              BackgroundColor="{DynamicResource Color.Success}"
+              TextColor="White"
+              FontSize="16"
+              Padding="16"/>
+
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

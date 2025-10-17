@@ -19,6 +19,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Batch> Batches => Set<Batch>();
     public DbSet<User> Users => Set<User>();
     public DbSet<ManagerStat> ManagerStats => Set<ManagerStat>();
+    public DbSet<ManagerBonus> ManagerBonuses => Set<ManagerBonus>();
+    public DbSet<Promotion> Promotions => Set<Promotion>();
+    public DbSet<PromotionItem> PromotionItems => Set<PromotionItem>();
     public DbSet<Contract> Contracts => Set<Contract>();
     public DbSet<ContractItem> ContractItems => Set<ContractItem>();
     public DbSet<ContractPayment> ContractPayments => Set<ContractPayment>();
@@ -29,6 +32,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SalePhoto> SalePhotos => Set<SalePhoto>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<ReservationItem> ReservationItems => Set<ReservationItem>();
+    public DbSet<ReservationItemBatch> ReservationItemBatches => Set<ReservationItemBatch>();
     public DbSet<ReservationLog> ReservationLogs => Set<ReservationLog>();
     public DbSet<StockSnapshot> StockSnapshots => Set<StockSnapshot>();
     public DbSet<Expense> Expenses => Set<Expense>();
