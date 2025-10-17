@@ -124,16 +124,19 @@ public class TaxCalculationService
     {
         try
         {
+            var startDate = from;
+            var endDate = to;
+            
             var settings = await GetTaxSettingsAsync();
             var report = new TaxReportDto
             {
-                Period = from,
-                PeriodName = $"{from:dd.MM.yyyy} - {to:dd.MM.yyyy}"
+                Period = startDate,
+                PeriodName = $"{startDate:dd.MM.yyyy} - {endDate:dd.MM.yyyy}"
             };
 
             // 1. ВЫРУЧКА
             var sales = await _db.Sales
-                .Where(s => s.CreatedAt >= from && s.CreatedAt < to)
+                .Where(s => s.CreatedAt >= startDate && s.CreatedAt < endDate)
                 .ToListAsync();
 
             report.TotalRevenue = sales.Sum(s => s.Total);
@@ -151,7 +154,7 @@ public class TaxCalculationService
 
             // 2. СЕБЕСТОИМОСТЬ (COGS)
             var cogs = await (from sale in _db.Sales
-                             where sale.CreatedAt >= from && sale.CreatedAt < to
+                             where sale.CreatedAt >= startDate && sale.CreatedAt < endDate
                              join saleItem in _db.SaleItems on sale.Id equals saleItem.SaleId
                              select (decimal?)(saleItem.Qty * saleItem.Cost)).SumAsync() ?? 0m;
 
@@ -177,7 +180,7 @@ public class TaxCalculationService
 
             // 5. ОПЕРАЦИОННЫЕ РАСХОДЫ
             var expenses = await _db.OperatingExpenses
-                .Where(e => e.ExpenseDate >= from && e.ExpenseDate <= to && 
+                .Where(e => e.ExpenseDate >= startDate && e.ExpenseDate <= endDate && 
                            e.PaymentStatus == ExpensePaymentStatus.Paid)
                 .SumAsync(e => (decimal?)e.Amount) ?? 0m;
 
@@ -196,7 +199,7 @@ public class TaxCalculationService
                 
                 // Социальные налоги (считаются от ФОТ)
                 var salaryExpenses = await _db.OperatingExpenses
-                    .Where(e => e.ExpenseDate >= from && e.ExpenseDate <= to && 
+                    .Where(e => e.ExpenseDate >= startDate && e.ExpenseDate <= endDate && 
                                e.Type == ExpenseType.Salary &&
                                e.PaymentStatus == ExpensePaymentStatus.Paid)
                     .SumAsync(e => (decimal?)e.Amount) ?? 0m;
@@ -239,7 +242,7 @@ public class TaxCalculationService
                     Type = TaxType.VAT,
                     TypeName = "НДС",
                     Amount = report.VATPayable,
-                    DueDate = to.AddDays(20), // НДС платится до 20 числа следующего месяца
+                    DueDate = endDate.AddDays(20), // НДС платится до 20 числа следующего месяца
                     IsPaid = false
                 });
             }
@@ -251,7 +254,7 @@ public class TaxCalculationService
                     Type = TaxType.IncomeTax,
                     TypeName = settings.System == TaxSystem.General ? "Налог на прибыль" : "Упрощенный налог",
                     Amount = report.IncomeTax,
-                    DueDate = to.AddDays(25), // Налог на прибыль до 25 числа
+                    DueDate = endDate.AddDays(25), // Налог на прибыль до 25 числа
                     IsPaid = false
                 });
             }
@@ -263,7 +266,7 @@ public class TaxCalculationService
                     Type = TaxType.SocialTax,
                     TypeName = "Единый социальный платеж",
                     Amount = report.SocialTax,
-                    DueDate = to.AddDays(15),
+                    DueDate = endDate.AddDays(15),
                     IsPaid = false
                 });
             }
@@ -275,7 +278,7 @@ public class TaxCalculationService
                     Type = TaxType.INPS,
                     TypeName = "ИНПС",
                     Amount = report.INPS,
-                    DueDate = to.AddDays(15),
+                    DueDate = endDate.AddDays(15),
                     IsPaid = false
                 });
             }
@@ -287,7 +290,7 @@ public class TaxCalculationService
                     Type = TaxType.SchoolFund,
                     TypeName = "Школьный фонд",
                     Amount = report.SchoolFund,
-                    DueDate = to.AddDays(15),
+                    DueDate = endDate.AddDays(15),
                     IsPaid = false
                 });
             }
