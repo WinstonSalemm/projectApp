@@ -12,7 +12,8 @@ RUN dotnet publish ProjectApp.Api.csproj -c Release -o /app/publish /p:UseAppHos
 # ====== RUNTIME ======
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
-ENV ASPNETCORE_URLS=http://0.0.0.0:5028
+# Railway автоматически установит переменную PORT
+# ASP.NET будет слушать на порту из ASPNETCORE_URLS
 COPY --from=build /app/publish .
-EXPOSE 5028
+EXPOSE 8080
 ENTRYPOINT ["dotnet","ProjectApp.Api.dll"]
