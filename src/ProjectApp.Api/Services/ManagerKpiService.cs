@@ -38,9 +38,12 @@ public class ManagerKpiService
     {
         try
         {
+            var startDate = from;
+            var endDate = to;
+            
             // Продажи менеджеров
             var salesStats = await (from s in _db.Sales
-                                   where s.CreatedAt >= from && s.CreatedAt < to && s.ManagerUserName != null
+                                   where s.CreatedAt >= startDate && s.CreatedAt < endDate && s.ManagerUserName != null
                                    group s by s.ManagerUserName into g
                                    select new
                                    {
@@ -52,7 +55,7 @@ public class ManagerKpiService
 
             // Брони менеджеров
             var reservationsStats = await (from r in _db.Reservations
-                                          where r.CreatedAt >= from && r.CreatedAt < to && r.ManagerUserName != null
+                                          where r.CreatedAt >= startDate && r.CreatedAt < endDate && r.ManagerUserName != null
                                           group r by r.ManagerUserName into g
                                           select new
                                           {
@@ -72,7 +75,7 @@ public class ManagerKpiService
 
             // Бонусы менеджеров
             var bonusStats = await (from b in _db.ManagerBonuses
-                                   where b.Month >= from && b.Month < to
+                                   where b.Month >= startDate && b.Month < endDate
                                    group b by b.ManagerUserName into g
                                    select new
                                    {
