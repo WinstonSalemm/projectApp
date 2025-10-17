@@ -189,22 +189,33 @@ public class OwnerDashboardService
     private async Task<List<StockAlertDto>> GetCriticalStockAlertsAsync()
     {
         // Получаем остатки из Stocks и группируем по продукту
-        var criticalStocks = await (from stock in _db.Stocks
-                                   group stock by stock.ProductId into g
-                                   let totalQty = g.Sum(s => s.Qty)
-                                   where totalQty <= 10 && totalQty > 0 // Минимальный порог 10
-                                   join product in _db.Products on g.Key equals product.Id
-                                   select new StockAlertDto
-                                   {
-                                       ProductId = product.Id,
-                                       ProductName = product.Name,
-                                       CurrentStock = (int)totalQty,
-                                       MinimumStock = 10,
-                                       WarehouseType = "Mixed"
-                                   })
+        var stockGroups = await _db.Stocks
+            .GroupBy(s => s.ProductId)
+            .Select(g => new
+            {
+                ProductId = g.Key,
+                TotalQty = g.Sum(s => s.Qty)
+            })
+            .Where(x => x.TotalQty > 0 && x.TotalQty <= 10)
+            .ToListAsync();
+
+        var productIds = stockGroups.Select(x => x.ProductId).ToList();
+        var products = await _db.Products
+            .Where(p => productIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, p => p.Name);
+
+        var criticalStocks = stockGroups
+            .Select(g => new StockAlertDto
+            {
+                ProductId = g.ProductId,
+                ProductName = products.ContainsKey(g.ProductId) ? products[g.ProductId] : "Unknown",
+                CurrentStock = (int)g.TotalQty,
+                MinimumStock = 10,
+                WarehouseType = "Mixed"
+            })
             .OrderBy(p => p.CurrentStock)
             .Take(10)
-            .ToListAsync();
+            .ToList();
         
         return criticalStocks;
     }
