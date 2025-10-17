@@ -270,6 +270,7 @@ builder.Services.AddScoped<ProjectApp.Api.Services.AutoReportsService>();
 builder.Services.AddHostedService<ProjectApp.Api.Services.AlertsBackgroundService>();
 
 // Audit and KPI (Phase 2)
+builder.Services.AddHttpContextAccessor(); // Для AuditLogService (IP, UserAgent)
 builder.Services.AddScoped<ProjectApp.Api.Services.AuditLogService>();
 builder.Services.AddScoped<ProjectApp.Api.Services.ManagerKpiService>();
 
