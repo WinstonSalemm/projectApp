@@ -227,20 +227,31 @@ public class OwnerDashboardService
     {
         var now = DateTime.UtcNow;
         
-        return await _db.Debts
+        var overdueDebts = await _db.Debts
             .Where(d => d.DueDate < now && d.Status == DebtStatus.Open)
             .Join(_db.Sales, d => d.SaleId, s => s.Id, (d, s) => new { Debt = d, Sale = s })
-            .Select(x => new OverdueDebtDto
+            .Select(x => new
             {
                 DebtId = x.Debt.Id,
                 ClientName = x.Sale.ClientName,
                 Amount = x.Debt.Amount,
-                DueDate = x.Debt.DueDate,
-                DaysOverdue = (int)(now - x.Debt.DueDate).TotalDays
+                DueDate = x.Debt.DueDate
+            })
+            .OrderBy(x => x.DueDate) // Сортируем по дате долга (самые старые первые)
+            .ToListAsync();
+
+        return overdueDebts
+            .Select(x => new OverdueDebtDto
+            {
+                DebtId = x.DebtId,
+                ClientName = x.ClientName,
+                Amount = x.Amount,
+                DueDate = x.DueDate,
+                DaysOverdue = (int)(now - x.DueDate).TotalDays
             })
             .OrderByDescending(d => d.DaysOverdue)
             .Take(10)
-            .ToListAsync();
+            .ToList();
     }
 
     /// <summary>
