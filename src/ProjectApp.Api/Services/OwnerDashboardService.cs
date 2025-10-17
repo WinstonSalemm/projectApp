@@ -32,40 +32,19 @@ public class OwnerDashboardService
         var startOfDay = targetDate;
         var endOfDay = targetDate.AddDays(1);
 
-        // Параллельные запросы для ускорения
-        var tasksToday = new[]
-        {
-            GetTodayRevenueAsync(startOfDay, endOfDay),
-            GetTodayProfitAsync(startOfDay, endOfDay),
-            GetTodaySalesCountAsync(startOfDay, endOfDay),
-            GetTodayAverageCheckAsync(startOfDay, endOfDay),
-            GetTop5ProductsTodayAsync(startOfDay, endOfDay),
-        };
+        // Выполняем запросы последовательно для простоты
+        var todayRevenue = await GetTodayRevenueAsync(startOfDay, endOfDay);
+        var todayProfit = await GetTodayProfitAsync(startOfDay, endOfDay);
+        var todaySalesCount = await GetTodaySalesCountAsync(startOfDay, endOfDay);
+        var todayAvgCheck = await GetTodayAverageCheckAsync(startOfDay, endOfDay);
+        var top5Products = await GetTop5ProductsTodayAsync(startOfDay, endOfDay);
 
-        var tasksGeneral = new[]
-        {
-            _cashboxService.GetTotalBalancesByCurrencyAsync(),
-            GetTotalClientDebtsAsync(),
-            GetTotalSupplierDebtsAsync(),
-            GetInventoryValueAsync(),
-            GetCriticalStockAlertsAsync(),
-            GetOverdueDebtsAsync(),
-        };
-
-        await Task.WhenAll(tasksToday.Concat(tasksGeneral));
-
-        var todayRevenue = tasksToday[0].Result;
-        var todayProfit = tasksToday[1].Result;
-        var todaySalesCount = tasksToday[2].Result;
-        var todayAvgCheck = tasksToday[3].Result;
-        var top5Products = tasksToday[4].Result;
-
-        var cashboxBalances = tasksGeneral[0].Result;
-        var clientDebts = tasksGeneral[1].Result;
-        var supplierDebts = tasksGeneral[2].Result;
-        var inventoryValue = tasksGeneral[3].Result;
-        var criticalStock = tasksGeneral[4].Result;
-        var overdueDebts = tasksGeneral[5].Result;
+        var cashboxBalances = await _cashboxService.GetTotalBalancesByCurrencyAsync();
+        var clientDebts = await GetTotalClientDebtsAsync();
+        var supplierDebts = await GetTotalSupplierDebtsAsync();
+        var inventoryValue = await GetInventoryValueAsync();
+        var criticalStock = await GetCriticalStockAlertsAsync();
+        var overdueDebts = await GetOverdueDebtsAsync();
 
         return new OwnerDashboardDto
         {
@@ -115,10 +94,11 @@ public class OwnerDashboardService
         // Выручка
         var revenue = await GetTodayRevenueAsync(from, to);
 
-        // Себестоимость проданных товаров
-        var cogs = await _db.SaleItems
-            .Where(si => si.Sale!.CreatedAt >= from && si.Sale.CreatedAt < to)
-            .SumAsync(si => si.Quantity * si.CostPrice);
+        // Себестоимость проданных товаров - через join
+        var cogs = await (from sale in _db.Sales
+                         where sale.CreatedAt >= from && sale.CreatedAt < to
+                         join saleItem in _db.SaleItems on sale.Id equals saleItem.SaleId
+                         select saleItem.Qty * saleItem.Cost).SumAsync();
 
         // Операционные расходы за день
         var expenses = await _expensesService.GetTotalExpensesAsync(from, to);
@@ -153,16 +133,18 @@ public class OwnerDashboardService
     /// </summary>
     private async Task<List<TopProductDto>> GetTop5ProductsTodayAsync(DateTime from, DateTime to)
     {
-        return await _db.SaleItems
-            .Where(si => si.Sale!.CreatedAt >= from && si.Sale.CreatedAt < to)
-            .GroupBy(si => new { si.ProductId, si.ProductName })
-            .Select(g => new TopProductDto
-            {
-                ProductId = g.Key.ProductId,
-                ProductName = g.Key.ProductName,
-                TotalRevenue = g.Sum(si => si.Price * si.Quantity),
-                TotalQuantity = g.Sum(si => si.Quantity)
-            })
+        return await (from sale in _db.Sales
+                     where sale.CreatedAt >= from && sale.CreatedAt < to
+                     join saleItem in _db.SaleItems on sale.Id equals saleItem.SaleId
+                     join product in _db.Products on saleItem.ProductId equals product.Id
+                     group saleItem by new { saleItem.ProductId, product.Name } into g
+                     select new TopProductDto
+                     {
+                         ProductId = g.Key.ProductId,
+                         ProductName = g.Key.Name,
+                         TotalRevenue = g.Sum(si => si.UnitPrice * si.Qty),
+                         TotalQuantity = (int)g.Sum(si => si.Qty)
+                     })
             .OrderByDescending(p => p.TotalRevenue)
             .Take(5)
             .ToListAsync();
@@ -183,9 +165,8 @@ public class OwnerDashboardService
     /// </summary>
     private async Task<decimal> GetTotalSupplierDebtsAsync()
     {
-        return await _db.Purchases
-            .Where(p => p.PaidAt == null)
-            .SumAsync(p => p.TotalAmount);
+        // Временно возвращаем 0, т.к. нет таблицы Purchases
+        return 0m;
     }
 
     /// <summary>
@@ -193,9 +174,9 @@ public class OwnerDashboardService
     /// </summary>
     private async Task<decimal> GetInventoryValueAsync()
     {
-        return await _db.InventoryBatches
-            .Where(b => b.Quantity > 0)
-            .SumAsync(b => b.Quantity * b.CostPrice);
+        return await _db.Batches
+            .Where(b => b.Qty > 0)
+            .SumAsync(b => b.Qty * b.UnitCost);
     }
 
     /// <summary>
@@ -203,19 +184,25 @@ public class OwnerDashboardService
     /// </summary>
     private async Task<List<StockAlertDto>> GetCriticalStockAlertsAsync()
     {
-        return await _db.Products
-            .Where(p => p.CurrentStock <= p.MinimumStock && p.CurrentStock > 0)
-            .Select(p => new StockAlertDto
-            {
-                ProductId = p.Id,
-                ProductName = p.Name,
-                CurrentStock = p.CurrentStock,
-                MinimumStock = p.MinimumStock,
-                WarehouseType = p.WarehouseType
-            })
+        // Получаем остатки из Stocks и группируем по продукту
+        var criticalStocks = await (from stock in _db.Stocks
+                                   group stock by stock.ProductId into g
+                                   let totalQty = g.Sum(s => s.Qty)
+                                   where totalQty <= 10 && totalQty > 0 // Минимальный порог 10
+                                   join product in _db.Products on g.Key equals product.Id
+                                   select new StockAlertDto
+                                   {
+                                       ProductId = product.Id,
+                                       ProductName = product.Name,
+                                       CurrentStock = (int)totalQty,
+                                       MinimumStock = 10,
+                                       WarehouseType = "Mixed"
+                                   })
             .OrderBy(p => p.CurrentStock)
             .Take(10)
             .ToListAsync();
+        
+        return criticalStocks;
     }
 
     /// <summary>
@@ -226,15 +213,15 @@ public class OwnerDashboardService
         var now = DateTime.UtcNow;
         
         return await _db.Debts
-            .Where(d => d.DueDate.HasValue && d.DueDate < now)
+            .Where(d => d.DueDate < now && d.Status == DebtStatus.Open)
             .Join(_db.Sales, d => d.SaleId, s => s.Id, (d, s) => new { Debt = d, Sale = s })
             .Select(x => new OverdueDebtDto
             {
                 DebtId = x.Debt.Id,
                 ClientName = x.Sale.ClientName,
                 Amount = x.Debt.Amount,
-                DueDate = x.Debt.DueDate!.Value,
-                DaysOverdue = (int)(now - x.Debt.DueDate!.Value).TotalDays
+                DueDate = x.Debt.DueDate,
+                DaysOverdue = (int)(now - x.Debt.DueDate).TotalDays
             })
             .OrderByDescending(d => d.DaysOverdue)
             .Take(10)
@@ -251,10 +238,11 @@ public class OwnerDashboardService
             .Where(s => s.CreatedAt >= from && s.CreatedAt < to)
             .SumAsync(s => s.Total);
 
-        // Себестоимость
-        var cogs = await _db.SaleItems
-            .Where(si => si.Sale!.CreatedAt >= from && si.Sale.CreatedAt < to)
-            .SumAsync(si => si.Quantity * si.CostPrice);
+        // Себестоимость через join
+        var cogs = await (from sale in _db.Sales
+                         where sale.CreatedAt >= from && sale.CreatedAt < to
+                         join saleItem in _db.SaleItems on sale.Id equals saleItem.SaleId
+                         select saleItem.Qty * saleItem.Cost).SumAsync();
 
         // Валовая прибыль
         var grossProfit = revenue - cogs;
@@ -293,19 +281,17 @@ public class OwnerDashboardService
     {
         // Денежные поступления
         var salesRevenue = await _db.Sales
-            .Where(s => s.CreatedAt >= from && s.CreatedAt < to && s.PaymentType != PaymentType.Credit)
+            .Where(s => s.CreatedAt >= from && s.CreatedAt < to)
             .SumAsync(s => s.Total);
 
         var debtPayments = await _db.DebtPayments
-            .Where(p => p.PaymentDate >= from && p.PaymentDate < to)
+            .Where(p => p.PaidAt >= from && p.PaidAt < to)
             .SumAsync(p => p.Amount);
 
         var totalInflow = salesRevenue + debtPayments;
 
         // Денежные выплаты
-        var purchasePayments = await _db.Purchases
-            .Where(p => p.PaidAt >= from && p.PaidAt < to)
-            .SumAsync(p => p.TotalAmount);
+        var purchasePayments = 0m; // Временно, т.к. нет таблицы Purchases
 
         var operatingExpenses = await _expensesService.GetTotalExpensesAsync(from, to);
 
