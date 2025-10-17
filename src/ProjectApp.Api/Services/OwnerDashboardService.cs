@@ -83,7 +83,7 @@ public class OwnerDashboardService
     {
         return await _db.Sales
             .Where(s => s.CreatedAt >= from && s.CreatedAt < to)
-            .SumAsync(s => s.Total);
+            .SumAsync(s => (decimal?)s.Total) ?? 0m;
     }
 
     /// <summary>
@@ -100,7 +100,7 @@ public class OwnerDashboardService
         var cogs = await (from sale in _db.Sales
                          where sale.CreatedAt >= startDate && sale.CreatedAt < endDate
                          join saleItem in _db.SaleItems on sale.Id equals saleItem.SaleId
-                         select saleItem.Qty * saleItem.Cost).SumAsync();
+                         select (decimal?)(saleItem.Qty * saleItem.Cost)).SumAsync() ?? 0m;
 
         // Операционные расходы за день
         var expenses = await _expensesService.GetTotalExpensesAsync(from, to);
@@ -159,8 +159,8 @@ public class OwnerDashboardService
     /// </summary>
     private async Task<decimal> GetTotalClientDebtsAsync()
     {
-        var totalDebts = await _db.Debts.SumAsync(d => (decimal?)d.Amount) ?? 0m;
-        var paidDebts = await _db.DebtPayments.SumAsync(p => (decimal?)p.Amount) ?? 0m;
+        var totalDebts = await _db.Debts.Where(d => d.Status == DebtStatus.Open).SumAsync(d => (decimal?)d.Amount) ?? 0m;
+        var paidDebts = 0m; // Оплаченные долги не учитываем в текущих долгах
         return totalDebts - paidDebts;
     }
 
@@ -180,7 +180,7 @@ public class OwnerDashboardService
     {
         return await _db.Batches
             .Where(b => b.Qty > 0)
-            .SumAsync(b => b.Qty * b.UnitCost);
+            .SumAsync(b => (decimal?)(b.Qty * b.UnitCost)) ?? 0m;
     }
 
     /// <summary>
@@ -243,13 +243,13 @@ public class OwnerDashboardService
         // Выручка
         var revenue = await _db.Sales
             .Where(s => s.CreatedAt >= startDate && s.CreatedAt < endDate)
-            .SumAsync(s => s.Total);
+            .SumAsync(s => (decimal?)s.Total) ?? 0m;
 
         // Себестоимость через join
         var cogs = await (from sale in _db.Sales
                          where sale.CreatedAt >= startDate && sale.CreatedAt < endDate
                          join saleItem in _db.SaleItems on sale.Id equals saleItem.SaleId
-                         select saleItem.Qty * saleItem.Cost).SumAsync();
+                         select (decimal?)(saleItem.Qty * saleItem.Cost)).SumAsync() ?? 0m;
 
         // Валовая прибыль
         var grossProfit = revenue - cogs;
@@ -289,11 +289,11 @@ public class OwnerDashboardService
         // Денежные поступления
         var salesRevenue = await _db.Sales
             .Where(s => s.CreatedAt >= from && s.CreatedAt < to)
-            .SumAsync(s => s.Total);
+            .SumAsync(s => (decimal?)s.Total) ?? 0m;
 
         var debtPayments = await _db.DebtPayments
             .Where(p => p.PaidAt >= from && p.PaidAt < to)
-            .SumAsync(p => p.Amount);
+            .SumAsync(p => (decimal?)p.Amount) ?? 0m;
 
         var totalInflow = salesRevenue + debtPayments;
 

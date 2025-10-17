@@ -160,7 +160,7 @@ public class OperatingExpensesService
             query = query.Where(e => e.Type == type.Value);
         }
 
-        return await query.SumAsync(e => e.Amount);
+        return await query.SumAsync(e => (decimal?)e.Amount) ?? 0m;
     }
 
     /// <summary>
