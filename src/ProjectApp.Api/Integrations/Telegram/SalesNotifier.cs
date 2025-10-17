@@ -51,6 +51,9 @@ public class SalesNotifier(ITelegramService tg, IOptions<TelegramSettings> optio
                 return;
             }
 
+            // Проверка на крупную сделку (>5,000,000 UZS)
+            var isLargeSale = sale.Total >= 5000000;
+
             // Resolve timezone
             var localTime = sale.CreatedAt.AddMinutes(_settings.TimeZoneOffsetMinutes);
 
@@ -122,10 +125,20 @@ public class SalesNotifier(ITelegramService tg, IOptions<TelegramSettings> optio
             }
             catch { }
 
-            var title = $"<b>Продажа #{sale.Id}</b>";
-            var header = $"Дата: {localTime:yyyy-MM-dd HH:mm}\nКлиент: {safeClient}\nОплата: {paymentRu}\nПозиции: {itemsCount} (шт: {qty:N0})\nИтого: {sale.Total:N0}\nМенеджер: {safeManager}";
+            // Форматирование для крупных/обычных сделок
+            var title = isLargeSale 
+                ? $"🔥 <b>КРУПНАЯ ПРОДАЖА #{sale.Id}!</b> 🔥"
+                : $"<b>Продажа #{sale.Id}</b>";
+            
+            var header = $"📅 Дата: {localTime:yyyy-MM-dd HH:mm}\n👤 Клиент: {safeClient}\n💳 Оплата: {paymentRu}\n📦 Позиции: {itemsCount} (шт: {qty:N0})\n💰 Итого: <b>{sale.Total:N0} UZS</b>\n👨‍💼 Менеджер: {safeManager}";
             var itemsBlock = lines.Count > 0 ? ("\n<pre>" + string.Join("\n", lines) + "</pre>") : string.Empty;
             var msg = title + "\n" + header + itemsBlock;
+            
+            // Для крупных сделок добавляем дополнительную информацию
+            if (isLargeSale)
+            {
+                msg += $"\n\n✅ <b>Крупная сделка требует внимания!</b>";
+            }
 
             foreach (var chatId in ids)
             {

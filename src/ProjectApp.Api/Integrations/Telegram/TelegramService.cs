@@ -13,6 +13,7 @@ public interface ITelegramService
     Task<bool> DeleteWebhookAsync(CancellationToken ct = default);
     Task<string> GetWebhookInfoAsync(CancellationToken ct = default);
     Task<(bool ok, string body, int status)> SendMessageDebugAsync(long chatId, string text, object? replyMarkup, CancellationToken ct = default);
+    Task<bool> SendMessageToOwnerAsync(string text, CancellationToken ct = default);
 }
 
 public class TelegramService(IHttpClientFactory httpClientFactory, IOptions<TelegramSettings> options) : ITelegramService
@@ -104,5 +105,15 @@ public class TelegramService(IHttpClientFactory httpClientFactory, IOptions<Tele
         var resp = await client.PostAsJsonAsync("sendMessage", payload, ct);
         var body = await resp.Content.ReadAsStringAsync(ct);
         return (resp.IsSuccessStatusCode, body, (int)resp.StatusCode);
+    }
+
+    public async Task<bool> SendMessageToOwnerAsync(string text, CancellationToken ct = default)
+    {
+        var chatIds = _settings.ParseAllowedChatIds();
+        if (chatIds.Count == 0) return false;
+        
+        // Отправляем владельцу (первый chatId в списке)
+        var ownerChatId = chatIds[0];
+        return await SendMessageAsync(ownerChatId, text, "HTML", null, ct);
     }
 }

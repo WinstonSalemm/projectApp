@@ -264,6 +264,15 @@ builder.Services.AddScoped<ProjectApp.Api.Services.CashboxService>();
 builder.Services.AddScoped<ProjectApp.Api.Services.OperatingExpensesService>();
 builder.Services.AddScoped<ProjectApp.Api.Services.OwnerDashboardService>();
 
+// Alerts and Auto Reports (Phase 2)
+builder.Services.AddScoped<ProjectApp.Api.Services.AlertsService>();
+builder.Services.AddScoped<ProjectApp.Api.Services.AutoReportsService>();
+builder.Services.AddHostedService<ProjectApp.Api.Services.AlertsBackgroundService>();
+
+// Audit and KPI (Phase 2)
+builder.Services.AddScoped<ProjectApp.Api.Services.AuditLogService>();
+builder.Services.AddScoped<ProjectApp.Api.Services.ManagerKpiService>();
+
 // Finance module
 builder.Services.Configure<FinanceSettings>(builder.Configuration.GetSection("Finance"));
 // Register FinanceSettings as singleton for services that need it directly (not via IOptions)
