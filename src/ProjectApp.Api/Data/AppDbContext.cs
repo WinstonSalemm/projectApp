@@ -49,6 +49,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     
     // Audit and Control
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    
+    // Tax System
+    public DbSet<TaxRecord> TaxRecords => Set<TaxRecord>();
+    public DbSet<TaxSettings> TaxSettings => Set<TaxSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

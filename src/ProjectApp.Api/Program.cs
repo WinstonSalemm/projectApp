@@ -273,6 +273,9 @@ builder.Services.AddHostedService<ProjectApp.Api.Services.AlertsBackgroundServic
 builder.Services.AddScoped<ProjectApp.Api.Services.AuditLogService>();
 builder.Services.AddScoped<ProjectApp.Api.Services.ManagerKpiService>();
 
+// Tax System (Phase 2.5)
+builder.Services.AddScoped<ProjectApp.Api.Services.TaxCalculationService>();
+
 // Finance module
 builder.Services.Configure<FinanceSettings>(builder.Configuration.GetSection("Finance"));
 // Register FinanceSettings as singleton for services that need it directly (not via IOptions)
