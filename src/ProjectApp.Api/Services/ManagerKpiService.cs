@@ -75,7 +75,7 @@ public class ManagerKpiService
 
             // Бонусы менеджеров (за весь период)
             var bonusStats = await (from b in _db.ManagerBonuses
-                                   group b by b.ManagerUserName into g
+                                   group b by b.UserName into g
                                    select new
                                    {
                                        Manager = g.Key,
