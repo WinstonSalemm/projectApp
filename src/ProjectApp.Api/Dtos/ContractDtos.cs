@@ -35,3 +35,17 @@ public class ContractUpdateStatusDto
 {
     public string Status { get; set; } = "Signed";
 }
+
+public class ContractPaymentCreateDto
+{
+    public decimal Amount { get; set; }
+    public string Method { get; set; } = "BankTransfer"; // Cash, BankTransfer, Card, Click, Payme
+    public string? Note { get; set; }
+}
+
+public class ContractDeliveryCreateDto
+{
+    public int ContractItemId { get; set; }
+    public decimal Qty { get; set; }
+    public string? Note { get; set; }
+}

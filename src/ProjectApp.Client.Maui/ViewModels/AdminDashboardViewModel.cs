@@ -41,7 +41,7 @@ public partial class AdminDashboardViewModel : ObservableObject
     [RelayCommand]
     private async Task OpenReturnsAsync()
     {
-        var page = _services.GetService<ProjectApp.Client.Maui.Views.ReturnsPage>();
+        var page = _services.GetService<ProjectApp.Client.Maui.Views.SalePickerForReturnPage>();
         if (page != null) await NavigationHelper.PushAsync(page);
     }
 

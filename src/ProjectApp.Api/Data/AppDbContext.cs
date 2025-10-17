@@ -21,6 +21,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ManagerStat> ManagerStats => Set<ManagerStat>();
     public DbSet<Contract> Contracts => Set<Contract>();
     public DbSet<ContractItem> ContractItems => Set<ContractItem>();
+    public DbSet<ContractPayment> ContractPayments => Set<ContractPayment>();
+    public DbSet<ContractDelivery> ContractDeliveries => Set<ContractDelivery>();
+    public DbSet<ContractDeliveryBatch> ContractDeliveryBatches => Set<ContractDeliveryBatch>();
     public DbSet<SaleItemConsumption> SaleItemConsumptions => Set<SaleItemConsumption>();
     public DbSet<ReturnItemRestock> ReturnItemRestocks => Set<ReturnItemRestock>();
     public DbSet<SalePhoto> SalePhotos => Set<SalePhoto>();

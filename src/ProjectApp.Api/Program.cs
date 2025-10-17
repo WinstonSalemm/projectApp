@@ -236,6 +236,9 @@ builder.Services.AddHostedService<ProjectApp.Api.Services.ReservationsCleanupSer
 builder.Services.AddScoped<ProjectApp.Api.Services.InventoryConsumptionService>();
 builder.Services.AddHostedService<ProjectApp.Api.Services.InventoryCleanupJob>();
 
+// Contracts service
+builder.Services.AddScoped<ProjectApp.Api.Services.ContractsService>();
+
 // Finance module
 builder.Services.Configure<FinanceSettings>(builder.Configuration.GetSection("Finance"));
 // Register FinanceSettings as singleton for services that need it directly (not via IOptions)

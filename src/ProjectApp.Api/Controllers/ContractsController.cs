@@ -16,11 +16,14 @@ public class ContractsController : ControllerBase
     private readonly AppDbContext _db;
     private readonly ISaleRepository _sales;
     private readonly ISaleCalculator _calculator;
-    public ContractsController(AppDbContext db, ISaleRepository sales, ISaleCalculator calculator)
+    private readonly ContractsService _contractsService;
+    
+    public ContractsController(AppDbContext db, ISaleRepository sales, ISaleCalculator calculator, ContractsService contractsService)
     {
         _db = db;
         _sales = sales;
         _calculator = calculator;
+        _contractsService = contractsService;
     }
 
     // Self-healing: ensure Contracts schema exists in prod if migrations/patchers didn't run
@@ -275,6 +278,75 @@ public class ContractsController : ControllerBase
             var provider = _db.Database.ProviderName ?? string.Empty;
             await EnsureSchemaAsync(ct);
             return Ok(new { provider, ensured = true });
+        }
+        catch (Exception ex)
+        {
+            return Problem(detail: ex.Message);
+        }
+    }
+
+    [HttpPost("{id:int}/payments")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AddPayment([FromRoute] int id, [FromBody] ContractPaymentCreateDto dto, CancellationToken ct)
+    {
+        try
+        {
+            if (!Enum.TryParse<PaymentMethod>(dto.Method, true, out var method))
+                return ValidationProblem(detail: "Invalid payment method");
+
+            var userName = User?.Identity?.Name ?? "unknown";
+            var payment = await _contractsService.AddPaymentAsync(id, dto.Amount, method, userName, dto.Note, ct);
+            return Created($"/api/contracts/{id}/payments/{payment.Id}", payment);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ValidationProblem(detail: ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return Problem(detail: ex.Message);
+        }
+    }
+
+    [HttpPost("{id:int}/deliveries")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> DeliverItem([FromRoute] int id, [FromBody] ContractDeliveryCreateDto dto, CancellationToken ct)
+    {
+        try
+        {
+            var userName = User?.Identity?.Name ?? "unknown";
+            var delivery = await _contractsService.DeliverItemAsync(id, dto.ContractItemId, dto.Qty, userName, dto.Note, ct);
+            return Created($"/api/contracts/{id}/deliveries/{delivery.Id}", delivery);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ValidationProblem(detail: ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return Problem(detail: ex.Message);
+        }
+    }
+
+    [HttpPost("{id:int}/close")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CloseContract([FromRoute] int id, CancellationToken ct)
+    {
+        try
+        {
+            var userName = User?.Identity?.Name ?? "unknown";
+            await _contractsService.CloseContractAsync(id, userName, ct);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ValidationProblem(detail: ex.Message);
         }
         catch (Exception ex)
         {

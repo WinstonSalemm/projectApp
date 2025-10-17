@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             x:Class="ProjectApp.Client.Maui.Views.SalePickerForReturnPage"
+             x:DataType="vm:SalePickerForReturnViewModel"
+             Title="Выбор продажи для возврата"
+             BackgroundColor="{DynamicResource Color.Background}">
+
+  <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="16" RowSpacing="16">
+    
+    <!-- Переключатель типа продаж -->
+    <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="8">
+      <Border Grid.Column="0"
+              StrokeThickness="1" 
+              Stroke="{DynamicResource Color.Border}" 
+              BackgroundColor="{DynamicResource Color.Surface}" 
+              Padding="12,8" 
+              StrokeShape="RoundRectangle 8">
+        <Picker ItemsSource="{Binding SaleTypes}" 
+                SelectedItem="{Binding SelectedSaleType}"
+                FontSize="14"
+                FontAttributes="Bold"
+                TextColor="{DynamicResource Color.Text.Primary}"/>
+      </Border>
+      
+      <Button Grid.Column="1" 
+              Text="🔄 Обновить" 
+              Command="{Binding LoadSalesCommand}"
+              BackgroundColor="{DynamicResource Color.Primary}"
+              TextColor="White"/>
+    </Grid>
+    
+    <!-- Поиск -->
+    <Grid Grid.Row="1">
+      <Border StrokeThickness="1" 
+              Stroke="{DynamicResource Color.Border}" 
+              BackgroundColor="{DynamicResource Color.Surface}" 
+              Padding="12,8" 
+              StrokeShape="RoundRectangle 8">
+        <Entry Text="{Binding SearchQuery}" 
+               Placeholder="🔍 Поиск по клиенту, номеру продажи..." 
+               FontSize="14"
+               BackgroundColor="Transparent"
+               TextColor="{DynamicResource Color.Text.Primary}"/>
+      </Border>
+    </Grid>
+
+    <!-- Индикатор загрузки -->
+    <ActivityIndicator Grid.Row="2" IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"/>
+
+    <!-- Список продаж -->
+    <ScrollView Grid.Row="3">
+      <VerticalStackLayout BindableLayout.ItemsSource="{Binding Sales}" Spacing="12">
+        <BindableLayout.EmptyView>
+          <VerticalStackLayout Padding="32" Spacing="12" HorizontalOptions="Center">
+            <Label Text="📦" FontSize="48" HorizontalTextAlignment="Center"/>
+            <Label Text="Нет продаж" FontSize="16" TextColor="{DynamicResource Color.Text.Secondary}" HorizontalTextAlignment="Center"/>
+          </VerticalStackLayout>
+        </BindableLayout.EmptyView>
+
+        <BindableLayout.ItemTemplate>
+          <DataTemplate x:DataType="vm:SaleForReturnRow">
+            <Border StrokeThickness="1" 
+                    Stroke="{DynamicResource Color.Border}" 
+                    BackgroundColor="{DynamicResource Color.Surface}" 
+                    Padding="16" 
+                    StrokeShape="RoundRectangle 12">
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SalePickerForReturnViewModel}}, Path=SelectSaleCommand}" 
+                                      CommandParameter="{Binding .}"/>
+              </Border.GestureRecognizers>
+
+              <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                <!-- Заголовок -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                  <Label Text="{Binding Title}" FontSize="18" FontAttributes="Bold"/>
+                  <Label Grid.Column="1" Text="{Binding Total, StringFormat='{0:N0} сум'}" FontSize="18" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}"/>
+                </Grid>
+
+                <!-- Клиент -->
+                <Label Grid.Row="1" Text="{Binding ClientName}" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+
+                <!-- Детали -->
+                <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto">
+                  <Label Text="{Binding PaymentTypeLabel}" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                  <Label Grid.Column="1" Text="{Binding ItemsCount, StringFormat='• {0} поз.'}" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}" Margin="8,0,0,0"/>
+                  <Label Grid.Column="2" Text="{Binding CreatedAt, StringFormat='{0:dd.MM.yyyy HH:mm}'}" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                </Grid>
+
+                <!-- Статус возврата -->
+                <Label Grid.Row="3" 
+                       Text="{Binding ReturnStatusLabel}" 
+                       FontSize="12" 
+                       FontAttributes="Bold"
+                       TextColor="{Binding ReturnStatusColor}"
+                       IsVisible="{Binding HasReturn}"/>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </BindableLayout.ItemTemplate>
+      </VerticalStackLayout>
+    </ScrollView>
+  </Grid>
+</ContentPage>

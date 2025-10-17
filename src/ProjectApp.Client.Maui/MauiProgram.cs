@@ -136,6 +136,8 @@ public static class MauiProgram
         builder.Services.AddTransient<SalesHistoryPage>();
         builder.Services.AddTransient<ReturnForSaleViewModel>();
         builder.Services.AddTransient<ReturnForSalePage>();
+        builder.Services.AddTransient<SalePickerForReturnViewModel>();
+        builder.Services.AddTransient<SalePickerForReturnPage>();
         builder.Services.AddTransient<ReturnsHistoryViewModel>();
         builder.Services.AddTransient<ReturnsHistoryPage>();
         builder.Services.AddTransient<SuppliesHistoryViewModel>();

@@ -48,6 +48,23 @@ public class ReturnsController : ControllerBase
         return Ok(ret);
     }
 
+    [HttpGet("history")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(typeof(IEnumerable<Return>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetHistory([FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo, CancellationToken ct)
+    {
+        var query = _db.Returns.AsNoTracking().AsQueryable();
+        
+        if (dateFrom.HasValue)
+            query = query.Where(r => r.CreatedAt >= dateFrom.Value);
+        
+        if (dateTo.HasValue)
+            query = query.Where(r => r.CreatedAt < dateTo.Value);
+        
+        var returns = await query.OrderByDescending(r => r.Id).ToListAsync(ct);
+        return Ok(returns);
+    }
+
     [HttpPost]
     [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(Return), StatusCodes.Status201Created)]
