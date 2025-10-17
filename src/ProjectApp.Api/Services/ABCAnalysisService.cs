@@ -44,19 +44,20 @@ public class ABCAnalysisService
         _logger.LogInformation("[ABCAnalysis] Analyzing products from {From} to {To}", dateFrom, dateTo);
 
         // Получаем данные по продажам
-        var salesData = await _db.SaleItems
-            .Include(si => si.Sale)
-            .Where(si => si.Sale.CreatedAt >= dateFrom && si.Sale.CreatedAt < dateTo)
-            .GroupBy(si => si.ProductId)
-            .Select(g => new
+        var salesData = await (
+            from si in _db.SaleItems
+            join s in _db.Sales on si.SaleId equals s.Id
+            where s.CreatedAt >= dateFrom && s.CreatedAt < dateTo
+            group si by si.ProductId into g
+            select new
             {
                 ProductId = g.Key,
                 TotalRevenue = g.Sum(si => si.Qty * si.UnitPrice),
                 TotalQty = g.Sum(si => si.Qty),
                 SalesCount = g.Count()
-            })
-            .OrderByDescending(g => g.TotalRevenue)
-            .ToListAsync(ct);
+            }
+        ).OrderByDescending(g => g.TotalRevenue)
+         .ToListAsync(ct);
 
         if (!salesData.Any())
         {

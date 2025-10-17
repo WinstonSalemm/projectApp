@@ -169,10 +169,9 @@ public class ContractsService
                 Qty = -batch.Qty,
                 UnitCost = batch.UnitCost,
                 BatchId = batch.BatchId,
-                ContractId = contractId,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = createdBy,
-                Note = $"Отгрузка по договору #{contractId}"
+                Note = $"Отгрузка по договору #{contractId}, доставка #{delivery.Id}"
             });
         }
 

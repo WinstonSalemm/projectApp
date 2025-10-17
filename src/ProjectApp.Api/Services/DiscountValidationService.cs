@@ -151,29 +151,29 @@ public class DiscountValidationService
     }
 
     /// <summary>
-    /// Анализ скидок за период
+    /// Анализ скидок за период (упрощенный - на основе разницы цены и себестоимости)
     /// </summary>
     public async Task<Dictionary<string, object>> AnalyzeDiscountsAsync(DateTime dateFrom, DateTime dateTo, CancellationToken ct = default)
     {
-        var sales = await _db.Sales
-            .Where(s => s.CreatedAt >= dateFrom && s.CreatedAt < dateTo)
+        var salesItems = await _db.SaleItems
+            .Where(si => _db.Sales.Any(s => s.Id == si.SaleId && s.CreatedAt >= dateFrom && s.CreatedAt < dateTo))
             .ToListAsync(ct);
 
-        var totalSales = sales.Count;
-        var salesWithDiscount = sales.Count(s => s.DiscountPercent > 0);
-        var avgDiscount = salesWithDiscount > 0
-            ? sales.Where(s => s.DiscountPercent > 0).Average(s => s.DiscountPercent)
-            : 0;
-
-        var totalRevenueLost = sales.Sum(s => s.Total * (s.DiscountPercent / 100));
+        var totalItems = salesItems.Count;
+        
+        // Считаем потенциальную скидку по разнице между ценой продажи и себестоимостью
+        var totalRevenue = salesItems.Sum(si => si.Qty * si.UnitPrice);
+        var totalCost = salesItems.Sum(si => si.Qty * si.Cost);
+        var totalMargin = totalRevenue - totalCost;
+        var avgMarginPercent = totalRevenue > 0 ? (totalMargin / totalRevenue) * 100 : 0;
 
         return new Dictionary<string, object>
         {
-            { "TotalSales", totalSales },
-            { "SalesWithDiscount", salesWithDiscount },
-            { "DiscountRate", totalSales > 0 ? (decimal)salesWithDiscount / totalSales * 100 : 0 },
-            { "AverageDiscount", decimal.Round(avgDiscount, 2) },
-            { "TotalRevenueLost", decimal.Round(totalRevenueLost, 2) }
+            { "TotalItems", totalItems },
+            { "TotalRevenue", decimal.Round(totalRevenue, 2) },
+            { "TotalCost", decimal.Round(totalCost, 2) },
+            { "TotalMargin", decimal.Round(totalMargin, 2) },
+            { "AverageMarginPercent", decimal.Round(avgMarginPercent, 2) }
         };
     }
 }

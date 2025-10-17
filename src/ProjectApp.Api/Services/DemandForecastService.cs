@@ -40,28 +40,30 @@ public class DemandForecastService
         var last60Days = now.AddDays(-60);
 
         // Анализируем продажи за последние 30 и 60 дней
-        var recentSales = await _db.SaleItems
-            .Include(si => si.Sale)
-            .Where(si => si.Sale.CreatedAt >= last30Days)
-            .GroupBy(si => si.ProductId)
-            .Select(g => new
+        var recentSales = await (
+            from si in _db.SaleItems
+            join s in _db.Sales on si.SaleId equals s.Id
+            where s.CreatedAt >= last30Days
+            group si by si.ProductId into g
+            select new
             {
                 ProductId = g.Key,
                 TotalQty30 = g.Sum(si => si.Qty),
                 SalesCount = g.Count()
-            })
-            .ToListAsync(ct);
+            }
+        ).ToListAsync(ct);
 
-        var olderSales = await _db.SaleItems
-            .Include(si => si.Sale)
-            .Where(si => si.Sale.CreatedAt >= last60Days && si.Sale.CreatedAt < last30Days)
-            .GroupBy(si => si.ProductId)
-            .Select(g => new
+        var olderSales = await (
+            from si in _db.SaleItems
+            join s in _db.Sales on si.SaleId equals s.Id
+            where s.CreatedAt >= last60Days && s.CreatedAt < last30Days
+            group si by si.ProductId into g
+            select new
             {
                 ProductId = g.Key,
                 TotalQty30 = g.Sum(si => si.Qty)
-            })
-            .ToListAsync(ct);
+            }
+        ).ToListAsync(ct);
 
         var olderSalesDict = olderSales.ToDictionary(s => s.ProductId, s => s.TotalQty30);
 
