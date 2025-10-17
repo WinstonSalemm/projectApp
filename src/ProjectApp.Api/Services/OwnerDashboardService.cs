@@ -95,8 +95,10 @@ public class OwnerDashboardService
         var revenue = await GetTodayRevenueAsync(from, to);
 
         // Себестоимость проданных товаров - через join
+        var startDate = from;
+        var endDate = to;
         var cogs = await (from sale in _db.Sales
-                         where sale.CreatedAt >= from && sale.CreatedAt < to
+                         where sale.CreatedAt >= startDate && sale.CreatedAt < endDate
                          join saleItem in _db.SaleItems on sale.Id equals saleItem.SaleId
                          select saleItem.Qty * saleItem.Cost).SumAsync();
 
@@ -133,8 +135,10 @@ public class OwnerDashboardService
     /// </summary>
     private async Task<List<TopProductDto>> GetTop5ProductsTodayAsync(DateTime from, DateTime to)
     {
+        var startDate = from;
+        var endDate = to;
         return await (from sale in _db.Sales
-                     where sale.CreatedAt >= from && sale.CreatedAt < to
+                     where sale.CreatedAt >= startDate && sale.CreatedAt < endDate
                      join saleItem in _db.SaleItems on sale.Id equals saleItem.SaleId
                      join product in _db.Products on saleItem.ProductId equals product.Id
                      group saleItem by new { saleItem.ProductId, product.Name } into g
@@ -233,14 +237,17 @@ public class OwnerDashboardService
     /// </summary>
     public async Task<ProfitLossReportDto> GetProfitLossReportAsync(DateTime from, DateTime to)
     {
+        var startDate = from;
+        var endDate = to;
+        
         // Выручка
         var revenue = await _db.Sales
-            .Where(s => s.CreatedAt >= from && s.CreatedAt < to)
+            .Where(s => s.CreatedAt >= startDate && s.CreatedAt < endDate)
             .SumAsync(s => s.Total);
 
         // Себестоимость через join
         var cogs = await (from sale in _db.Sales
-                         where sale.CreatedAt >= from && sale.CreatedAt < to
+                         where sale.CreatedAt >= startDate && sale.CreatedAt < endDate
                          join saleItem in _db.SaleItems on sale.Id equals saleItem.SaleId
                          select saleItem.Qty * saleItem.Cost).SumAsync();
 
