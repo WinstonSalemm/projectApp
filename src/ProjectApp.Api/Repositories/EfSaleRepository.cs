@@ -34,47 +34,47 @@ public class EfSaleRepository : ISaleRepository
             {
                 if (isGreyPayment)
                 {
-                    // 1) Предпочтительно IM-40
-                    var stockIm = await _db.Stocks.FirstOrDefaultAsync(
-                        s => s.ProductId == it.ProductId && s.Register == StockRegister.IM40, ct);
-                    var availableIm = stockIm?.Qty ?? 0m;
-                    var takeIm = Math.Min(availableIm, it.Qty);
+                    // 1) Сначала списываем с ND-40 (серый регистр)
+                    var stockNd = await _db.Stocks.FirstOrDefaultAsync(
+                        s => s.ProductId == it.ProductId && s.Register == StockRegister.ND40, ct);
+                    var availableNd = stockNd?.Qty ?? 0m;
+                    var takeNd = Math.Min(availableNd, it.Qty);
 
-                    decimal costIm = 0m;
-                    if (takeIm > 0)
-                    {
-                        var (avgIm, consIm) = await DeductFromBatchesAndComputeCostWithConsumptionAsync(it.ProductId, StockRegister.IM40, takeIm, ct);
-                        costIm = avgIm;
-                        if (!consumptionMap.ContainsKey(it)) consumptionMap[it] = new();
-                        consumptionMap[it].AddRange(consIm.Select(c => (c.batchId, StockRegister.IM40, c.qty)));
-                        stockIm!.Qty -= takeIm;
-                    }
-
-                    // 2) Остаток — с ND-40
-                    var remain = it.Qty - takeIm;
                     decimal costNd = 0m;
-                    if (remain > 0)
+                    if (takeNd > 0)
                     {
-                        var stockNd = await _db.Stocks.FirstOrDefaultAsync(
-                            s => s.ProductId == it.ProductId && s.Register == StockRegister.ND40, ct);
-                        if (stockNd is null)
-                            throw new InvalidOperationException($"Запись остатка не найдена для товара ProductId={it.ProductId} в регистре {StockRegister.ND40}");
-
-                        if (stockNd.Qty < remain)
-                        {
-                            var missingNd = remain - stockNd.Qty;
-                            throw new InvalidOperationException($"Недостаточно остатков для товара ProductId={it.ProductId} в {StockRegister.ND40}. Доступно={stockNd.Qty}, Требуется={remain}, Не хватает={missingNd}");
-                        }
-
-                        var (avgNd, consNd) = await DeductFromBatchesAndComputeCostWithConsumptionAsync(it.ProductId, StockRegister.ND40, remain, ct);
+                        var (avgNd, consNd) = await DeductFromBatchesAndComputeCostWithConsumptionAsync(it.ProductId, StockRegister.ND40, takeNd, ct);
                         costNd = avgNd;
                         if (!consumptionMap.ContainsKey(it)) consumptionMap[it] = new();
                         consumptionMap[it].AddRange(consNd.Select(c => (c.batchId, StockRegister.ND40, c.qty)));
-                        stockNd.Qty -= remain;
+                        stockNd!.Qty -= takeNd;
+                    }
+
+                    // 2) Остаток берем с IM-40 (белый регистр)
+                    var remain = it.Qty - takeNd;
+                    decimal costIm = 0m;
+                    if (remain > 0)
+                    {
+                        var stockIm = await _db.Stocks.FirstOrDefaultAsync(
+                            s => s.ProductId == it.ProductId && s.Register == StockRegister.IM40, ct);
+                        if (stockIm is null)
+                            throw new InvalidOperationException($"Запись остатка не найдена для товара ProductId={it.ProductId} в регистре {StockRegister.IM40}");
+
+                        if (stockIm.Qty < remain)
+                        {
+                            var missingIm = remain - stockIm.Qty;
+                            throw new InvalidOperationException($"Недостаточно остатков для товара ProductId={it.ProductId} в {StockRegister.IM40}. Доступно={stockIm.Qty}, Требуется={remain}, Не хватает={missingIm}");
+                        }
+
+                        var (avgIm, consIm) = await DeductFromBatchesAndComputeCostWithConsumptionAsync(it.ProductId, StockRegister.IM40, remain, ct);
+                        costIm = avgIm;
+                        if (!consumptionMap.ContainsKey(it)) consumptionMap[it] = new();
+                        consumptionMap[it].AddRange(consIm.Select(c => (c.batchId, StockRegister.IM40, c.qty)));
+                        stockIm.Qty -= remain;
                     }
 
                     // 3) Средневзвешенная себестоимость по обоим регистрам
-                    var totalCost = costIm * takeIm + costNd * (it.Qty - takeIm);
+                    var totalCost = costNd * takeNd + costIm * remain;
                     var avgCost = it.Qty == 0 ? 0 : decimal.Round(totalCost / it.Qty, 2, MidpointRounding.AwayFromZero);
                     it.Cost = avgCost;
                 }
