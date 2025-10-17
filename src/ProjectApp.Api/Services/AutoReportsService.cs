@@ -1,5 +1,6 @@
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Integrations.Telegram;
+using ProjectApp.Api.Integrations.Email;
 using ProjectApp.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,17 +13,20 @@ public class AutoReportsService
 {
     private readonly AppDbContext _db;
     private readonly ITelegramService _telegram;
+    private readonly IEmailService _email;
     private readonly OwnerDashboardService _dashboardService;
     private readonly ILogger<AutoReportsService> _logger;
 
     public AutoReportsService(
         AppDbContext db,
         ITelegramService telegram,
+        IEmailService email,
         OwnerDashboardService dashboardService,
         ILogger<AutoReportsService> logger)
     {
         _db = db;
         _telegram = telegram;
+        _email = email;
         _dashboardService = dashboardService;
         _logger = logger;
     }
@@ -89,8 +93,14 @@ public class AutoReportsService
 
             message += $"\n⏰ Отчет сгенерирован: {DateTime.UtcNow:HH:mm}";
 
+            // Отправляем в Telegram
             await _telegram.SendMessageToOwnerAsync(message);
-            _logger.LogInformation($"Ежедневный отчет за {today:dd.MM.yyyy} отправлен");
+            
+            // Отправляем на Email (HTML-версия)
+            var emailHtml = EmailTemplates.DailyReport(dashboard);
+            await _email.SendToOwnerAsync($"📊 Ежедневный отчет за {today:dd.MM.yyyy}", emailHtml);
+            
+            _logger.LogInformation($"Ежедневный отчет за {today:dd.MM.yyyy} отправлен (Telegram + Email)");
         }
         catch (Exception ex)
         {

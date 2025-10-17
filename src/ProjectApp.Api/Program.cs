@@ -277,6 +277,10 @@ builder.Services.AddScoped<ProjectApp.Api.Services.ManagerKpiService>();
 // Tax System (Phase 2.5)
 builder.Services.AddScoped<ProjectApp.Api.Services.TaxCalculationService>();
 
+// Email System (Phase 3)
+builder.Services.Configure<ProjectApp.Api.Models.EmailSettings>(builder.Configuration.GetSection("Email"));
+builder.Services.AddScoped<ProjectApp.Api.Integrations.Email.IEmailService, ProjectApp.Api.Integrations.Email.EmailService>();
+
 // Finance module
 builder.Services.Configure<FinanceSettings>(builder.Configuration.GetSection("Finance"));
 // Register FinanceSettings as singleton for services that need it directly (not via IOptions)

@@ -1,5 +1,6 @@
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Integrations.Telegram;
+using ProjectApp.Api.Integrations.Email;
 using ProjectApp.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,15 +13,18 @@ public class AlertsService
 {
     private readonly AppDbContext _db;
     private readonly ITelegramService _telegram;
+    private readonly IEmailService _email;
     private readonly ILogger<AlertsService> _logger;
 
     public AlertsService(
         AppDbContext db,
         ITelegramService telegram,
+        IEmailService email,
         ILogger<AlertsService> logger)
     {
         _db = db;
         _telegram = telegram;
+        _email = email;
         _logger = logger;
     }
 
@@ -49,6 +53,7 @@ public class AlertsService
 
             if (criticalProducts.Any())
             {
+                // Telegram алерт
                 var message = "🔴 <b>КРИТИЧЕСКИЕ ОСТАТКИ!</b>\n\n";
                 foreach (var p in criticalProducts)
                 {
@@ -57,9 +62,21 @@ public class AlertsService
                     message += $"   Остаток: <b>{p.Qty:F1}</b> ⚠️\n\n";
                 }
                 message += "Необходима срочная закупка!";
-
                 await _telegram.SendMessageToOwnerAsync(message);
-                _logger.LogInformation($"Алерт о критических остатках отправлен ({criticalProducts.Count} товаров)");
+                
+                // Email алерт
+                var stockAlerts = criticalProducts.Select(p => new StockAlertDto
+                {
+                    ProductId = 0,
+                    ProductName = p.Name,
+                    CurrentStock = (int)p.Qty,
+                    MinimumStock = 10,
+                    WarehouseType = "Mixed"
+                }).ToList();
+                var emailHtml = EmailTemplates.CriticalStockAlert(stockAlerts);
+                await _email.SendToOwnerAsync("🔴 КРИТИЧЕСКИЕ ОСТАТКИ ТОВАРОВ", emailHtml);
+                
+                _logger.LogInformation($"Алерт о критических остатках отправлен ({criticalProducts.Count} товаров) - Telegram + Email");
             }
         }
         catch (Exception ex)
