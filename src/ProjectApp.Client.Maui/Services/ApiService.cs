@@ -33,10 +33,10 @@ public class ApiService
     /// </summary>
     private void AddAuthorizationHeader()
     {
-        if (!string.IsNullOrEmpty(_authService.Token))
+        if (!string.IsNullOrEmpty(_authService.AccessToken))
         {
             _httpClient.DefaultRequestHeaders.Authorization = 
-                new AuthenticationHeaderValue("Bearer", _authService.Token);
+                new AuthenticationHeaderValue("Bearer", _authService.AccessToken);
         }
     }
 

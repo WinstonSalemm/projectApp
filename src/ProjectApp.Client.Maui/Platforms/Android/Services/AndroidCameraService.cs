@@ -77,7 +77,7 @@ public class AndroidCameraService : ICameraService
             }
 
             // Создаем временный файл для фото
-            var photoFile = new File(
+            var photoFile = new Java.IO.File(
                 _context.CacheDir,
                 $"security_photo_{DateTime.Now:yyyyMMdd_HHmmss}.jpg"
             );
@@ -95,7 +95,7 @@ public class AndroidCameraService : ICameraService
         }
     }
 
-    private Task<string?> CapturePhotoAsync(File outputFile)
+    private Task<string?> CapturePhotoAsync(Java.IO.File outputFile)
     {
         var tcs = new TaskCompletionSource<string?>();
 
@@ -245,7 +245,7 @@ public class AndroidCameraService : ICameraService
     {
         try
         {
-            if (string.IsNullOrEmpty(photoPath) || !File.Exists(photoPath))
+            if (string.IsNullOrEmpty(photoPath) || !System.IO.File.Exists(photoPath))
                 return null;
 
             return await System.IO.File.ReadAllBytesAsync(photoPath);

@@ -156,7 +156,7 @@
                  FontSize="32" 
                  VerticalOptions="Center" />
           <VerticalStackLayout Grid.Column="1" Margin="16,0,0,0" VerticalOptions="Center">
-            <Label Text="P&L отчет" 
+            <Label Text="P&amp;L отчет" 
                    FontSize="18" 
                    FontAttributes="Bold" />
             <Label Text="Прибыли и убытки" 

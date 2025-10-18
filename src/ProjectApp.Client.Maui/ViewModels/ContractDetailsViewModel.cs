@@ -1,7 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using ProjectApp.Client.Maui.Services;
 using System.Collections.ObjectModel;
+using System.Net.Http.Json;
 
 namespace ProjectApp.Client.Maui.ViewModels;
 

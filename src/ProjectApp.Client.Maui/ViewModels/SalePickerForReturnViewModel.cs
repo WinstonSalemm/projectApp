@@ -1,7 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using ProjectApp.Client.Maui.Services;
 using System.Collections.ObjectModel;
+using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace ProjectApp.Client.Maui.ViewModels;
@@ -150,8 +152,7 @@ public partial class SalePickerForReturnViewModel : ObservableObject
         var returnPage = App.Services.GetRequiredService<Views.ReturnForSalePage>();
         if (returnPage.BindingContext is ReturnForSaleViewModel vm)
         {
-            vm.RefSaleId = sale.SaleId.ToString();
-            await vm.LoadSaleCommand.ExecuteAsync(null);
+            await vm.LoadAsync(sale.SaleId);
         }
 
         await Shell.Current.Navigation.PushAsync(returnPage);
@@ -173,21 +174,6 @@ public partial class SalePickerForReturnViewModel : ObservableObject
             "Reservation" => "🔖 Бронь",
             _ => paymentType
         };
-    }
-
-    public class SaleForReturnRow
-    {
-        public int SaleId { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string ClientName { get; set; } = string.Empty;
-        public decimal Total { get; set; }
-        public string PaymentType { get; set; } = string.Empty;
-        public string PaymentTypeLabel { get; set; } = string.Empty;
-        public int ItemsCount { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public bool HasReturn { get; set; }
-        public string ReturnStatusLabel { get; set; } = string.Empty;
-        public Color ReturnStatusColor { get; set; } = Colors.Transparent;
     }
 
     private class SaleDto
@@ -213,4 +199,20 @@ public partial class SalePickerForReturnViewModel : ObservableObject
         public int Id { get; set; }
         public int RefSaleId { get; set; }
     }
+}
+
+// Helper class for UI binding
+public class SaleForReturnRow
+{
+    public int SaleId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string ClientName { get; set; } = string.Empty;
+    public decimal Total { get; set; }
+    public string PaymentType { get; set; } = string.Empty;
+    public string PaymentTypeLabel { get; set; } = string.Empty;
+    public int ItemsCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public bool HasReturn { get; set; }
+    public string ReturnStatusLabel { get; set; } = string.Empty;
+    public Color ReturnStatusColor { get; set; } = Colors.Transparent;
 }
