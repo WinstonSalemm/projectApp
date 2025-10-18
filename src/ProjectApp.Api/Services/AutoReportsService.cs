@@ -82,8 +82,26 @@ public class AutoReportsService
                 for (int i = 0; i < Math.Min(5, dashboard.Top5ProductsToday.Count); i++)
                 {
                     var p = dashboard.Top5ProductsToday[i];
-                    message += $"{i + 1}. {p.ProductName}\n";
-                    message += $"   💰 {p.TotalRevenue:N0} UZS ({p.TotalQuantity} шт)\n";
+                    
+                    // Получаем детали товара из БД
+                    var product = await _db.Products
+                        .Where(pr => pr.Name == p.ProductName)
+                        .Select(pr => new { pr.Sku, pr.Price })
+                        .FirstOrDefaultAsync();
+                    
+                    // Считаем остаток
+                    var stock = await _db.Batches
+                        .Where(b => b.Product.Name == p.ProductName && b.Qty > 0)
+                        .SumAsync(b => (int?)b.Qty) ?? 0;
+                    
+                    var sku = product?.Sku ?? "N/A";
+                    var avgPrice = p.TotalQuantity > 0 ? p.TotalRevenue / p.TotalQuantity : 0;
+                    
+                    message += $"{i + 1}. <b>{p.ProductName}</b>\n";
+                    message += $"   📦 SKU: {sku}\n";
+                    message += $"   💰 Выручка: {p.TotalRevenue:N0} UZS\n";
+                    message += $"   🔢 Продано: {p.TotalQuantity} шт × {avgPrice:N0} UZS\n";
+                    message += $"   📊 Остаток: {stock} шт\n";
                 }
             }
             else
@@ -173,8 +191,26 @@ public class AutoReportsService
                 for (int i = 0; i < topProducts.Count; i++)
                 {
                     var p = topProducts[i];
-                    message += $"{i + 1}. {p.ProductName}\n";
-                    message += $"   💰 {p.TotalRevenue:N0} UZS\n";
+                    
+                    // Получаем детали товара
+                    var product = await _db.Products
+                        .Where(pr => pr.Name == p.ProductName)
+                        .Select(pr => new { pr.Sku, pr.Price })
+                        .FirstOrDefaultAsync();
+                    
+                    // Считаем остаток
+                    var stock = await _db.Batches
+                        .Where(b => b.Product.Name == p.ProductName && b.Qty > 0)
+                        .SumAsync(b => (int?)b.Qty) ?? 0;
+                    
+                    var sku = product?.Sku ?? "N/A";
+                    var avgPrice = p.TotalQty > 0 ? p.TotalRevenue / p.TotalQty : 0;
+                    
+                    message += $"{i + 1}. <b>{p.ProductName}</b>\n";
+                    message += $"   📦 SKU: {sku}\n";
+                    message += $"   💰 Выручка: {p.TotalRevenue:N0} UZS\n";
+                    message += $"   🔢 Продано: {p.TotalQty} шт × {avgPrice:N0} UZS\n";
+                    message += $"   📊 Остаток: {stock} шт\n";
                 }
                 message += "\n";
             }
