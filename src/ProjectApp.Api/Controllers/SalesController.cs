@@ -104,6 +104,12 @@ public class SalesController : ControllerBase
 
                 var dueDate = dto.DebtDueDate ?? DateTime.UtcNow.AddDays(30); // По умолчанию 30 дней
                 
+                // Получаем информацию о продуктах для DebtItems
+                var productIds = sale.Items.Select(si => si.ProductId).ToList();
+                var products = await _db.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id, ct);
+
                 var debt = new Debt
                 {
                     ClientId = sale.ClientId.Value,
@@ -115,15 +121,19 @@ public class SalesController : ControllerBase
                     Notes = dto.DebtNotes,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = sale.CreatedBy,
-                    Items = sale.Items.Select(si => new DebtItem
+                    Items = sale.Items.Select(si => 
                     {
-                        ProductId = si.ProductId,
-                        ProductName = si.ProductName,
-                        Sku = si.Sku,
-                        Qty = si.Qty,
-                        Price = si.Price,
-                        Total = si.Total,
-                        CreatedAt = DateTime.UtcNow
+                        var product = products.GetValueOrDefault(si.ProductId);
+                        return new DebtItem
+                        {
+                            ProductId = si.ProductId,
+                            ProductName = product?.Name ?? "Неизвестный товар",
+                            Sku = product?.Sku,
+                            Qty = si.Qty,
+                            Price = si.UnitPrice,
+                            Total = si.Qty * si.UnitPrice,
+                            CreatedAt = DateTime.UtcNow
+                        };
                     }).ToList()
                 };
 
@@ -323,4 +333,3 @@ public class SalesController : ControllerBase
         return NoContent();
     }
 }
-
