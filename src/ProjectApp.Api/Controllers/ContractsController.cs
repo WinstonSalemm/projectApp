@@ -17,13 +17,17 @@ public class ContractsController : ControllerBase
     private readonly ISaleRepository _sales;
     private readonly ISaleCalculator _calculator;
     private readonly ContractsService _contractsService;
+    private readonly CommissionService _commissionService;
+    private readonly ILogger<ContractsController> _logger;
     
-    public ContractsController(AppDbContext db, ISaleRepository sales, ISaleCalculator calculator, ContractsService contractsService)
+    public ContractsController(AppDbContext db, ISaleRepository sales, ISaleCalculator calculator, ContractsService contractsService, CommissionService commissionService, ILogger<ContractsController> logger)
     {
         _db = db;
         _sales = sales;
         _calculator = calculator;
         _contractsService = contractsService;
+        _commissionService = commissionService;
+        _logger = logger;
     }
 
     // Self-healing: ensure Contracts schema exists in prod if migrations/patchers didn't run
@@ -213,6 +217,8 @@ public class ContractsController : ControllerBase
             Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim(),
             TotalAmount = totalAmount,
             TotalItemsCount = dto.Items.Count,
+            CommissionAgentId = dto.CommissionAgentId,
+            CommissionAmount = dto.CommissionAmount,
             Items = dto.Items.Select(i => new ContractItem
             {
                 ProductId = i.ProductId,
@@ -226,6 +232,29 @@ public class ContractsController : ControllerBase
         };
         _db.Contracts.Add(c);
         await _db.SaveChangesAsync(ct);
+
+        // КОМИССИЯ ПАРТНЕРУ: Если указан партнер и сумма комиссии - начисляем
+        if (c.CommissionAgentId.HasValue && c.CommissionAmount.HasValue && c.CommissionAmount > 0)
+        {
+            _ = Task.Run(async () => 
+            {
+                try
+                {
+                    await _commissionService.AccrueCommissionForContractAsync(
+                        c.Id,
+                        c.CommissionAgentId.Value,
+                        c.CommissionAmount.Value,
+                        c.CreatedBy
+                    );
+                    _logger.LogInformation("Начислена комиссия {Amount} партнеру {AgentId} за договор {ContractId}",
+                        c.CommissionAmount.Value, c.CommissionAgentId.Value, c.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Ошибка начисления комиссии за договор {ContractId}", c.Id);
+                }
+            }, CancellationToken.None);
+        }
 
         return Created($"/api/contracts/{c.Id}", new { id = c.Id });
     }

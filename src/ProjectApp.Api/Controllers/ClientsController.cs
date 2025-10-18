@@ -181,4 +181,87 @@ public class ClientsController(AppDbContext db) : ControllerBase
         var list = await q.OrderByDescending(r => r.Id).Include(r => r.Items).ToListAsync(ct);
         return Ok(list);
     }
+
+    /// <summary>
+    /// Получить список ДОЛЖНИКОВ (клиенты с активными долгами)
+    /// </summary>
+    [HttpGet("debtors")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDebtors([FromQuery] int page = 1, [FromQuery] int size = 50, CancellationToken ct = default)
+    {
+        // Получаем клиентов с активными долгами
+        var debtorsQuery = from client in db.Clients
+                           join debt in db.Debts on client.Id equals debt.ClientId
+                           where debt.Status == DebtStatus.Open
+                           group debt by new { client.Id, client.Name, client.Phone, client.Type } into g
+                           select new
+                           {
+                               ClientId = g.Key.Id,
+                               ClientName = g.Key.Name,
+                               Phone = g.Key.Phone,
+                               Type = g.Key.Type,
+                               TotalDebt = g.Sum(d => d.Amount),
+                               DebtsCount = g.Count(),
+                               OldestDueDate = g.Min(d => d.DueDate)
+                           };
+
+        page = Math.Max(1, page);
+        size = Math.Clamp(size, 1, 200);
+        
+        var total = await debtorsQuery.CountAsync(ct);
+        var items = await debtorsQuery
+            .OrderByDescending(d => d.TotalDebt)
+            .Skip((page - 1) * size)
+            .Take(size)
+            .ToListAsync(ct);
+
+        return Ok(new { items, total, page, size });
+    }
+
+    /// <summary>
+    /// Получить детальную информацию о клиенте с его долгом и историей покупок
+    /// </summary>
+    [HttpGet("{id:int}/with-debt")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetClientWithDebt(int id, CancellationToken ct)
+    {
+        var client = await db.Clients.FindAsync(id);
+        if (client is null) return NotFound();
+
+        // Получаем активные долги клиента
+        var activeDebts = await db.Debts
+            .AsNoTracking()
+            .Where(d => d.ClientId == id && d.Status == DebtStatus.Open)
+            .ToListAsync(ct);
+
+        var totalDebt = activeDebts.Sum(d => d.Amount);
+
+        // Получаем историю покупок
+        var purchases = await db.Sales
+            .AsNoTracking()
+            .Where(s => s.ClientId == id)
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync(ct);
+
+        var totalPurchases = purchases.Sum(s => s.Total);
+
+        return Ok(new
+        {
+            client,
+            debt = new
+            {
+                totalAmount = totalDebt,
+                debts = activeDebts
+            },
+            purchases = new
+            {
+                totalAmount = totalPurchases,
+                count = purchases.Count,
+                history = purchases
+            }
+        });
+    }
 }

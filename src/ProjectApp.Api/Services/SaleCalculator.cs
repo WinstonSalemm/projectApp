@@ -24,7 +24,9 @@ public class SaleCalculator : ISaleCalculator
             ClientId = dto.ClientId,
             ClientName = dto.ClientName.Trim(),
             PaymentType = dto.PaymentType,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            CommissionAgentId = dto.CommissionAgentId,
+            CommissionRate = dto.CommissionRate
         };
 
         foreach (var it in dto.Items)

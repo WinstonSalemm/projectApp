@@ -281,6 +281,9 @@ builder.Services.AddScoped<ProjectApp.Api.Services.TaxCalculationService>();
 builder.Services.Configure<ProjectApp.Api.Models.EmailSettings>(builder.Configuration.GetSection("Email"));
 builder.Services.AddScoped<ProjectApp.Api.Integrations.Email.IEmailService, ProjectApp.Api.Integrations.Email.EmailService>();
 
+// Commission (Partner Program)
+builder.Services.AddScoped<ProjectApp.Api.Services.CommissionService>();
+
 // Finance module
 builder.Services.Configure<FinanceSettings>(builder.Configuration.GetSection("Finance"));
 // Register FinanceSettings as singleton for services that need it directly (not via IOptions)

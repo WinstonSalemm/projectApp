@@ -24,8 +24,9 @@ public class SalesController : ControllerBase
     private readonly TelegramSettings _tgSettings;
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
+    private readonly CommissionService _commissionService;
 
-    public SalesController(ISaleRepository sales, ISaleCalculator calculator, ILogger<SalesController> logger, ISalesNotifier notifier, ITelegramService tg, IOptions<TelegramSettings> tgOptions, AppDbContext db, IConfiguration config)
+    public SalesController(ISaleRepository sales, ISaleCalculator calculator, ILogger<SalesController> logger, ISalesNotifier notifier, ITelegramService tg, IOptions<TelegramSettings> tgOptions, AppDbContext db, IConfiguration config, CommissionService commissionService)
     {
         _sales = sales;
         _calculator = calculator;
@@ -35,6 +36,7 @@ public class SalesController : ControllerBase
         _tgSettings = tgOptions.Value;
         _db = db;
         _config = config;
+        _commissionService = commissionService;
     }
 
     [HttpGet]
@@ -63,6 +65,74 @@ public class SalesController : ControllerBase
 
             _logger.LogInformation("Sale created {SaleId} for client {ClientId} total {Total} payment {PaymentType}",
                 sale.Id, sale.ClientId, sale.Total, sale.PaymentType);
+
+            // КОМИССИЯ ПАРТНЕРУ: Если указан партнер и % комиссии - начисляем
+            if (sale.CommissionAgentId.HasValue && sale.CommissionRate.HasValue && sale.CommissionRate > 0)
+            {
+                var commissionAmount = Math.Round(sale.Total * sale.CommissionRate.Value / 100, 2);
+                sale.CommissionAmount = commissionAmount;
+                
+                // Начисляем комиссию партнеру
+                _ = Task.Run(async () => 
+                {
+                    try
+                    {
+                        await _commissionService.AccrueCommissionForSaleAsync(
+                            sale.Id,
+                            sale.CommissionAgentId.Value,
+                            sale.Total,
+                            sale.CommissionRate.Value,
+                            sale.CreatedBy
+                        );
+                        _logger.LogInformation("Начислена комиссия {Amount} партнеру {AgentId} за продажу {SaleId}",
+                            commissionAmount, sale.CommissionAgentId.Value, sale.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Ошибка начисления комиссии за продажу {SaleId}", sale.Id);
+                    }
+                }, CancellationToken.None);
+            }
+
+            // СОЗДАНИЕ ДОЛГА: Если тип оплаты = Debt - создаем запись о долге
+            if (sale.PaymentType == PaymentType.Debt)
+            {
+                if (!sale.ClientId.HasValue)
+                {
+                    return ValidationProblem("Для продажи в долг необходимо указать клиента");
+                }
+
+                var dueDate = dto.DebtDueDate ?? DateTime.UtcNow.AddDays(30); // По умолчанию 30 дней
+                
+                var debt = new Debt
+                {
+                    ClientId = sale.ClientId.Value,
+                    SaleId = sale.Id,
+                    Amount = sale.Total,
+                    OriginalAmount = sale.Total,
+                    DueDate = dueDate,
+                    Status = DebtStatus.Open,
+                    Notes = dto.DebtNotes,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = sale.CreatedBy,
+                    Items = sale.Items.Select(si => new DebtItem
+                    {
+                        ProductId = si.ProductId,
+                        ProductName = si.ProductName,
+                        Sku = si.Sku,
+                        Qty = si.Qty,
+                        Price = si.Price,
+                        Total = si.Total,
+                        CreatedAt = DateTime.UtcNow
+                    }).ToList()
+                };
+
+                _db.Debts.Add(debt);
+                await _db.SaveChangesAsync(ct);
+
+                _logger.LogInformation("Создан долг {DebtId} для клиента {ClientId} на сумму {Amount}, срок {DueDate}",
+                    debt.Id, debt.ClientId, debt.Amount, debt.DueDate);
+            }
 
             // Notification: if client set NotifyHold=true, skip text; Android client will upload photo+caption
             if (!(dto.NotifyHold ?? false))

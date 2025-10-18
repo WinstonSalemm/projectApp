@@ -40,6 +40,122 @@ public class DebtsController(AppDbContext db, IDebtsNotifier debtsNotifier) : Co
         return Ok(pays);
     }
 
+    // GET /api/debts/{id}
+    /// <summary>
+    /// Получить детали долга с товарами
+    /// </summary>
+    [HttpGet("{id:int}")]
+    [Authorize(Policy = "ManagerOnly")]
+    public async Task<IActionResult> GetDetails(int id)
+    {
+        var debt = await db.Debts
+            .Include(d => d.Items)
+            .FirstOrDefaultAsync(d => d.Id == id);
+        
+        if (debt is null) return NotFound();
+
+        var client = await db.Clients.FindAsync(debt.ClientId);
+        var paidAmount = debt.OriginalAmount - debt.Amount;
+
+        var result = new DebtDetailsDto
+        {
+            Id = debt.Id,
+            ClientId = debt.ClientId,
+            ClientName = client?.Name ?? "Неизвестный клиент",
+            SaleId = debt.SaleId,
+            Amount = debt.Amount,
+            OriginalAmount = debt.OriginalAmount,
+            PaidAmount = paidAmount,
+            DueDate = debt.DueDate,
+            Status = debt.Status.ToString(),
+            Items = debt.Items.Select(i => new DebtItemDto
+            {
+                Id = i.Id,
+                ProductId = i.ProductId,
+                ProductName = i.ProductName,
+                Sku = i.Sku,
+                Qty = i.Qty,
+                Price = i.Price,
+                Total = i.Total
+            }).ToList(),
+            Notes = debt.Notes,
+            CreatedAt = debt.CreatedAt,
+            CreatedBy = debt.CreatedBy
+        };
+
+        return Ok(result);
+    }
+
+    // GET /api/debts/by-client/{clientId}
+    /// <summary>
+    /// Получить все долги конкретного клиента
+    /// </summary>
+    [HttpGet("by-client/{clientId:int}")]
+    [Authorize(Policy = "ManagerOnly")]
+    public async Task<IActionResult> GetByClient(int clientId)
+    {
+        var debts = await db.Debts
+            .AsNoTracking()
+            .Where(d => d.ClientId == clientId)
+            .OrderByDescending(d => d.CreatedAt)
+            .ToListAsync();
+
+        var totalDebt = debts.Where(d => d.Status == DebtStatus.Open).Sum(d => d.Amount);
+
+        return Ok(new
+        {
+            clientId,
+            totalDebt,
+            debts
+        });
+    }
+
+    // PUT /api/debts/{id}/items
+    /// <summary>
+    /// Редактировать товары в долге (изменить цену/количество)
+    /// </summary>
+    [HttpPut("{id:int}/items")]
+    [Authorize(Policy = "ManagerOnly")]
+    public async Task<IActionResult> UpdateItems(int id, [FromBody] UpdateDebtItemsDto dto, CancellationToken ct)
+    {
+        var debt = await db.Debts
+            .Include(d => d.Items)
+            .FirstOrDefaultAsync(d => d.Id == id, ct);
+        
+        if (debt is null) return NotFound();
+        if (debt.Status == DebtStatus.Paid) return ValidationProblem("Нельзя редактировать оплаченный долг");
+
+        // Обновляем товары
+        foreach (var itemDto in dto.Items)
+        {
+            var existingItem = debt.Items.FirstOrDefault(i => i.Id == itemDto.Id);
+            if (existingItem != null)
+            {
+                existingItem.Qty = itemDto.Qty;
+                existingItem.Price = itemDto.Price;
+                existingItem.Total = itemDto.Qty * itemDto.Price;
+                existingItem.UpdatedAt = DateTime.UtcNow;
+                existingItem.UpdatedBy = User.Identity?.Name;
+            }
+        }
+
+        // Пересчитываем общую сумму долга
+        var newTotal = debt.Items.Sum(i => i.Total);
+        var paidAmount = debt.OriginalAmount - debt.Amount; // Сколько уже оплачено
+        
+        debt.Amount = Math.Max(0, newTotal - paidAmount); // Новая сумма долга
+        debt.OriginalAmount = newTotal; // Обновляем изначальную сумму
+
+        if (debt.Amount <= 0)
+        {
+            debt.Status = DebtStatus.Paid;
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        return Ok(new { debt.Id, debt.Amount, debt.OriginalAmount, message = "Товары обновлены" });
+    }
+
     // POST /api/debts/{id}/pay
     [HttpPost("{id:int}/pay")]
     [Authorize(Policy = "ManagerOnly")]

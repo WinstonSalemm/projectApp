@@ -15,6 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ReturnItem> ReturnItems => Set<ReturnItem>();
     public DbSet<Stock> Stocks => Set<Stock>();
     public DbSet<Debt> Debts => Set<Debt>();
+    public DbSet<DebtItem> DebtItems => Set<DebtItem>();
     public DbSet<DebtPayment> DebtPayments => Set<DebtPayment>();
     public DbSet<Batch> Batches => Set<Batch>();
     public DbSet<User> Users => Set<User>();
@@ -53,6 +54,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     // Tax System
     public DbSet<TaxRecord> TaxRecords => Set<TaxRecord>();
     public DbSet<TaxSettings> TaxSettings => Set<TaxSettings>();
+    
+    // Commission (Partner Program)
+    public DbSet<CommissionTransaction> CommissionTransactions => Set<CommissionTransaction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

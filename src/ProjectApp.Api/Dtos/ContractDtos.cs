@@ -54,6 +54,17 @@ public class ContractCreateDto
     public string Status { get; set; } = "Signed";
     public string? Note { get; set; }
     public List<ContractItemDto> Items { get; set; } = new();
+    
+    // ПАРТНЕРСКАЯ ПРОГРАММА
+    /// <summary>
+    /// ID клиента-партнера, который привел этого клиента
+    /// </summary>
+    public int? CommissionAgentId { get; set; }
+    
+    /// <summary>
+    /// Сумма комиссии партнеру (вводится вручную)
+    /// </summary>
+    public decimal? CommissionAmount { get; set; }
 }
 
 public class ContractUpdateStatusDto

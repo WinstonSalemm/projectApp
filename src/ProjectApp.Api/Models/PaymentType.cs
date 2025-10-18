@@ -12,5 +12,6 @@ public enum PaymentType
     Payme = 7,
     ClickWithReceipt = 8,
     ClickNoReceipt = 9,
-    Contract = 10
+    Contract = 10,
+    Debt = 11  // Отгрузка в долг (товар отгружен, оплата позже)
 }

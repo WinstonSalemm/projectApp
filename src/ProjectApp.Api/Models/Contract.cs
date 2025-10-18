@@ -21,6 +21,19 @@ public class Contract
     public int TotalItemsCount { get; set; }      // Всего позиций
     public int DeliveredItemsCount { get; set; }  // Отгружено позиций
 
+    // ===== ПАРТНЕРСКАЯ ПРОГРАММА =====
+    
+    /// <summary>
+    /// ID клиента-партнера, который привел этого клиента
+    /// Если указан - начисляется комиссия
+    /// </summary>
+    public int? CommissionAgentId { get; set; }
+    
+    /// <summary>
+    /// Сумма комиссии партнеру по этому договору (вводится вручную)
+    /// </summary>
+    public decimal? CommissionAmount { get; set; }
+
     public List<ContractItem> Items { get; set; } = new();
     public List<ContractPayment> Payments { get; set; } = new();
     public List<ContractDelivery> Deliveries { get; set; } = new();
