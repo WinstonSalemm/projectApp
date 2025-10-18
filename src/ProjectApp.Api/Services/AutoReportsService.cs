@@ -86,13 +86,15 @@ public class AutoReportsService
                     // Получаем детали товара из БД
                     var product = await _db.Products
                         .Where(pr => pr.Name == p.ProductName)
-                        .Select(pr => new { pr.Sku, pr.Price })
+                        .Select(pr => new { pr.Id, pr.Sku, pr.Price })
                         .FirstOrDefaultAsync();
                     
                     // Считаем остаток
-                    var stock = await _db.Batches
-                        .Where(b => b.Product.Name == p.ProductName && b.Qty > 0)
-                        .SumAsync(b => (int?)b.Qty) ?? 0;
+                    var stock = product != null
+                        ? await _db.Batches
+                            .Where(b => b.ProductId == product.Id && b.Qty > 0)
+                            .SumAsync(b => (int?)b.Qty) ?? 0
+                        : 0;
                     
                     var sku = product?.Sku ?? "N/A";
                     var avgPrice = p.TotalQuantity > 0 ? p.TotalRevenue / p.TotalQuantity : 0;
@@ -195,13 +197,15 @@ public class AutoReportsService
                     // Получаем детали товара
                     var product = await _db.Products
                         .Where(pr => pr.Name == p.ProductName)
-                        .Select(pr => new { pr.Sku, pr.Price })
+                        .Select(pr => new { pr.Id, pr.Sku, pr.Price })
                         .FirstOrDefaultAsync();
                     
                     // Считаем остаток
-                    var stock = await _db.Batches
-                        .Where(b => b.Product.Name == p.ProductName && b.Qty > 0)
-                        .SumAsync(b => (int?)b.Qty) ?? 0;
+                    var stock = product != null
+                        ? await _db.Batches
+                            .Where(b => b.ProductId == product.Id && b.Qty > 0)
+                            .SumAsync(b => (int?)b.Qty) ?? 0
+                        : 0;
                     
                     var sku = product?.Sku ?? "N/A";
                     var avgPrice = p.TotalQty > 0 ? p.TotalRevenue / p.TotalQty : 0;
