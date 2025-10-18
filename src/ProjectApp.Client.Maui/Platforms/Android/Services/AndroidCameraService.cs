@@ -128,7 +128,7 @@ public class AndroidCameraService : ICameraService
                         var sizes = map.GetOutputSizes((int)ImageFormatType.Jpeg);
                         var optimalSize = sizes?.OrderBy(s => s.Width * s.Height)
                             .Skip(sizes.Length / 2)
-                            .FirstOrDefault() ?? new Size(640, 480);
+                            .FirstOrDefault() ?? new Android.Util.Size(640, 480);
 
                         // Создаем ImageReader для получения фото
                         var reader = ImageReader.NewInstance(optimalSize.Width, optimalSize.Height, 
@@ -187,7 +187,7 @@ public class AndroidCameraService : ICameraService
                         // Создаем capture request
                         var captureRequest = camera.CreateCaptureRequest(CameraTemplate.StillCapture);
                         captureRequest?.AddTarget(readerSurface);
-                        captureRequest?.Set(CaptureRequest.JpegQuality, (byte)85); // Качество 85%
+                        captureRequest?.Set(CaptureRequest.JpegQuality, (Java.Lang.Byte)(sbyte)85); // Качество 85%
                         
                         // Создаем capture session
                         camera.CreateCaptureSession(

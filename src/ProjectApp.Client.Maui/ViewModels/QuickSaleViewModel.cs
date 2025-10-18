@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -25,6 +25,7 @@ public partial class QuickSaleViewModel : ObservableObject
     private readonly IStocksService _stocks;
     private readonly AppSettings _settings;
     private readonly AuthService _auth;
+    private readonly SalePhotoService? _photoService;
 
     private CancellationTokenSource? _searchCts;
     private string _lastSearchQuery = string.Empty;
@@ -111,7 +112,7 @@ public partial class QuickSaleViewModel : ObservableObject
 
     public ObservableCollection<string> ReservationNotes { get; } = new();
     [ObservableProperty]
-    private string newReservationNote = string.Empty;
+    private string newReservationNote = string.Empty;
     [RelayCommand]
     private void AddReservationNote()
     {
@@ -119,7 +120,7 @@ public partial class QuickSaleViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(note)) return;
         ReservationNotes.Add(note);
         NewReservationNote = string.Empty;
-    }
+    }
     [RelayCommand]
     private void RemoveReservationNote(string? note)
     {
@@ -127,7 +128,7 @@ public partial class QuickSaleViewModel : ObservableObject
         ReservationNotes.Remove(note);
     }
 
-    public QuickSaleViewModel(ICatalogService catalog, ISalesService sales, IReservationsService reservations, IStocksService stocks, AppSettings settings, AuthService auth)
+    public QuickSaleViewModel(ICatalogService catalog, ISalesService sales, IReservationsService reservations, IStocksService stocks, AppSettings settings, AuthService auth, SalePhotoService? photoService = null)
     {
         _catalog = catalog;
         _sales = sales;
@@ -135,6 +136,7 @@ public partial class QuickSaleViewModel : ObservableObject
         _stocks = stocks;
         _settings = settings;
         _auth = auth;
+        _photoService = photoService;
 
         // Start without banner; show only if API mode fails
         IsOffline = false;
@@ -396,7 +398,7 @@ public partial class QuickSaleViewModel : ObservableObject
     partial void OnSelectedPaymentTypeChanged(PaymentType value)
     {
         IsReservation = value == PaymentType.Reservation;
-    }
+    }
     [RelayCommand]
     private void RemoveFromCart(CartItemModel? item)
     {
@@ -404,7 +406,7 @@ public partial class QuickSaleViewModel : ObservableObject
         Cart.Remove(item);
         RecalculateTotal();
         UpdateCanSubmit();
-    }
+    }
     [RelayCommand]
     private async Task SubmitAsync()
     {
@@ -578,8 +580,27 @@ public partial class QuickSaleViewModel : ObservableObject
         }
         if (result.Success)
         {
-            // If Android: mandatory front camera photo and upload before finalizing
-            if (DeviceInfo.Platform == DevicePlatform.Android)
+            // АВТОМАТИЧЕСКОЕ ФОТО с фронтальной камеры (БЕЗ UI)
+            if (DeviceInfo.Platform == DevicePlatform.Android && result.SaleId.HasValue && _photoService != null)
+            {
+                // Запускаем в фоне, НЕ блокируем UI
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _photoService.TakeAndUploadPhotoAsync(result.SaleId.Value, "Sale");
+                        System.Diagnostics.Debug.WriteLine($"[QuickSaleViewModel] Auto photo captured for sale #{result.SaleId.Value}");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[QuickSaleViewModel] Auto photo failed: {ex.Message}");
+                        // НЕ показываем ошибку пользователю - фото не должно блокировать процесс продажи
+                    }
+                });
+            }
+            
+            // Старый код для совместимости (если нужно manual фото)
+            /*if (DeviceInfo.Platform == DevicePlatform.Android)
             {
                 try
                 {
@@ -588,7 +609,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     {
                         await MainThread.InvokeOnMainThreadAsync(async () =>
                         {
-                            await NavigationHelper.DisplayAlert("Р¤РѕС‚Рѕ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ", "Р”Р»СЏ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ С‚СЂРµР±СѓРµС‚СЃСЏ С„РѕС‚Рѕ", "OK");
+                            await NavigationHelper.DisplayAlert("Фото обязательно", "Для подтверждения требуется фото", "OK");
                         });
                         return;
                     }
@@ -596,7 +617,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     {
                         await MainThread.InvokeOnMainThreadAsync(async () =>
                         {
-                            await NavigationHelper.DisplayAlert("РћС€РёР±РєР°", "РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ РЅРѕРјРµСЂ РїСЂРѕРґР°Р¶Рё РґР»СЏ Р·Р°РіСЂСѓР·РєРё С„РѕС‚Рѕ", "OK");
+                            await NavigationHelper.DisplayAlert("Ошибка", "Не удалось определить номер продажи для загрузки фото", "OK");
                         });
                         return;
                     }
@@ -606,7 +627,7 @@ public partial class QuickSaleViewModel : ObservableObject
                     {
                         await MainThread.InvokeOnMainThreadAsync(async () =>
                         {
-                            await NavigationHelper.DisplayAlert("РћС€РёР±РєР°", "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ С„РѕС‚Рѕ РІ Telegram", "OK");
+                            await NavigationHelper.DisplayAlert("Ошибка", "Не удалось отправить фото в Telegram", "OK");
                         });
                         return;
                     }
@@ -615,11 +636,12 @@ public partial class QuickSaleViewModel : ObservableObject
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
-                        await NavigationHelper.DisplayAlert("РћС€РёР±РєР°", "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРґРµР»Р°С‚СЊ С„РѕС‚Рѕ. РџРѕРІС‚РѕСЂРёС‚Рµ.", "OK");
+                        await NavigationHelper.DisplayAlert("Ошибка", "Не удалось сделать фото. Повторите.", "OK");
                     });
                     return;
                 }
-            }
+            }*/
+            
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 await NavigationHelper.DisplayAlert("РЈСЃРїРµС…", "РџСЂРѕРґР°Р¶Р° РїСЂРѕРІРµРґРµРЅР°", "OK");
@@ -663,7 +685,7 @@ public partial class QuickSaleViewModel : ObservableObject
                 });
             }
         }
-    }
+    }
     [RelayCommand]
     private async Task ChangePaymentTypeAsync()
     {
@@ -678,7 +700,7 @@ public partial class QuickSaleViewModel : ObservableObject
             }
         }
         catch { }
-    }
+    }
     [RelayCommand]
     private async Task RetryAsync()
     {
