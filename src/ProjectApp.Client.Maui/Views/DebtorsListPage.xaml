@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             x:Class="ProjectApp.Client.Maui.Views.DebtorsListPage"
+             x:DataType="vm:DebtorsListViewModel"
+             Title="Должники">
+  
+  <Grid RowDefinitions="Auto,*" Padding="16">
+    
+    <!-- Header -->
+    <VerticalStackLayout Spacing="8">
+      <Label Text="Список должников" 
+             FontSize="24" 
+             FontAttributes="Bold" />
+      <Label Text="{Binding TotalDebtorsCount, StringFormat='Всего должников: {0}'}" 
+             FontSize="14" 
+             TextColor="Gray" />
+      <Label Text="{Binding TotalDebtAmount, StringFormat='Общий долг: {0:N0} сум'}" 
+             FontSize="16" 
+             FontAttributes="Bold"
+             TextColor="#F44336" />
+    </VerticalStackLayout>
+
+    <!-- Debtors List -->
+    <ScrollView Grid.Row="1">
+      <CollectionView ItemsSource="{Binding Debtors}"
+                      SelectionMode="Single"
+                      SelectionChanged="OnDebtorSelected">
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Frame Padding="16" 
+                   Margin="0,8,0,0" 
+                   CornerRadius="8"
+                   BackgroundColor="White"
+                   HasShadow="True">
+              <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+                
+                <!-- Client Name -->
+                <Label Grid.Column="0"
+                       Text="{Binding ClientName}" 
+                       FontSize="18" 
+                       FontAttributes="Bold" />
+                
+                <!-- Debt Badge -->
+                <Frame Grid.Column="1"
+                       Grid.RowSpan="2"
+                       Padding="12,6"
+                       CornerRadius="16"
+                       BackgroundColor="#FFEBEE"
+                       HasShadow="False">
+                  <Label Text="{Binding TotalDebt, StringFormat='{0:N0} сум'}"
+                         FontSize="14"
+                         FontAttributes="Bold"
+                         TextColor="#F44336" />
+                </Frame>
+                
+                <!-- Phone -->
+                <HorizontalStackLayout Grid.Row="1" Spacing="8">
+                  <Label Text="📞" FontSize="16" />
+                  <Label Text="{Binding Phone}" 
+                         FontSize="14" 
+                         TextColor="Gray" />
+                </HorizontalStackLayout>
+                
+                <!-- Debts Count -->
+                <HorizontalStackLayout Grid.Row="2" Spacing="8" Margin="0,4,0,0">
+                  <Label Text="📋" FontSize="16" />
+                  <Label Text="{Binding DebtsCount, StringFormat='Долгов: {0}'}" 
+                         FontSize="14" 
+                         TextColor="Gray" />
+                </HorizontalStackLayout>
+                
+                <!-- Due Date -->
+                <HorizontalStackLayout Grid.Row="3" Spacing="8" Margin="0,4,0,0">
+                  <Label Text="⏰" FontSize="16" />
+                  <Label Text="{Binding OldestDueDate, StringFormat='Срок: {0:dd.MM.yyyy}'}" 
+                         FontSize="14" 
+                         TextColor="{Binding IsOverdue, Converter={StaticResource BoolToColorConverter}}" />
+                </HorizontalStackLayout>
+                
+              </Grid>
+            </Frame>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+    </ScrollView>
+    
+    <!-- Loading Indicator -->
+    <ActivityIndicator Grid.Row="1"
+                       IsRunning="{Binding IsBusy}"
+                       IsVisible="{Binding IsBusy}"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center" />
+    
+  </Grid>
+  
+</ContentPage>

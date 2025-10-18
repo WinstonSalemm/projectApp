@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             x:Class="ProjectApp.Client.Maui.Views.CommissionAgentsPage"
+             x:DataType="vm:CommissionAgentsViewModel"
+             Title="Партнеры">
+  <Grid RowDefinitions="Auto,*" Padding="16">
+    <VerticalStackLayout Spacing="8">
+      <Label Text="💼 Партнеры (Агенты)" FontSize="24" FontAttributes="Bold" />
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,8,0,0">
+        <Frame Padding="12" CornerRadius="8" BackgroundColor="#E3F2FD">
+          <VerticalStackLayout Spacing="4">
+            <Label Text="ПАРТНЕРОВ" FontSize="10" TextColor="Gray" />
+            <Label Text="{Binding TotalAgents}" FontSize="24" FontAttributes="Bold" TextColor="#1976D2" />
+          </VerticalStackLayout>
+        </Frame>
+        <Frame Grid.Column="1" Padding="12" CornerRadius="8" BackgroundColor="#FFEBEE">
+          <VerticalStackLayout Spacing="4">
+            <Label Text="ОБЩИЙ ДОЛГ" FontSize="10" TextColor="Gray" />
+            <Label Text="{Binding TotalBalance, StringFormat='{0:N0}'}" FontSize="20" FontAttributes="Bold" TextColor="#F44336" />
+          </VerticalStackLayout>
+        </Frame>
+      </Grid>
+    </VerticalStackLayout>
+    <ScrollView Grid.Row="1">
+      <CollectionView ItemsSource="{Binding Agents}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Frame Padding="16" Margin="0,8,0,0" CornerRadius="8" BackgroundColor="White" HasShadow="True">
+              <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                <Label Text="{Binding ClientName}" FontSize="18" FontAttributes="Bold" />
+                <Frame Grid.Column="1" Grid.RowSpan="2" Padding="10" CornerRadius="16" BackgroundColor="#FFEBEE" HasShadow="False">
+                  <Label Text="{Binding CommissionBalance, StringFormat='{0:N0}'}" FontSize="16" FontAttributes="Bold" TextColor="#F44336" />
+                </Frame>
+                <Label Grid.Row="1" Text="{Binding Phone}" FontSize="14" TextColor="Gray" />
+                <Label Grid.Row="2" Text="{Binding CommissionAgentSince, StringFormat='🕒 С {0:dd.MM.yyyy}'}" FontSize="12" TextColor="Gray" />
+              </Grid>
+            </Frame>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+    </ScrollView>
+    <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HorizontalOptions="Center" VerticalOptions="Center" />
+  </Grid>
+</ContentPage>
