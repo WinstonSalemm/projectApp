@@ -28,15 +28,41 @@
   </Shell.Resources>
 
   <Shell.TitleView>
-    <controls:TopAppBar x:Name="TitleBar"
-                        Title="ProjectApp"
-                        Subtitle="Управление продажами"
-                        IsVisible="True" />
+    <Grid x:Name="TitleBar" Padding="16,8" HeightRequest="60">
+      <Grid.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+          <GradientStop Color="#0D47A1" Offset="0.0" />
+          <GradientStop Color="#1976D2" Offset="1.0" />
+        </LinearGradientBrush>
+      </Grid.Background>
+      <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
+        <Frame Padding="8,4" CornerRadius="6" BackgroundColor="#1565C0" HasShadow="False">
+          <Label Text="POJ" FontSize="20" FontAttributes="Bold" TextColor="White" />
+        </Frame>
+        <Label Text="PRO" FontSize="24" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
+        <Label Text="| Управление продажами" FontSize="12" TextColor="#B3E5FC" VerticalOptions="Center" Margin="8,0,0,0" />
+      </HorizontalStackLayout>
+    </Grid>
   </Shell.TitleView>
 
   <Shell.FlyoutHeader>
-    <Grid BackgroundColor="{StaticResource Color.Primary}" Padding="16" HeightRequest="120">
-      <Label Text="ProjectApp" FontSize="24" FontAttributes="Bold" VerticalOptions="Center" TextColor="White"/>
+    <Grid Padding="20" HeightRequest="140">
+      <Grid.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Color="#0D47A1" Offset="0.0" />
+          <GradientStop Color="#1976D2" Offset="0.5" />
+          <GradientStop Color="#42A5F5" Offset="1.0" />
+        </LinearGradientBrush>
+      </Grid.Background>
+      <VerticalStackLayout VerticalOptions="Center" Spacing="8">
+        <HorizontalStackLayout Spacing="10">
+          <Frame Padding="10,6" CornerRadius="8" BackgroundColor="#1565C0" HasShadow="True">
+            <Label Text="POJ" FontSize="28" FontAttributes="Bold" TextColor="White" />
+          </Frame>
+          <Label Text="PRO" FontSize="32" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
+        </HorizontalStackLayout>
+        <Label Text="Профессиональная система управления" FontSize="11" TextColor="#B3E5FC" Margin="4,0,0,0" />
+      </VerticalStackLayout>
     </Grid>
   </Shell.FlyoutHeader>
 
@@ -51,44 +77,62 @@
         <RowDefinition Height="*" />
       </Grid.RowDefinitions>
       <VerticalStackLayout Spacing="{StaticResource Space.1}">
-        <Label Text="ProjectApp"
-               FontSize="{StaticResource Font.Size.H2}"
-               FontAttributes="Bold"
-               TextColor="{DynamicResource Color.Text.Primary}" />
+        <HorizontalStackLayout Spacing="8">
+          <Label Text="POJ"
+                 FontSize="{StaticResource Font.Size.H2}"
+                 FontAttributes="Bold"
+                 TextColor="#1976D2" />
+          <Label Text="PRO"
+                 FontSize="{StaticResource Font.Size.H2}"
+                 FontAttributes="Bold"
+                 TextColor="{DynamicResource Color.Text.Primary}" />
+        </HorizontalStackLayout>
         <Label Text="Панель управления"
                FontSize="{StaticResource Font.Size.Body.Small}"
                TextColor="{DynamicResource Color.Text.Secondary}" />
       </VerticalStackLayout>
 
       <VerticalStackLayout Grid.Row="1" Spacing="{StaticResource Space.2}">
+        <!-- Доступно всем -->
         <Button x:Name="DashboardRailButton"
-                Text="Главная"
+                Text="🏠 Главная"
                 Style="{StaticResource NavigationRailButtonStyle}"
                 CommandParameter="dashboard"
                 Clicked="OnNavRailClicked"
                 SemanticProperties.Description="Перейти на главную панель" />
-        <Button Text="Продажи"
+        <Button Text="🛒 Продажи"
                 Style="{StaticResource NavigationRailButtonStyle}"
                 CommandParameter="sales"
                 Clicked="OnNavRailClicked"
                 SemanticProperties.Description="Открыть модуль продаж" />
-        <Button Text="Склад"
-                Style="{StaticResource NavigationRailButtonStyle}"
-                CommandParameter="inventory"
-                Clicked="OnNavRailClicked"
-                SemanticProperties.Description="Перейти к складу" />
-        <Button Text="Клиенты"
+        <Button Text="👥 Клиенты"
                 Style="{StaticResource NavigationRailButtonStyle}"
                 CommandParameter="clients"
                 Clicked="OnNavRailClicked"
                 SemanticProperties.Description="Перейти к клиентам" />
-        <Button Text="Аналитика"
-                x:Name="AnalyticsRailButton"
+        <Button Text="📦 Склад"
+                Style="{StaticResource NavigationRailButtonStyle}"
+                CommandParameter="inventory"
+                Clicked="OnNavRailClicked"
+                SemanticProperties.Description="Перейти к складу" />
+        
+        <!-- Только для Админа -->
+        <Button x:Name="FinancesRailButton"
+                Text="💰 Финансы"
+                Style="{StaticResource NavigationRailButtonStyle}"
+                CommandParameter="finances"
+                Clicked="OnNavRailClicked"
+                IsVisible="False"
+                SemanticProperties.Description="Перейти к финансам" />
+        <Button x:Name="AnalyticsRailButton"
+                Text="📊 Аналитика"
                 Style="{StaticResource NavigationRailButtonStyle}"
                 CommandParameter="analytics"
                 Clicked="OnNavRailClicked"
+                IsVisible="False"
                 SemanticProperties.Description="Перейти к аналитике" />
-        <Button Text="Настройки"
+        
+        <Button Text="⚙️ Настройки"
                 Style="{StaticResource NavigationRailButtonStyle}"
                 CommandParameter="settings"
                 Clicked="OnNavRailClicked"
@@ -106,29 +150,46 @@
   </VisualStateManager.VisualStateGroups>
 
   <TabBar x:Name="MainTabBar">
+    <!-- Доступно всем -->
     <ShellContent x:Name="DashboardTab"
                   Route="dashboard"
                   Title="Главная"
+                  Icon="home.png"
                   ContentTemplate="{DataTemplate views:AdminDashboardPage}" />
     <ShellContent x:Name="SalesTab"
                   Route="sales"
                   Title="Продажи"
+                  Icon="sales.png"
                   ContentTemplate="{DataTemplate views:SaleStartPage}" />
-    <ShellContent x:Name="InventoryTab"
-                  Route="inventory"
-                  Title="Склад"
-                  ContentTemplate="{DataTemplate views:StocksPage}" />
     <ShellContent x:Name="ClientsTab"
                   Route="clients"
                   Title="Клиенты"
+                  Icon="clients.png"
                   ContentTemplate="{DataTemplate views:ClientsListPage}" />
+    <ShellContent x:Name="InventoryTab"
+                  Route="inventory"
+                  Title="Склад"
+                  Icon="inventory.png"
+                  ContentTemplate="{DataTemplate views:StocksPage}" />
+    
+    <!-- Только для Админа -->
+    <ShellContent x:Name="FinancesTab"
+                  Route="finances"
+                  Title="Финансы"
+                  Icon="finances.png"
+                  IsVisible="False"
+                  ContentTemplate="{DataTemplate views:FinancesMenuPage}" />
     <ShellContent x:Name="AnalyticsTab"
                   Route="analytics"
                   Title="Аналитика"
+                  Icon="analytics.png"
+                  IsVisible="False"
                   ContentTemplate="{DataTemplate views:AnalyticsMenuPage}" />
+    
     <ShellContent x:Name="SettingsTab"
                   Route="settings"
                   Title="Настройки"
+                  Icon="settings.png"
                   ContentTemplate="{DataTemplate views:SettingsPage}" />
   </TabBar>
 </Shell>

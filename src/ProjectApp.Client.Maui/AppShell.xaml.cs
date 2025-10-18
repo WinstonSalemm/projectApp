@@ -17,9 +17,10 @@ public partial class AppShell : Shell
     {
         ["dashboard"] = "Administrative overview",
         ["sales"] = "Active sales pipeline",
+        ["clients"] = "Customer directory and debts",
         ["inventory"] = "Stock availability and movement",
-        ["clients"] = "Customer directory and ownership",
-        ["analytics"] = "Financial and manager analytics",
+        ["finances"] = "Cashboxes and expenses",
+        ["analytics"] = "Tax and commercial analytics",
         ["settings"] = "Application preferences"
     };
     private string _currentRoute = "sales";
@@ -78,10 +79,18 @@ public partial class AppShell : Shell
         RegisterRoute<ClientEditPage>("clients/edit");
         RegisterRoute<ClientPickerPage>("clients/picker");
         RegisterRoute<UnregisteredClientPage>("clients/unregistered");
+        RegisterRoute<DebtorsListPage>("clients/debtors");
+        RegisterRoute<DebtDetailPage>("debts/detail");
         RegisterRoute<StocksPage>("stocks/list");
         RegisterRoute<HistoryTabsPage>("history/tabs");
+        RegisterRoute<FinancesMenuPage>("finances/menu");
+        RegisterRoute<CashboxesPage>("finances/cashboxes");
+        RegisterRoute<ExpensesPage>("finances/expenses");
         RegisterRoute<FinanceAnalyticsPage>("analytics/finance");
         RegisterRoute<ManagerAnalyticsPage>("analytics/managers");
+        RegisterRoute<TaxAnalyticsPage>("analytics/tax");
+        RegisterRoute<ManagerKpiPage>("analytics/kpi");
+        RegisterRoute<CommissionAgentsPage>("analytics/commission");
         RegisterRoute<ProductCostsPage>("analytics/products");
         RegisterRoute<SettingsPage>("settings");
     }
@@ -110,10 +119,12 @@ public partial class AppShell : Shell
             _currentRoute = "dashboard";
         else if (ReferenceEquals(CurrentItem, SalesTab))
             _currentRoute = "sales";
-        else if (ReferenceEquals(CurrentItem, InventoryTab))
-            _currentRoute = "inventory";
         else if (ReferenceEquals(CurrentItem, ClientsTab))
             _currentRoute = "clients";
+        else if (ReferenceEquals(CurrentItem, InventoryTab))
+            _currentRoute = "inventory";
+        else if (ReferenceEquals(CurrentItem, FinancesTab))
+            _currentRoute = "finances";
         else if (ReferenceEquals(CurrentItem, AnalyticsTab))
             _currentRoute = "analytics";
         else if (ReferenceEquals(CurrentItem, SettingsTab))
@@ -167,13 +178,19 @@ public partial class AppShell : Shell
         try
         {
             bool isAdmin = string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+            
+            // Admin-only tabs and buttons
+            if (DashboardTab != null) DashboardTab.IsVisible = isAdmin;
+            if (DashboardRailButton != null) DashboardRailButton.IsVisible = isAdmin;
+            if (FinancesTab != null) FinancesTab.IsVisible = isAdmin;
+            if (FinancesRailButton != null) FinancesRailButton.IsVisible = isAdmin;
             if (AnalyticsTab != null) AnalyticsTab.IsVisible = isAdmin;
             if (AnalyticsRailButton != null) AnalyticsRailButton.IsVisible = isAdmin;
-            if (DashboardRailButton != null) DashboardRailButton.IsVisible = isAdmin;
-            if (DashboardTab != null) DashboardTab.IsVisible = isAdmin;
 
             var defaultRoute = isAdmin ? "dashboard" : "sales";
             NavigateToRoute(defaultRoute);
+            
+            System.Diagnostics.Debug.WriteLine($"[AppShell] Role-based UI updated. IsAdmin={isAdmin}");
         }
         catch (Exception ex)
         {
@@ -230,11 +247,15 @@ public partial class AppShell : Shell
                 case "sales":
                     if (SalesTab != null) CurrentItem = SalesTab;
                     break;
+                case "clients":
+                    if (ClientsTab != null) CurrentItem = ClientsTab;
+                    break;
                 case "inventory":
                     if (InventoryTab != null) CurrentItem = InventoryTab;
                     break;
-                case "clients":
-                    if (ClientsTab != null) CurrentItem = ClientsTab;
+                case "finances":
+                    if (FinancesTab?.IsVisible == true)
+                        CurrentItem = FinancesTab;
                     break;
                 case "analytics":
                     if (AnalyticsTab?.IsVisible == true)
@@ -255,23 +276,13 @@ public partial class AppShell : Shell
 
     private void UpdateTitleBar()
     {
+        // TitleBar is now a static Grid with POJ PRO branding
+        // No dynamic updates needed - logo is always visible
         if (TitleBar is null)
             return;
 
-        var title = CurrentPage?.Title;
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            title = _routeDescriptions.TryGetValue(_currentRoute, out var name)
-                ? name
-                : "ProjectApp";
-        }
-
-        var subtitle = _routeDescriptions.TryGetValue(_currentRoute, out var description)
-            ? description
-            : "Project control centre";
-
-        TitleBar.Title = title;
-        TitleBar.Subtitle = subtitle ?? "ProjectApp";
+        // Title and subtitle are now fixed in the POJ PRO branding
+        // Keep this method for future enhancements if needed
     }
 
     private void OnLogoutClicked(object? sender, EventArgs e)

@@ -98,6 +98,26 @@ public static class MauiProgram
         // Finance
         builder.Services.AddSingleton<ApiFinanceService>();
         builder.Services.AddSingleton<IFinanceService>(sp => sp.GetRequiredService<ApiFinanceService>());
+        
+        // New API Services (with HttpClient)
+        builder.Services.AddHttpClient<ApiService>(client =>
+        {
+            var settings = builder.Services.BuildServiceProvider().GetRequiredService<AppSettings>();
+            client.BaseAddress = new Uri(settings.ApiBaseUrl ?? "https://projectapp-production.up.railway.app");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        builder.Services.AddSingleton<DebtorsApiService>();
+        builder.Services.AddSingleton<FinancesApiService>();
+        builder.Services.AddSingleton<TaxApiService>();
+        builder.Services.AddSingleton<AnalyticsApiService>();
+        
+        // Camera Service (platform-specific)
+#if ANDROID
+        builder.Services.AddSingleton<ICameraService, ProjectApp.Client.Maui.Platforms.Android.Services.AndroidCameraService>();
+#else
+        builder.Services.AddSingleton<ICameraService, DefaultCameraService>();
+#endif
+        builder.Services.AddSingleton<SalePhotoService>();
 
         // VM and Views
         builder.Services.AddTransient<QuickSaleViewModel>();
@@ -165,6 +185,28 @@ public static class MauiProgram
         builder.Services.AddTransient<UnregisteredClientPage>();
         builder.Services.AddTransient<ConfirmAccountPage>();
         builder.Services.AddTransient<SimpleAdminPage>();
+        
+        // New pages and ViewModels
+        builder.Services.AddTransient<DebtorsListViewModel>();
+        builder.Services.AddTransient<DebtorsListPage>();
+        builder.Services.AddTransient<DebtDetailPage>();
+        builder.Services.AddTransient<FinancesMenuPage>();
+        
+        builder.Services.AddTransient<CashboxesViewModel>();
+        builder.Services.AddTransient<CashboxesPage>();
+        
+        builder.Services.AddTransient<ExpensesViewModel>();
+        builder.Services.AddTransient<ExpensesPage>();
+        
+        builder.Services.AddTransient<TaxAnalyticsViewModel>();
+        builder.Services.AddTransient<TaxAnalyticsPage>();
+        
+        builder.Services.AddTransient<ManagerKpiViewModel>();
+        builder.Services.AddTransient<ManagerKpiPage>();
+        
+        builder.Services.AddTransient<CommissionAgentsViewModel>();
+        builder.Services.AddTransient<CommissionAgentsPage>();
+        
         builder.Services.AddSingleton<AppShell>();
 
         return builder.Build();
