@@ -47,6 +47,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Cashbox> Cashboxes => Set<Cashbox>();
     public DbSet<CashTransaction> CashTransactions => Set<CashTransaction>();
     public DbSet<OperatingExpense> OperatingExpenses => Set<OperatingExpense>();
+    public DbSet<CashCollection> CashCollections => Set<CashCollection>();
     
     // Audit and Control
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();

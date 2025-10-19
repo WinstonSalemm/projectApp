@@ -263,6 +263,7 @@ builder.Services.AddScoped<ProjectApp.Api.Services.DiscountValidationService>();
 builder.Services.AddScoped<ProjectApp.Api.Services.CashboxService>();
 builder.Services.AddScoped<ProjectApp.Api.Services.OperatingExpensesService>();
 builder.Services.AddScoped<ProjectApp.Api.Services.OwnerDashboardService>();
+builder.Services.AddScoped<ProjectApp.Api.Services.CashCollectionService>();
 
 // Alerts and Auto Reports (Phase 2)
 builder.Services.AddScoped<ProjectApp.Api.Services.AlertsService>();
