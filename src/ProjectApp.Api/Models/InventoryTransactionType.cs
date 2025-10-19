@@ -13,5 +13,8 @@ public enum InventoryTransactionType
     Reprice = 8,
     Reservation = 9,              // Бронирование товара
     ReservationCancelled = 10,    // Отмена бронирования
-    ContractDelivery = 11         // Отгрузка по договору
+    ContractDelivery = 11,        // Отгрузка по договору
+    Defective = 12,               // Списание брака
+    DefectiveCancelled = 13,      // Отмена списания брака (возврат)
+    Refill = 14                   // Перезарядка (огнетушители)
 }
