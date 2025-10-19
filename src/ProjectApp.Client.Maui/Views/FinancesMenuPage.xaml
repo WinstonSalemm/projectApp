@@ -201,6 +201,37 @@
         </Grid>
       </Frame>
       
+      <!-- Cash Collection (ТОЛЬКО для OWNER) -->
+      <Frame Padding="16" 
+             x:Name="CashCollectionFrame"
+             Margin="0,4,0,0" 
+             CornerRadius="8"
+             BackgroundColor="#FFF3E0"
+             HasShadow="True">
+        <Frame.GestureRecognizers>
+          <TapGestureRecognizer Tapped="OnCashCollectionClicked" />
+        </Frame.GestureRecognizers>
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <Label Grid.Column="0" 
+                 Text="💵" 
+                 FontSize="32" 
+                 VerticalOptions="Center" />
+          <VerticalStackLayout Grid.Column="1" Margin="16,0,0,0" VerticalOptions="Center">
+            <Label Text="К инкассации" 
+                   FontSize="18" 
+                   FontAttributes="Bold" />
+            <Label Text="Серые деньги (нал без чека)" 
+                   FontSize="12" 
+                   TextColor="Gray" />
+          </VerticalStackLayout>
+          <Label Grid.Column="2" 
+                 Text="›" 
+                 FontSize="32" 
+                 TextColor="Gray" 
+                 VerticalOptions="Center" />
+        </Grid>
+      </Frame>
+      
     </VerticalStackLayout>
   </ScrollView>
   

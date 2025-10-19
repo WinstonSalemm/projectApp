@@ -110,6 +110,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<FinancesApiService>();
         builder.Services.AddSingleton<TaxApiService>();
         builder.Services.AddSingleton<AnalyticsApiService>();
+        builder.Services.AddSingleton<CashCollectionApiService>();
         
         // Camera Service (platform-specific)
 #if ANDROID
@@ -206,6 +207,9 @@ public static class MauiProgram
         
         builder.Services.AddTransient<CommissionAgentsViewModel>();
         builder.Services.AddTransient<CommissionAgentsPage>();
+        
+        builder.Services.AddTransient<CashCollectionViewModel>();
+        builder.Services.AddTransient<CashCollectionPage>();
         
         builder.Services.AddSingleton<AppShell>();
 
