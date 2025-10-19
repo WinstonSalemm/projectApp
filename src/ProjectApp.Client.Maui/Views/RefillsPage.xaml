@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             x:Class="ProjectApp.Client.Maui.Views.RefillsPage"
+             x:DataType="vm:RefillsViewModel"
+             Title="🔥 Перезарядка">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Обновить" Command="{Binding LoadRefillsCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="20">
+
+            <!-- Индикатор загрузки -->
+            <ActivityIndicator IsRunning="{Binding IsLoading}" 
+                             IsVisible="{Binding IsLoading}"
+                             HeightRequest="50" />
+
+            <!-- СТАТИСТИКА -->
+            <Frame BackgroundColor="#FFF3E0" 
+                   BorderColor="#FF9800"
+                   CornerRadius="12"
+                   Padding="16">
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                    <VerticalStackLayout Grid.Column="0" Spacing="4">
+                        <Label Text="💰 Всего потрачено:"
+                               FontSize="12"
+                               TextColor="#F57C00" />
+                        <Label Text="{Binding TotalCostFormatted}"
+                               FontSize="20"
+                               TextColor="#E65100"
+                               FontFamily="InterBold" />
+                    </VerticalStackLayout>
+                    
+                    <VerticalStackLayout Grid.Column="1" Spacing="4">
+                        <Label Text="📊 Перезаряжено:"
+                               FontSize="12"
+                               TextColor="#F57C00" />
+                        <Label Text="{Binding TotalQuantity, StringFormat='{0} шт.'}"
+                               FontSize="20"
+                               TextColor="#E65100"
+                               FontFamily="InterBold" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Frame>
+
+            <!-- ФОРМА ПЕРЕЗАРЯДКИ -->
+            <Frame BackgroundColor="White" 
+                   BorderColor="#4CAF50"
+                   CornerRadius="12"
+                   Padding="20">
+                <VerticalStackLayout Spacing="16">
+                    <Label Text="🔥 Новая перезарядка"
+                           FontSize="18"
+                           TextColor="#212121"
+                           FontFamily="InterBold" />
+
+                    <!-- Товар -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="ID Товара (огнетушитель):"
+                               FontSize="13"
+                               TextColor="#757575" />
+                        <Entry Text="{Binding ProductIdText}"
+                               Placeholder="Введите ID товара"
+                               Keyboard="Numeric"
+                               FontSize="16"
+                               BackgroundColor="#F5F5F5"
+                               TextColor="#212121" />
+                        <Label Text="{Binding SelectedProductName}"
+                               FontSize="12"
+                               TextColor="#2196F3"
+                               IsVisible="{Binding SelectedProductName, Converter={StaticResource IsNotNullOrEmptyConverter}}"
+                               Margin="4,4,0,0" />
+                    </VerticalStackLayout>
+
+                    <!-- Количество -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Количество:"
+                               FontSize="13"
+                               TextColor="#757575" />
+                        <Entry Text="{Binding Quantity}"
+                               Placeholder="1"
+                               Keyboard="Numeric"
+                               FontSize="16"
+                               BackgroundColor="#F5F5F5"
+                               TextColor="#212121" />
+                    </VerticalStackLayout>
+
+                    <!-- Склад -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Склад:"
+                               FontSize="13"
+                               TextColor="#757575" />
+                        <Button Text="{Binding WarehouseName}"
+                                Command="{Binding ToggleWarehouseCommand}"
+                                BackgroundColor="#2196F3"
+                                TextColor="White"
+                                FontFamily="InterSemiBold"
+                                FontSize="14"
+                                Padding="12"
+                                CornerRadius="8" />
+                    </VerticalStackLayout>
+
+                    <!-- Стоимость за единицу -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Стоимость перезарядки за 1 шт. (UZS):"
+                               FontSize="13"
+                               TextColor="#757575" />
+                        <Entry Text="{Binding CostPerUnitText}"
+                               Placeholder="Например: 50000"
+                               Keyboard="Numeric"
+                               FontSize="16"
+                               BackgroundColor="#F5F5F5"
+                               TextColor="#212121" />
+                    </VerticalStackLayout>
+
+                    <!-- Общая стоимость -->
+                    <Frame BackgroundColor="#E8F5E9"
+                           Padding="12"
+                           CornerRadius="8"
+                           BorderColor="#4CAF50">
+                        <HorizontalStackLayout Spacing="8">
+                            <Label Text="💰 Общая стоимость:"
+                                   FontSize="14"
+                                   TextColor="#2E7D32"
+                                   VerticalOptions="Center" />
+                            <Label Text="{Binding TotalCostText}"
+                                   FontSize="18"
+                                   TextColor="#1B5E20"
+                                   FontFamily="InterBold"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </Frame>
+
+                    <!-- Примечание -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Примечание (опционально):"
+                               FontSize="13"
+                               TextColor="#757575" />
+                        <Editor Text="{Binding Notes}"
+                                Placeholder="Например: Плановая перезарядка огнетушителей"
+                                HeightRequest="80"
+                                FontSize="14"
+                                BackgroundColor="#F5F5F5"
+                                TextColor="#212121" />
+                    </VerticalStackLayout>
+
+                    <!-- Кнопка -->
+                    <Button Text="🔥 Создать перезарядку"
+                            Command="{Binding CreateRefillCommand}"
+                            IsEnabled="{Binding CanSubmit}"
+                            BackgroundColor="#4CAF50"
+                            TextColor="White"
+                            FontFamily="InterBold"
+                            FontSize="16"
+                            Padding="0,14"
+                            CornerRadius="8" />
+
+                    <Label Text="ℹ️ Товар НЕ списывается со склада"
+                           FontSize="11"
+                           TextColor="#2196F3"
+                           HorizontalOptions="Center"
+                           FontStyle="Italic" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- ИСТОРИЯ ПЕРЕЗАРЯДОК -->
+            <Label Text="📜 ИСТОРИЯ ПЕРЕЗАРЯДОК"
+                   FontSize="16"
+                   TextColor="#424242"
+                   FontFamily="InterBold"
+                   Margin="0,12,0,0" />
+
+            <CollectionView ItemsSource="{Binding Refills}"
+                          EmptyView="Нет записей о перезарядке">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:RefillRow">
+                        <Frame Margin="0,0,0,12"
+                               Padding="16"
+                               BackgroundColor="White"
+                               BorderColor="#E0E0E0"
+                               CornerRadius="8">
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" 
+                                  ColumnDefinitions="120,*"
+                                  RowSpacing="8">
+                                
+                                <!-- Товар -->
+                                <Label Grid.Row="0" Grid.Column="0"
+                                       Text="🔥 Товар:"
+                                       FontSize="12"
+                                       TextColor="#757575" />
+                                <Label Grid.Row="0" Grid.Column="1"
+                                       Text="{Binding ProductName}"
+                                       FontSize="12"
+                                       TextColor="#212121"
+                                       FontFamily="InterSemiBold" />
+
+                                <!-- Количество -->
+                                <Label Grid.Row="1" Grid.Column="0"
+                                       Text="📊 Кол-во:"
+                                       FontSize="12"
+                                       TextColor="#757575" />
+                                <Label Grid.Row="1" Grid.Column="1"
+                                       Text="{Binding Quantity, StringFormat='{0} шт.'}"
+                                       FontSize="12"
+                                       TextColor="#4CAF50"
+                                       FontFamily="InterSemiBold" />
+
+                                <!-- Склад -->
+                                <Label Grid.Row="2" Grid.Column="0"
+                                       Text="🏢 Склад:"
+                                       FontSize="12"
+                                       TextColor="#757575" />
+                                <Label Grid.Row="2" Grid.Column="1"
+                                       Text="{Binding Warehouse}"
+                                       FontSize="12"
+                                       TextColor="#212121" />
+
+                                <!-- Стоимость за шт -->
+                                <Label Grid.Row="3" Grid.Column="0"
+                                       Text="💵 За шт.:"
+                                       FontSize="12"
+                                       TextColor="#757575" />
+                                <Label Grid.Row="3" Grid.Column="1"
+                                       Text="{Binding CostPerUnit}"
+                                       FontSize="12"
+                                       TextColor="#FF9800"
+                                       FontFamily="InterSemiBold" />
+
+                                <!-- Общая стоимость -->
+                                <Label Grid.Row="4" Grid.Column="0"
+                                       Text="💰 Всего:"
+                                       FontSize="12"
+                                       TextColor="#757575" />
+                                <Label Grid.Row="4" Grid.Column="1"
+                                       Text="{Binding TotalCost}"
+                                       FontSize="12"
+                                       TextColor="#E65100"
+                                       FontFamily="InterBold" />
+
+                                <!-- Примечание -->
+                                <Label Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
+                                       Text="{Binding Notes}"
+                                       FontSize="11"
+                                       TextColor="#9E9E9E"
+                                       FontStyle="Italic"
+                                       IsVisible="{Binding Notes, Converter={StaticResource IsNotNullOrEmptyConverter}}"
+                                       LineBreakMode="WordWrap"
+                                       Margin="0,4,0,0" />
+
+                                <!-- Статус -->
+                                <Label Grid.Row="6" Grid.Column="0"
+                                       Text="⚡ Статус:"
+                                       FontSize="12"
+                                       TextColor="#757575" />
+                                <Label Grid.Row="6" Grid.Column="1"
+                                       Text="{Binding Status}"
+                                       FontSize="12"
+                                       TextColor="{Binding StatusColor}"
+                                       FontFamily="InterSemiBold" />
+
+                                <!-- Дата -->
+                                <Label Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2"
+                                       FontSize="11"
+                                       TextColor="#9E9E9E">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="📅 " />
+                                            <Span Text="{Binding CreatedAt}" />
+                                            <Span Text=" / " />
+                                            <Span Text="{Binding CreatedBy}" />
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
+
+                                <!-- Кнопка отмены -->
+                                <Button Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2"
+                                        Text="❌ Отменить запись"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RefillsViewModel}}, Path=CancelRefillCommand}"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding CanCancel}"
+                                        BackgroundColor="#FF5722"
+                                        TextColor="White"
+                                        FontSize="13"
+                                        Padding="0,8"
+                                        CornerRadius="6"
+                                        Margin="0,8,0,0" />
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Пустое место внизу -->
+            <BoxView HeightRequest="20" Color="Transparent" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

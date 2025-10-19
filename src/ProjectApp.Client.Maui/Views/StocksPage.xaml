@@ -13,6 +13,8 @@
   </ContentPage.Resources>
   <ContentPage.ToolbarItems>
     <ToolbarItem Text="Обновить" Command="{Binding RefreshCommand}" IconImageSource="{StaticResource IconRefresh}" />
+    <ToolbarItem Text="🗑️ Брак" Clicked="OnDefectivesClicked" />
+    <ToolbarItem Text="🔥 Перезарядка" Clicked="OnRefillsClicked" />
   </ContentPage.ToolbarItems>
   <Grid Padding="24" RowDefinitions="*,Auto" RowSpacing="16">
     <!-- Summary mode (header + list share one scroll) -->
