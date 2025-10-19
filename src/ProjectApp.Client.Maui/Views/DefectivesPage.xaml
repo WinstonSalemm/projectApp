@@ -103,7 +103,7 @@
                            FontSize="11"
                            TextColor="#FF5722"
                            HorizontalOptions="Center"
-                           FontStyle="Italic" />
+                           FontAttributes="Italic" />
                 </VerticalStackLayout>
             </Frame>
 

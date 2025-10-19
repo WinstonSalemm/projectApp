@@ -79,6 +79,11 @@ public static class NavigationHelper
         return Task.FromResult(false);
     }
 
+    public static Task<bool> DisplayConfirm(string title, string message, string accept = "Да", string cancel = "Нет")
+    {
+        return DisplayAlert(title, message, accept, cancel);
+    }
+
     public static async void SetRoot(Page page)
     {
         if (page is null)

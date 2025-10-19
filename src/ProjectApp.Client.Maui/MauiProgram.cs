@@ -111,8 +111,22 @@ public static class MauiProgram
         builder.Services.AddSingleton<TaxApiService>();
         builder.Services.AddSingleton<AnalyticsApiService>();
         builder.Services.AddSingleton<CashCollectionApiService>();
-        builder.Services.AddSingleton<DefectivesApiService>();
-        builder.Services.AddSingleton<RefillsApiService>();
+        
+        // Defectives and Refills - need HttpClient with factory
+        builder.Services.AddSingleton<DefectivesApiService>(sp =>
+        {
+            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient(HttpClientNames.Api);
+            var authService = sp.GetRequiredService<AuthService>();
+            return new DefectivesApiService(httpClient, authService);
+        });
+        builder.Services.AddSingleton<RefillsApiService>(sp =>
+        {
+            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient(HttpClientNames.Api);
+            var authService = sp.GetRequiredService<AuthService>();
+            return new RefillsApiService(httpClient, authService);
+        });
         
         // Camera Service (platform-specific)
 #if ANDROID
