@@ -49,7 +49,7 @@ public class StocksController : ControllerBase
             _logger.LogInformation("[StocksController] TestProducts: loading products with FromSqlRaw");
             
             var products = await _db.Products
-                .FromSqlRaw("SELECT Id, Sku, Name, Unit, Price, Category FROM Products")
+                .FromSqlRaw("SELECT Id, Sku, Name, Unit, Price, Cost, Category FROM Products")
                 .Take(5)
                 .ToListAsync(ct);
             
@@ -72,7 +72,7 @@ public class StocksController : ControllerBase
             
             // Load all products first, then filter in memory to avoid GtdCode issue
             var allProducts = await _db.Products
-                .FromSqlRaw("SELECT Id, Sku, Name, Unit, Price, Category FROM Products")
+                .FromSqlRaw("SELECT Id, Sku, Name, Unit, Price, Cost, Category FROM Products")
                 .ToListAsync(ct);
             
             _logger.LogInformation("[StocksController] Loaded {Count} products from DB", allProducts.Count);
@@ -151,7 +151,7 @@ public class StocksController : ControllerBase
     {
         // Load all products using FromSqlRaw to avoid GtdCode issue
         var allProducts = await _db.Products
-            .FromSqlRaw("SELECT Id, Sku, Name, Unit, Price, Category FROM Products")
+            .FromSqlRaw("SELECT Id, Sku, Name, Unit, Price, Cost, Category FROM Products")
             .ToListAsync(ct);
         
         var products = allProducts.AsQueryable();
