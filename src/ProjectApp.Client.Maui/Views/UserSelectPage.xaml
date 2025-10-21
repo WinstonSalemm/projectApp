@@ -9,8 +9,22 @@
     <ToolbarItem Text="Настройки" Clicked="OnSettingsClicked" />
   </ContentPage.ToolbarItems>
   <ScrollView>
-    <VerticalStackLayout Padding="24" Spacing="16">
-      <Label Text="Кто работает за кассой?" FontAttributes="Bold" FontSize="22" />
+    <VerticalStackLayout Padding="24" Spacing="24">
+      <!-- POJ PRO Branding -->
+      <VerticalStackLayout Spacing="8" HorizontalOptions="Center" Margin="0,20,0,0">
+        <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
+          <Frame Padding="12,6" CornerRadius="8" BackgroundColor="#1565C0" HasShadow="True">
+            <Label Text="POJ" FontSize="32" FontAttributes="Bold" TextColor="White" />
+          </Frame>
+          <Label Text="PRO" FontSize="36" FontAttributes="Bold" TextColor="#1976D2" VerticalOptions="Center" />
+        </HorizontalStackLayout>
+        <Label Text="Профессиональная система управления" 
+               FontSize="12" 
+               TextColor="Gray" 
+               HorizontalOptions="Center"/>
+      </VerticalStackLayout>
+      
+      <Label Text="Кто работает за кассой?" FontAttributes="Bold" FontSize="22" Margin="0,16,0,0"/>
 
       <Grid ColumnDefinitions="*,*"
             RowDefinitions="Auto,Auto,Auto,Auto"

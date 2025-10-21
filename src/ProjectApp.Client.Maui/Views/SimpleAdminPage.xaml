@@ -9,7 +9,9 @@
       <Label Text="Добро пожаловать, администратор!" FontSize="18"/>
       
       <Button Text="Склад" HeightRequest="64" FontSize="18" Margin="0,32,0,0" Clicked="OnStocksClicked"/>
+      <Button Text="Поставки" HeightRequest="64" FontSize="18" Clicked="OnSuppliesClicked"/>
       <Button Text="Клиенты" HeightRequest="64" FontSize="18" Clicked="OnClientsClicked"/>
+      <Button Text="💰 Финансы" HeightRequest="64" FontSize="18" Clicked="OnFinancesClicked"/>
       <Button Text="Аналитика" HeightRequest="64" FontSize="18" Clicked="OnAnalyticsClicked"/>
       <Button Text="Настройки" HeightRequest="64" FontSize="18" Clicked="OnSettingsClicked"/>
       <Button Text="Выход" HeightRequest="64" FontSize="18" BackgroundColor="Red" TextColor="White" Clicked="OnLogoutClicked" Margin="0,32,0,0"/>

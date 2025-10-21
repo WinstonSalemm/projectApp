@@ -4,7 +4,7 @@
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.PaymentSelectPage"
              x:DataType="viewModels:PaymentSelectViewModel"
-             Title="Выбор вида продажи">
+             Title="POJ PRO - Выбор вида продажи">
   <ContentPage.ToolbarItems>
     <ToolbarItem Text="Выход" Clicked="OnLogoutClicked" />
   </ContentPage.ToolbarItems>

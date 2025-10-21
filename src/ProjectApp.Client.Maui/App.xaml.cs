@@ -126,5 +126,6 @@ public partial class App : Application
             Resources[key] = color;
         }
     }
+
 }
 

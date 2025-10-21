@@ -2,44 +2,43 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ProjectApp.Client.Maui.Views.ProductSelectPage"
-             Title="Оформление продажи"
+             Title="POJ PRO - Оформление продажи"
              BackgroundColor="{DynamicResource Color.Background}">
   <Grid ColumnDefinitions="2*,*" ColumnSpacing="16" Padding="16">
     
     <!-- ЛЕВАЯ ПАНЕЛЬ: Каталог товаров -->
     <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*" RowSpacing="16">
-      <!-- Поиск -->
-      <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-        <Entry Grid.Column="0" Placeholder="Поиск товаров..." Text="{Binding Query}" ReturnCommand="{Binding SearchAsyncCommand}" BackgroundColor="{DynamicResource Color.Surface}" TextColor="{DynamicResource Color.Text.Primary}" PlaceholderColor="{DynamicResource Color.Text.Secondary}" HeightRequest="48" FontSize="16"/>
-        <Button Grid.Column="1" Text="Поиск" Command="{Binding SearchAsyncCommand}" WidthRequest="120" HeightRequest="48" FontSize="16"/>
+      <!-- Поиск и Категория -->
+      <Grid Grid.Row="0" RowDefinitions="Auto,Auto" RowSpacing="12">
+        <!-- Выбор категории -->
+        <Border Grid.Row="0" 
+                StrokeThickness="0" 
+                BackgroundColor="{DynamicResource Color.Surface}" 
+                Padding="0" 
+                StrokeShape="RoundRectangle 8">
+          <Picker x:Name="CategoryPicker"
+                  Title="Выберите категорию..." 
+                  ItemsSource="{Binding Categories}"
+                  SelectedItem="{Binding SelectedCategory}"
+                  FontSize="19"
+                  BackgroundColor="Transparent"
+                  TextColor="{DynamicResource Color.Text.Primary}"
+                  TitleColor="{DynamicResource Color.Text.Secondary}"
+                  HeightRequest="70"
+                  VerticalOptions="Center"
+                  Margin="12,0"
+                  SelectedIndexChanged="OnCategoryChanged"/>
+        </Border>
+        
+        <!-- Поиск -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <Entry Grid.Column="0" Placeholder="Поиск товаров..." Text="{Binding Query}" ReturnCommand="{Binding SearchAsyncCommand}" BackgroundColor="{DynamicResource Color.Surface}" TextColor="{DynamicResource Color.Text.Primary}" PlaceholderColor="{DynamicResource Color.Text.Secondary}" HeightRequest="56" FontSize="18"/>
+          <Button Grid.Column="1" Text="Поиск" Command="{Binding SearchAsyncCommand}" WidthRequest="130" HeightRequest="56" FontSize="17"/>
+        </Grid>
       </Grid>
 
-      <!-- Категории -->
-      <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-        <HorizontalStackLayout Spacing="12">
-          <!-- Кнопка "Все" -->
-          <Border StrokeThickness="0" BackgroundColor="{DynamicResource Color.Primary}" Padding="16,8" StrokeShape="RoundRectangle 20">
-            <Border.GestureRecognizers>
-              <TapGestureRecognizer Tapped="OnAllCategoriesClicked"/>
-            </Border.GestureRecognizers>
-            <Label Text="Все" TextColor="White" FontSize="14" FontAttributes="Bold"/>
-          </Border>
-          
-          <!-- Остальные категории -->
-          <HorizontalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding Categories}">
-            <BindableLayout.ItemTemplate>
-              <DataTemplate>
-                <Border StrokeThickness="0" BackgroundColor="{DynamicResource Color.Primary}" Padding="16,8" StrokeShape="RoundRectangle 20">
-                  <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SearchAsyncCommand}" CommandParameter="{Binding .}"/>
-                  </Border.GestureRecognizers>
-                  <Label Text="{Binding .}" TextColor="White" FontSize="14" FontAttributes="Bold"/>
-                </Border>
-              </DataTemplate>
-            </BindableLayout.ItemTemplate>
-          </HorizontalStackLayout>
-        </HorizontalStackLayout>
-      </ScrollView>
+      <!-- Удаляем старую строку категорий -->
+      <BoxView Grid.Row="1" IsVisible="False"/>
 
       <!-- Товары -->
       <CollectionView Grid.Row="2" ItemsSource="{Binding Results}" SelectionMode="None">
@@ -48,12 +47,12 @@
         </CollectionView.ItemsLayout>
         <CollectionView.ItemTemplate>
           <DataTemplate>
-            <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="12" StrokeShape="RoundRectangle 8">
-              <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6">
-                <Label Grid.Row="0" Text="{Binding Name}" FontSize="16" FontAttributes="Bold" LineBreakMode="WordWrap" MaxLines="2"/>
-                <Label Grid.Row="1" Text="{Binding Sku}" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
-                <Label Grid.Row="2" Text="{Binding TotalQty, StringFormat='📦 {0:N0} шт'}" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}" Margin="0,4,0,0"/>
-                <Button Grid.Row="3" Text="Добавить" CommandParameter="{Binding .}" Clicked="OnAddToCart" HeightRequest="36" FontSize="14" Margin="0,6,0,0"/>
+            <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 8">
+              <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                <Label Grid.Row="0" Text="{Binding Name}" FontSize="17" FontAttributes="Bold" LineBreakMode="WordWrap" MaxLines="2" TextColor="{DynamicResource Color.Text.Primary}"/>
+                <Label Grid.Row="1" Text="{Binding Sku}" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                <Label Grid.Row="2" Text="{Binding TotalQty, StringFormat='📦 {0:N0} шт'}" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" Margin="0,4,0,0"/>
+                <Button Grid.Row="3" Text="Добавить" CommandParameter="{Binding .}" Clicked="OnAddToCart" HeightRequest="44" FontSize="15" Margin="0,8,0,0" Padding="0"/>
               </Grid>
             </Border>
           </DataTemplate>
@@ -99,8 +98,8 @@
                     
                     <!-- Итого и удалить -->
                     <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                      <Label Grid.Column="0" Text="{Binding Total, StringFormat='Итого: {0:N0} сум'}" FontSize="13" FontAttributes="Bold" VerticalTextAlignment="Center"/>
-                      <Button Grid.Column="1" Text="❌" FontSize="12" WidthRequest="32" HeightRequest="32" Padding="0" CommandParameter="{Binding .}" Clicked="OnRemoveFromCart"/>
+                      <Label Grid.Column="0" Text="{Binding Total, StringFormat='Итого: {0:N0} сум'}" FontSize="14" FontAttributes="Bold" VerticalTextAlignment="Center" TextColor="{DynamicResource Color.Text.Primary}"/>
+                      <Button Grid.Column="1" Text="❌" FontSize="14" WidthRequest="36" HeightRequest="36" Padding="0" CommandParameter="{Binding .}" Clicked="OnRemoveFromCart"/>
                     </Grid>
                   </Grid>
                 </Border>
@@ -110,23 +109,23 @@
         </ScrollView>
         
         <!-- Итого -->
-        <Border Grid.Row="2" StrokeThickness="0" BackgroundColor="{DynamicResource Color.Primary}" Padding="12" Margin="0,16,0,0" StrokeShape="RoundRectangle 6">
-          <Label Text="{Binding CartTotal, StringFormat='Итого: {0:N0} сум'}" FontSize="18" FontAttributes="Bold" TextColor="White" HorizontalTextAlignment="Center"/>
+        <Border Grid.Row="2" StrokeThickness="0" BackgroundColor="{DynamicResource Color.Primary}" Padding="16" Margin="0,16,0,0" StrokeShape="RoundRectangle 8">
+          <Label Text="{Binding CartTotal, StringFormat='Итого: {0:N0} сум'}" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalTextAlignment="Center"/>
         </Border>
         
         <!-- Выбор клиента -->
         <VerticalStackLayout Grid.Row="3" Spacing="8" Margin="0,16,0,0">
-          <Label Text="Клиент (необязательно)" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}"/>
-          <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Background}" Padding="12" StrokeShape="RoundRectangle 6">
+          <Label Text="Клиент (необязательно)" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" FontAttributes="Bold"/>
+          <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Background}" Padding="14" StrokeShape="RoundRectangle 8">
             <Border.GestureRecognizers>
               <TapGestureRecognizer Tapped="OnSelectClientClicked"/>
             </Border.GestureRecognizers>
-            <Label Text="{Binding SelectedClientName}" FontSize="14" TextColor="{DynamicResource Color.Text.Primary}" VerticalTextAlignment="Center"/>
+            <Label Text="{Binding SelectedClientName}" FontSize="15" TextColor="{DynamicResource Color.Text.Primary}" VerticalTextAlignment="Center"/>
           </Border>
         </VerticalStackLayout>
         
         <!-- Кнопка оформления -->
-        <Button Grid.Row="4" Text="Оформить продажу" Command="{Binding CheckoutCommand}" HeightRequest="48" FontSize="16" FontAttributes="Bold" Margin="0,12,0,0"/>
+        <Button Grid.Row="4" Text="Оформить продажу" Command="{Binding CheckoutCommand}" HeightRequest="52" FontSize="17" FontAttributes="Bold" Margin="0,12,0,0"/>
       </Grid>
     </Border>
   </Grid>

@@ -80,9 +80,16 @@ public static class MauiProgram
         builder.Services.AddSingleton<ApiStocksService>();
         builder.Services.AddSingleton<MockCatalogService>();
         builder.Services.AddSingleton<MockSalesService>();
+        
+        // Offline support - ОТКЛЮЧЕНО для избежания зависаний
+        // builder.Services.AddSingleton<LocalDatabase>();
+        // builder.Services.AddSingleton<OfflineSyncService>();
+        // builder.Services.AddSingleton<OfflineSalesService>();
+        builder.Services.AddSingleton<ApiHealthChecker>();
+        
         // Routed services decide at runtime based on current AppSettings
         builder.Services.AddSingleton<ICatalogService, RoutedCatalogService>();
-        builder.Services.AddSingleton<ISalesService, RoutedSalesService>();
+        builder.Services.AddSingleton<ISalesService, RoutedSalesService>(); // Используем обычный сервис без офлайна
         builder.Services.AddSingleton<IStocksService>(sp => sp.GetRequiredService<ApiStocksService>());
         builder.Services.AddSingleton<ApiReturnsService>();
         builder.Services.AddSingleton<IReturnsService>(sp => sp.GetRequiredService<ApiReturnsService>());

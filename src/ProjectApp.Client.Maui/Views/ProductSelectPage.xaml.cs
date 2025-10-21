@@ -34,6 +34,24 @@ public partial class ProductSelectPage : ContentPage
         _vm.SearchAsyncCommand.Execute(null);
     }
 
+    private async void OnCategoryChanged(object? sender, EventArgs e)
+    {
+        try
+        {
+            // Когда выбрана категория в Picker, автоматически запускаем поиск
+            if (_vm?.SearchAsyncCommand != null && _vm.SearchAsyncCommand.CanExecute(null))
+            {
+                // Небольшая задержка чтобы дать UI время на обновление
+                await Task.Delay(50);
+                await _vm.SearchAsyncCommand.ExecuteAsync(null);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ProductSelectPage] OnCategoryChanged error: {ex}");
+        }
+    }
+
     private void OnAddToCart(object? sender, EventArgs e)
     {
         if (sender is not Button btn) return;

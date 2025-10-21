@@ -13,6 +13,8 @@ public partial class AppShell : Shell
     private readonly AuthService _auth;
     private readonly double _compactBreakpoint;
     private readonly double _mediumBreakpoint;
+    
+    public string UserDisplayName => _auth?.DisplayName ?? _auth?.UserName ?? "Пользователь";
     private readonly IDictionary<string, string> _routeDescriptions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         ["dashboard"] = "Administrative overview",
@@ -46,7 +48,12 @@ public partial class AppShell : Shell
 
             Loaded += OnShellLoaded;
             SizeChanged += OnShellSizeChanged;
+            BindingContext = this;
             UpdateTitleBar();
+            
+            // Start checking online status
+            _ = CheckOnlineStatusPeriodically();
+            
             System.Diagnostics.Debug.WriteLine("[AppShell] Constructor completed successfully");
         }
         catch (Exception ex)
@@ -290,5 +297,44 @@ public partial class AppShell : Shell
         _auth.Logout();
         var userSelectPage = _services.GetRequiredService<UserSelectPage>();
         NavigationHelper.SetRoot(new NavigationPage(userSelectPage));
+    }
+
+    private async Task CheckOnlineStatusPeriodically()
+    {
+        while (true)
+        {
+            try
+            {
+                await Task.Delay(5000); // Check every 5 seconds
+                
+                var isOnline = Connectivity.NetworkAccess == Microsoft.Maui.Networking.NetworkAccess.Internet;
+                
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    try
+                    {
+                        if (StatusIndicator != null)
+                        {
+                            StatusIndicator.BackgroundColor = isOnline ? Color.FromArgb("#4CAF50") : Color.FromArgb("#F44336");
+                            
+                            if (StatusIndicator.Content is HorizontalStackLayout stack && 
+                                stack.Children.Count > 1 && 
+                                stack.Children[1] is Label label)
+                            {
+                                label.Text = isOnline ? "Онлайн" : "Офлайн";
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[AppShell] Status update error: {ex.Message}");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AppShell] CheckOnlineStatus error: {ex}");
+            }
+        }
     }
 }

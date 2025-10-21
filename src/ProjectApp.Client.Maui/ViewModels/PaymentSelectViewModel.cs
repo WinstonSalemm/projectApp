@@ -49,26 +49,44 @@ public partial class PaymentSelectViewModel : ObservableObject
             ? auth.UserName ?? "Текущий пользователь"
             : auth.DisplayName;
 
-        async Task OnYes()
+        try
         {
-            // Initialize sale session with payment type
-            var session = _services.GetRequiredService<SaleSession>();
-            session.SetPaymentType(pt);
+            var audio = _services.GetRequiredService<Plugin.Maui.Audio.IAudioManager>();
+            var confirm = new ConfirmAccountPage(audio, account);
             
-            // Open product catalog directly
-            var productPage = _services.GetRequiredService<ProductSelectPage>();
-            await NavigationHelper.PushAsync(productPage);
+            // Показываем модальное окно и ждем результат
+            await NavigationHelper.PushModalAsync(confirm, true);
+            var confirmed = await confirm.Result;
+            
+            System.Diagnostics.Debug.WriteLine($"[PaymentSelect] Confirmed: {confirmed}");
+            
+            if (confirmed)
+            {
+                // ДА - инициализируем сессию и открываем каталог товаров
+                System.Diagnostics.Debug.WriteLine("[PaymentSelect] User confirmed, initializing session");
+                var session = _services.GetRequiredService<SaleSession>();
+                session.SetPaymentType(pt);
+                
+                System.Diagnostics.Debug.WriteLine("[PaymentSelect] Getting ProductSelectPage");
+                var productPage = _services.GetRequiredService<ProductSelectPage>();
+                
+                System.Diagnostics.Debug.WriteLine("[PaymentSelect] Pushing ProductSelectPage");
+                await NavigationHelper.PushAsync(productPage);
+                System.Diagnostics.Debug.WriteLine("[PaymentSelect] ProductSelectPage pushed successfully");
+            }
+            else
+            {
+                // НЕТ - выходим из аккаунта и возвращаемся к выбору пользователя
+                System.Diagnostics.Debug.WriteLine("[PaymentSelect] User declined, logging out");
+                auth.Logout();
+                var userSelect = _services.GetRequiredService<UserSelectPage>();
+                NavigationHelper.SetRoot(new NavigationPage(userSelect));
+            }
         }
-
-        Task OnNo()
+        catch (Exception ex)
         {
-            var userSelect = _services.GetRequiredService<UserSelectPage>();
-            NavigationHelper.SetRoot(new NavigationPage(userSelect));
-            return Task.CompletedTask;
+            System.Diagnostics.Debug.WriteLine($"[PaymentSelect] ERROR: {ex}");
+            await NavigationHelper.DisplayAlert("Ошибка", $"Произошла ошибка: {ex.Message}\n\n{ex.StackTrace}", "OK");
         }
-
-        var audio = _services.GetRequiredService<Plugin.Maui.Audio.IAudioManager>();
-        var confirm = new ConfirmAccountPage(audio, account, OnYes, OnNo);
-        await NavigationHelper.PushModalAsync(confirm, true);
     }
 }

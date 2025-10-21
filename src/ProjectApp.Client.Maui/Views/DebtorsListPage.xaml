@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.DebtorsListPage"
-             x:DataType="vm:DebtorsListViewModel"
              Title="Должники">
   
   <Grid RowDefinitions="Auto,*" Padding="16">
@@ -38,7 +37,7 @@
                 
                 <!-- Client Name -->
                 <Label Grid.Column="0"
-                       Text="{Binding ClientName}" 
+                       Text="{Binding ClientName, FallbackValue='Клиент'}" 
                        FontSize="18" 
                        FontAttributes="Bold" />
                 

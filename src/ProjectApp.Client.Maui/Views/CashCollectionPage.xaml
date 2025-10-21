@@ -75,7 +75,7 @@
                            FontSize="11"
                            TextColor="#FFB74D"
                            HorizontalOptions="Center"
-                           FontStyle="Italic" />
+                           FontAttributes="Italic" />
                 </VerticalStackLayout>
             </Frame>
 
@@ -198,7 +198,7 @@
                                        Text="{Binding Notes}"
                                        FontSize="11"
                                        TextColor="#9E9E9E"
-                                       FontStyle="Italic"
+                                       FontAttributes="Italic"
                                        IsVisible="{Binding Notes, Converter={StaticResource IsNotNullOrEmptyConverter}}"
                                        LineBreakMode="WordWrap" />
                             </Grid>

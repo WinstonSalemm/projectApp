@@ -45,7 +45,13 @@ public partial class UserSelectViewModel : ObservableObject
             return;
         }
 
-        _auth.LoginOffline(userName, info.DisplayName, info.Role);
+        // Login through API to get real token (password=null for managers)
+        var success = await _auth.LoginAsync(userName, null);
+        if (!success)
+        {
+            await NavigationHelper.DisplayAlert("Ошибка", $"Не удалось войти. {_auth.LastErrorMessage}", "OK");
+            return;
+        }
         
         // Manager goes directly to payment selection, NOT to shell with tabs
         var paymentPage = _services.GetRequiredService<Views.PaymentSelectPage>();

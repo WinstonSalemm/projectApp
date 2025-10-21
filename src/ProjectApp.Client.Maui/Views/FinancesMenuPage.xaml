@@ -5,56 +5,60 @@
              Title="Финансы">
   
   <ScrollView>
-    <VerticalStackLayout Padding="16" Spacing="16">
+    <VerticalStackLayout Padding="20" Spacing="20">
       
       <!-- Header -->
       <Label Text="💰 Финансовый контроль" 
              FontSize="28" 
              FontAttributes="Bold" 
-             HorizontalOptions="Center" />
+             HorizontalOptions="Center"
+             TextColor="{DynamicResource Color.Text.Primary}" />
       
       <Label Text="Управление кассами, транзакциями и расходами" 
-             FontSize="14" 
-             TextColor="Gray" 
+             FontSize="15" 
+             TextColor="{DynamicResource Color.Text.Secondary}" 
              HorizontalOptions="Center" 
              Margin="0,0,0,16" />
       
       <!-- Cash Summary Card -->
-      <Frame Padding="20" 
-             CornerRadius="12" 
-             BackgroundColor="#E3F2FD" 
-             HasShadow="True">
+      <Border StrokeThickness="0"
+              BackgroundColor="{DynamicResource Color.Primary}"
+              StrokeShape="RoundRectangle 12"
+              Padding="24"
+              Opacity="0.95">
         <VerticalStackLayout Spacing="8">
           <Label Text="💳 ОСТАТКИ В КАССАХ" 
-                 FontSize="16" 
+                 FontSize="15" 
                  FontAttributes="Bold"
-                 TextColor="#1976D2" />
+                 TextColor="White" />
           <Label Text="Загрузка..." 
                  x:Name="TotalBalanceLabel"
-                 FontSize="32" 
+                 FontSize="36" 
                  FontAttributes="Bold" 
-                 TextColor="#1976D2" />
+                 TextColor="White" />
           <Label Text="Обновлено только что" 
-                 FontSize="12" 
-                 TextColor="Gray" />
+                 FontSize="13" 
+                 TextColor="White"
+                 Opacity="0.8" />
         </VerticalStackLayout>
-      </Frame>
+      </Border>
       
       <!-- Menu Items -->
       <Label Text="УПРАВЛЕНИЕ" 
              FontSize="14" 
              FontAttributes="Bold" 
-             TextColor="Gray" 
+             TextColor="{DynamicResource Color.Text.Secondary}" 
              Margin="0,8,0,0" />
       
       <!-- Cashboxes -->
-      <Frame Padding="16" 
-             Margin="0,4,0,0" 
-             CornerRadius="8"
-             HasShadow="True">
-        <Frame.GestureRecognizers>
+      <Border StrokeThickness="1" 
+              Stroke="{DynamicResource Color.Border}"
+              BackgroundColor="{DynamicResource Color.Surface}"
+              StrokeShape="RoundRectangle 10"
+              Padding="18">
+        <Border.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnCashboxesClicked" />
-        </Frame.GestureRecognizers>
+        </Border.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto">
           <Label Grid.Column="0" 
                  Text="💼" 
@@ -63,27 +67,29 @@
           <VerticalStackLayout Grid.Column="1" Margin="16,0,0,0" VerticalOptions="Center">
             <Label Text="Кассы и счета" 
                    FontSize="18" 
-                   FontAttributes="Bold" />
+                   FontAttributes="Bold"
+                   TextColor="{DynamicResource Color.Text.Primary}" />
             <Label Text="Офис, склады, банковские счета" 
-                   FontSize="12" 
-                   TextColor="Gray" />
+                   FontSize="14" 
+                   TextColor="{DynamicResource Color.Text.Secondary}" />
           </VerticalStackLayout>
           <Label Grid.Column="2" 
                  Text="›" 
                  FontSize="32" 
-                 TextColor="Gray" 
+                 TextColor="{DynamicResource Color.Text.Secondary}" 
                  VerticalOptions="Center" />
         </Grid>
-      </Frame>
+      </Border>
       
       <!-- Transactions -->
-      <Frame Padding="16" 
-             Margin="0,4,0,0" 
-             CornerRadius="8"
-             HasShadow="True">
-        <Frame.GestureRecognizers>
+      <Border StrokeThickness="1" 
+              Stroke="{DynamicResource Color.Border}"
+              BackgroundColor="{DynamicResource Color.Surface}"
+              StrokeShape="RoundRectangle 10"
+              Padding="18">
+        <Border.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnTransactionsClicked" />
-        </Frame.GestureRecognizers>
+        </Border.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto">
           <Label Grid.Column="0" 
                  Text="🔄" 
@@ -92,27 +98,29 @@
           <VerticalStackLayout Grid.Column="1" Margin="16,0,0,0" VerticalOptions="Center">
             <Label Text="Транзакции" 
                    FontSize="18" 
-                   FontAttributes="Bold" />
+                   FontAttributes="Bold"
+                   TextColor="{DynamicResource Color.Text.Primary}" />
             <Label Text="Движение денег между кассами" 
-                   FontSize="12" 
-                   TextColor="Gray" />
+                   FontSize="14" 
+                   TextColor="{DynamicResource Color.Text.Secondary}" />
           </VerticalStackLayout>
           <Label Grid.Column="2" 
                  Text="›" 
                  FontSize="32" 
-                 TextColor="Gray" 
+                 TextColor="{DynamicResource Color.Text.Secondary}" 
                  VerticalOptions="Center" />
         </Grid>
-      </Frame>
+      </Border>
       
       <!-- Operating Expenses -->
-      <Frame Padding="16" 
-             Margin="0,4,0,0" 
-             CornerRadius="8"
-             HasShadow="True">
-        <Frame.GestureRecognizers>
+      <Border StrokeThickness="1" 
+              Stroke="{DynamicResource Color.Border}"
+              BackgroundColor="{DynamicResource Color.Surface}"
+              StrokeShape="RoundRectangle 10"
+              Padding="18">
+        <Border.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnExpensesClicked" />
-        </Frame.GestureRecognizers>
+        </Border.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto">
           <Label Grid.Column="0" 
                  Text="📊" 
@@ -121,35 +129,37 @@
           <VerticalStackLayout Grid.Column="1" Margin="16,0,0,0" VerticalOptions="Center">
             <Label Text="Операционные расходы" 
                    FontSize="18" 
-                   FontAttributes="Bold" />
+                   FontAttributes="Bold"
+                   TextColor="{DynamicResource Color.Text.Primary}" />
             <Label Text="Зарплаты, аренда, таможня, налоги" 
-                   FontSize="12" 
-                   TextColor="Gray" />
+                   FontSize="14" 
+                   TextColor="{DynamicResource Color.Text.Secondary}" />
           </VerticalStackLayout>
           <Label Grid.Column="2" 
                  Text="›" 
                  FontSize="32" 
-                 TextColor="Gray" 
+                 TextColor="{DynamicResource Color.Text.Secondary}" 
                  VerticalOptions="Center" />
         </Grid>
-      </Frame>
+      </Border>
       
       <!-- Reports Section -->
       <Label Text="ОТЧЕТЫ" 
              FontSize="14" 
              FontAttributes="Bold" 
-             TextColor="Gray" 
+             TextColor="{DynamicResource Color.Text.Secondary}" 
              Margin="0,16,0,0" />
       
       <!-- P&L Report -->
-      <Frame Padding="16" 
-             Margin="0,4,0,0" 
-             CornerRadius="8"
-             BackgroundColor="#F5F5F5"
-             HasShadow="True">
-        <Frame.GestureRecognizers>
+      <Border StrokeThickness="1" 
+              Stroke="{DynamicResource Color.Border}"
+              BackgroundColor="{DynamicResource Color.Surface}"
+              StrokeShape="RoundRectangle 10"
+              Padding="18"
+              Opacity="0.9">
+        <Border.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnPLReportClicked" />
-        </Frame.GestureRecognizers>
+        </Border.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto">
           <Label Grid.Column="0" 
                  Text="📈" 
@@ -158,28 +168,30 @@
           <VerticalStackLayout Grid.Column="1" Margin="16,0,0,0" VerticalOptions="Center">
             <Label Text="P&amp;L отчет" 
                    FontSize="18" 
-                   FontAttributes="Bold" />
+                   FontAttributes="Bold"
+                   TextColor="{DynamicResource Color.Text.Primary}" />
             <Label Text="Прибыли и убытки" 
-                   FontSize="12" 
-                   TextColor="Gray" />
+                   FontSize="14" 
+                   TextColor="{DynamicResource Color.Text.Secondary}" />
           </VerticalStackLayout>
           <Label Grid.Column="2" 
                  Text="›" 
                  FontSize="32" 
-                 TextColor="Gray" 
+                 TextColor="{DynamicResource Color.Text.Secondary}" 
                  VerticalOptions="Center" />
         </Grid>
-      </Frame>
+      </Border>
       
       <!-- Cash Flow Report -->
-      <Frame Padding="16" 
-             Margin="0,4,0,0" 
-             CornerRadius="8"
-             BackgroundColor="#F5F5F5"
-             HasShadow="True">
-        <Frame.GestureRecognizers>
+      <Border StrokeThickness="1" 
+              Stroke="{DynamicResource Color.Border}"
+              BackgroundColor="{DynamicResource Color.Surface}"
+              StrokeShape="RoundRectangle 10"
+              Padding="18"
+              Opacity="0.9">
+        <Border.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnCashFlowClicked" />
-        </Frame.GestureRecognizers>
+        </Border.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto">
           <Label Grid.Column="0" 
                  Text="💸" 
@@ -188,29 +200,30 @@
           <VerticalStackLayout Grid.Column="1" Margin="16,0,0,0" VerticalOptions="Center">
             <Label Text="Cash Flow" 
                    FontSize="18" 
-                   FontAttributes="Bold" />
+                   FontAttributes="Bold"
+                   TextColor="{DynamicResource Color.Text.Primary}" />
             <Label Text="Движение денежных средств" 
-                   FontSize="12" 
-                   TextColor="Gray" />
+                   FontSize="14" 
+                   TextColor="{DynamicResource Color.Text.Secondary}" />
           </VerticalStackLayout>
           <Label Grid.Column="2" 
                  Text="›" 
                  FontSize="32" 
-                 TextColor="Gray" 
+                 TextColor="{DynamicResource Color.Text.Secondary}" 
                  VerticalOptions="Center" />
         </Grid>
-      </Frame>
+      </Border>
       
       <!-- Cash Collection (ТОЛЬКО для OWNER) -->
-      <Frame Padding="16" 
-             x:Name="CashCollectionFrame"
-             Margin="0,4,0,0" 
-             CornerRadius="8"
-             BackgroundColor="#FFF3E0"
-             HasShadow="True">
-        <Frame.GestureRecognizers>
+      <Border x:Name="CashCollectionFrame"
+              StrokeThickness="2" 
+              Stroke="#FF9800"
+              BackgroundColor="#FFF3E0"
+              StrokeShape="RoundRectangle 10"
+              Padding="18">
+        <Border.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnCashCollectionClicked" />
-        </Frame.GestureRecognizers>
+        </Border.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto">
           <Label Grid.Column="0" 
                  Text="💵" 
@@ -219,18 +232,19 @@
           <VerticalStackLayout Grid.Column="1" Margin="16,0,0,0" VerticalOptions="Center">
             <Label Text="К инкассации" 
                    FontSize="18" 
-                   FontAttributes="Bold" />
+                   FontAttributes="Bold"
+                   TextColor="#E65100" />
             <Label Text="Серые деньги (нал без чека)" 
-                   FontSize="12" 
-                   TextColor="Gray" />
+                   FontSize="14" 
+                   TextColor="#F57C00" />
           </VerticalStackLayout>
           <Label Grid.Column="2" 
                  Text="›" 
                  FontSize="32" 
-                 TextColor="Gray" 
+                 TextColor="#FF9800" 
                  VerticalOptions="Center" />
         </Grid>
-      </Frame>
+      </Border>
       
     </VerticalStackLayout>
   </ScrollView>

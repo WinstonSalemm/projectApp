@@ -31,26 +31,16 @@
     <VisualStateGroup x:Name="AdaptiveStates">
       <VisualState Name="Compact">
         <VisualState.Setters>
-          <Setter TargetName="ActionBar" Property="FlexLayout.Direction" Value="Column" />
-          <Setter TargetName="ActionBar" Property="FlexLayout.AlignItems" Value="Stretch" />
-          <Setter TargetName="FiltersLayout" Property="FlexLayout.Direction" Value="Column" />
-          <Setter TargetName="FiltersLayout" Property="FlexLayout.AlignItems" Value="Stretch" />
           <Setter TargetName="ClientsCollection" Property="CollectionView.ItemsLayout" Value="{StaticResource ItemsLayout.Compact}" />
         </VisualState.Setters>
       </VisualState>
       <VisualState Name="Medium">
         <VisualState.Setters>
-          <Setter TargetName="ActionBar" Property="FlexLayout.Direction" Value="Row" />
-          <Setter TargetName="ActionBar" Property="FlexLayout.AlignItems" Value="Center" />
-          <Setter TargetName="FiltersLayout" Property="FlexLayout.Direction" Value="Row" />
-          <Setter TargetName="FiltersLayout" Property="FlexLayout.AlignItems" Value="Center" />
           <Setter TargetName="ClientsCollection" Property="CollectionView.ItemsLayout" Value="{StaticResource ItemsLayout.Medium}" />
         </VisualState.Setters>
       </VisualState>
       <VisualState Name="Expanded">
         <VisualState.Setters>
-          <Setter TargetName="ActionBar" Property="FlexLayout.Direction" Value="Row" />
-          <Setter TargetName="FiltersLayout" Property="FlexLayout.Direction" Value="Row" />
           <Setter TargetName="ClientsCollection" Property="CollectionView.ItemsLayout" Value="{StaticResource ItemsLayout.Expanded}" />
         </VisualState.Setters>
       </VisualState>
@@ -59,45 +49,58 @@
 
   <Grid x:Name="Root"
         RowDefinitions="Auto,Auto,*"
-        RowSpacing="{StaticResource Space.4}">
+        RowSpacing="20"
+        Padding="20">
 
-    <FlexLayout x:Name="ActionBar"
-                Grid.Row="0"
-                Direction="Row"
-                Wrap="Wrap"
-                AlignItems="Center"
-                JustifyContent="SpaceBetween">
-      <SearchBar Placeholder="Поиск по имени или телефону"
+    <!-- Верхняя панель -->
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+      <!-- Поиск -->
+      <SearchBar Grid.Column="0"
+                 Placeholder="Поиск по имени или телефону"
                  Text="{Binding Query}"
-                 FlexLayout.Grow="1"
-                 SemanticProperties.Description="Поиск клиентов по имени, телефону или компании" />
-      <Button Text="Обновить"
+                 HeightRequest="50"
+                 FontSize="16"
+                 VerticalOptions="Center"/>
+      
+      <!-- Кнопка Обновить -->
+      <Button Grid.Column="1"
+              Text="Обновить"
               Style="{StaticResource Button.Secondary}"
               Command="{Binding LoadCommand}"
-              Margin="0,0,0,8"
-              ContentLayout="Left,8"
-              ImageSource="{StaticResource IconRefresh}" />
-      <Button Text="Добавить клиента"
+              HeightRequest="50"
+              MinimumWidthRequest="120"
+              FontSize="16"/>
+      
+      <!-- Кнопка Добавить -->
+      <Button Grid.Column="2"
+              Text="Добавить клиента"
               Style="{StaticResource Button.Primary}"
               Command="{Binding OpenCreateCommand}"
-              Margin="0,0,0,8"
-              ContentLayout="Left,8"
-              ImageSource="{StaticResource IconAdd}"
-              SemanticProperties.Description="Создать нового клиента" />
-    </FlexLayout>
+              HeightRequest="50"
+              MinimumWidthRequest="180"
+              FontSize="16"/>
+    </Grid>
 
+    <!-- Фильтры -->
     <Border Grid.Row="1"
-            Style="{StaticResource Card.Container}">
-      <FlexLayout x:Name="FiltersLayout"
-                  Direction="Row"
-                  Wrap="Wrap"
-                  AlignItems="Center">
-        <Label Text="Тип"
+            StrokeThickness="1"
+            Stroke="{DynamicResource Color.Border}"
+            BackgroundColor="{DynamicResource Color.Surface}"
+            StrokeShape="RoundRectangle 8"
+            Padding="16">
+      <Grid ColumnDefinitions="Auto,200,Auto,200,Auto,Auto" ColumnSpacing="16" RowSpacing="0">
+        <!-- Тип -->
+        <Label Grid.Column="0" 
+               Text="Тип:"
+               FontSize="15"
                FontAttributes="Bold"
-               SemanticProperties.Description="Фильтр по типу клиента" />
-        <Picker Title="Выберите тип"
+               VerticalTextAlignment="Center"/>
+        <Picker Grid.Column="1"
+                Title="Выберите тип"
                 SelectedItem="{Binding SelectedType}"
-                WidthRequest="200">
+                HeightRequest="40"
+                FontSize="15"
+                VerticalOptions="Center">
           <Picker.ItemsSource>
             <x:Array Type="{x:Type models:ClientType}">
               <x:Static Member="models:ClientType.Individual" />
@@ -106,30 +109,38 @@
           </Picker.ItemsSource>
         </Picker>
 
-        <Label Text="Менеджер"
+        <!-- Менеджер -->
+        <Label Grid.Column="2" 
+               Text="Менеджер:"
+               FontSize="15"
                FontAttributes="Bold"
-               Margin="16,0,8,0"
-               SemanticProperties.Description="Фильтр по менеджеру" />
-        <Picker Title="Все менеджеры"
+               VerticalTextAlignment="Center"/>
+        <Picker Grid.Column="3"
+                Title="Все менеджеры"
                 SelectedItem="{Binding SelectedManager}"
                 ItemsSource="{Binding Managers}"
                 ItemDisplayBinding="{Binding .}"
-                WidthRequest="200" />
+                HeightRequest="40"
+                FontSize="15"
+                VerticalOptions="Center"/>
 
-        <Border Style="{StaticResource Chip.Standard}">
-          <HorizontalStackLayout Spacing="{StaticResource Space.2}" VerticalOptions="Center">
-            <Label Text="Только мои"
-                   VerticalTextAlignment="Center" />
-            <Switch IsToggled="{Binding ShowOnlyMine}"
-                    SemanticProperties.Description="Показать только моих клиентов" />
-          </HorizontalStackLayout>
-        </Border>
+        <!-- Только мои -->
+        <HorizontalStackLayout Grid.Column="4" Spacing="8" VerticalOptions="Center">
+          <Label Text="Только мои"
+                 FontSize="15"
+                 VerticalTextAlignment="Center"/>
+          <Switch IsToggled="{Binding ShowOnlyMine}"/>
+        </HorizontalStackLayout>
 
-        <Button Text="Незарегистрированные"
+        <!-- Незарегистрированные -->
+        <Button Grid.Column="5"
+                Text="Незарегистрированные"
                 Style="{StaticResource Button.Tertiary}"
                 Command="{Binding OpenUnregisteredCommand}"
-                Margin="0,0,0,8" />
-      </FlexLayout>
+                HeightRequest="40"
+                FontSize="15"
+                Padding="16,0"/>
+      </Grid>
     </Border>
 
     <CollectionView x:Name="ClientsCollection"
@@ -139,30 +150,48 @@
                     SelectionMode="None">
       <CollectionView.ItemTemplate>
         <DataTemplate>
-          <Border Style="{StaticResource Card.Container}" Padding="12" Margin="0,0,0,8">
+          <Border StrokeThickness="1"
+                  Stroke="{DynamicResource Color.Border}"
+                  BackgroundColor="{DynamicResource Color.Surface}"
+                  StrokeShape="RoundRectangle 8"
+                  Padding="16"
+                  Margin="0,0,0,12">
             <Border.GestureRecognizers>
               <TapGestureRecognizer Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenDetailCommand}" CommandParameter="{Binding .}" />
             </Border.GestureRecognizers>
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="6">
+            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
               <!-- Имя и тип -->
-              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <Label Grid.Column="0" Text="{Binding Name}" FontSize="16" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
-                <Border Grid.Column="1" Style="{StaticResource Chip.Standard}">
-                  <Label Text="{Binding Type, Converter={StaticResource ClientTypeToRuConverter}}" FontSize="11"/>
-                </Border>
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <Label Grid.Column="0" 
+                       Text="{Binding Name}" 
+                       FontSize="18" 
+                       FontAttributes="Bold" 
+                       LineBreakMode="TailTruncation"/>
+                <Label Grid.Column="1" 
+                       Text="{Binding Type, Converter={StaticResource ClientTypeToRuConverter}}" 
+                       FontSize="13"
+                       TextColor="{DynamicResource Color.Text.Secondary}"/>
               </Grid>
               
-              <!-- Телефон -->
-              <Label Grid.Row="1" Text="{Binding Phone}" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}"/>
-              
-              <!-- Оборот -->
-              <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="0,4,0,0">
-                <Label Grid.Column="0" Text="💰" FontSize="14"/>
-                <Label Grid.Column="1" Text="{Binding TotalRevenue, StringFormat='Оборот: {0:N0} сум'}" FontSize="13" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}"/>
+              <!-- Телефон и Оборот -->
+              <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <Label Grid.Column="0"
+                       Text="{Binding Phone}" 
+                       FontSize="15" 
+                       TextColor="{DynamicResource Color.Text.Secondary}"/>
+                <Label Grid.Column="1"
+                       Text="{Binding TotalRevenue, StringFormat='Оборот: {0:N0} сум'}" 
+                       FontSize="15" 
+                       FontAttributes="Bold"
+                       TextColor="{DynamicResource Color.Primary}"/>
               </Grid>
               
               <!-- Менеджер (если есть) -->
-              <Label Grid.Row="3" Text="{Binding OwnerUserName, StringFormat='Менеджер: {0}'}" FontSize="11" TextColor="{DynamicResource Color.Text.Secondary}" IsVisible="{Binding HasOwner}"/>
+              <Label Grid.Row="2" 
+                     Text="{Binding OwnerUserName, StringFormat='Менеджер: {0}'}" 
+                     FontSize="13" 
+                     TextColor="{DynamicResource Color.Text.Secondary}"
+                     IsVisible="{Binding HasOwner}"/>
             </Grid>
           </Border>
         </DataTemplate>

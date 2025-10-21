@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.ManagerKpiPage"
-             x:DataType="vm:ManagerKpiViewModel"
              Title="KPI Менеджеров">
   <Grid RowDefinitions="Auto,*" Padding="16">
     <Label Text="🏆 Рейтинг менеджеров" FontSize="24" FontAttributes="Bold" />
@@ -13,7 +12,7 @@
           <DataTemplate>
             <Frame Padding="16" Margin="0,8,0,0" CornerRadius="8" BackgroundColor="White" HasShadow="True">
               <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
-                <Label Grid.RowSpan="3" Text="{Binding RankEmoji}" FontSize="40" VerticalOptions="Center" Margin="0,0,12,0" />
+                <Label Grid.RowSpan="3" Text="{Binding RankEmoji, FallbackValue='👤'}" FontSize="40" VerticalOptions="Center" Margin="0,0,12,0" />
                 <Label Grid.Column="1" Text="{Binding FullName}" FontSize="18" FontAttributes="Bold" />
                 <Label Grid.Column="2" Grid.RowSpan="2" Text="{Binding EfficiencyScore, StringFormat='{0:F1}'}" FontSize="24" FontAttributes="Bold" TextColor="#4CAF50" VerticalOptions="Center" />
                 <Label Grid.Column="1" Grid.Row="1" Text="{Binding SalesCount, StringFormat='💼 {0} продаж'}" FontSize="14" TextColor="Gray" />

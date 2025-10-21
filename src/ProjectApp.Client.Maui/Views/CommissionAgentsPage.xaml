@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.CommissionAgentsPage"
-             x:DataType="vm:CommissionAgentsViewModel"
              Title="Партнеры">
   <Grid RowDefinitions="Auto,*" Padding="16">
     <VerticalStackLayout Spacing="8">
@@ -29,7 +28,7 @@
           <DataTemplate>
             <Frame Padding="16" Margin="0,8,0,0" CornerRadius="8" BackgroundColor="White" HasShadow="True">
               <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
-                <Label Text="{Binding ClientName}" FontSize="18" FontAttributes="Bold" />
+                <Label Text="{Binding ClientName, FallbackValue='Клиент'}" FontSize="18" FontAttributes="Bold" />
                 <Frame Grid.Column="1" Grid.RowSpan="2" Padding="10" CornerRadius="16" BackgroundColor="#FFEBEE" HasShadow="False">
                   <Label Text="{Binding CommissionBalance, StringFormat='{0:N0}'}" FontSize="16" FontAttributes="Bold" TextColor="#F44336" />
                 </Frame>

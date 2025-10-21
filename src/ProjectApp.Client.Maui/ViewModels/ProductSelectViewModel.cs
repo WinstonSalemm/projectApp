@@ -15,10 +15,12 @@ public partial class ProductSelectViewModel : ObservableObject
 {
     private readonly ICatalogService _catalog;
     private readonly IStocksService _stocks;
+    private readonly ISalesService _sales;
+    private readonly SaleSession _session;
     private readonly ILogger<ProductSelectViewModel> _logger;
 
     [ObservableProperty] private string? query;
-    [ObservableProperty] private string? selectedCategory;
+    [ObservableProperty] private string? selectedCategory = "Все категории";
     [ObservableProperty] private string? errorMessage;
     [ObservableProperty] private bool hasError;
 
@@ -61,10 +63,12 @@ public partial class ProductSelectViewModel : ObservableObject
     // Explicit command for XAML binding (fixes design-time 'SearchAsyncCommand not found')
     public IAsyncRelayCommand SearchAsyncCommand { get; }
 
-    public ProductSelectViewModel(ICatalogService catalog, IStocksService stocks, ILogger<ProductSelectViewModel> logger)
+    public ProductSelectViewModel(ICatalogService catalog, IStocksService stocks, ISalesService sales, SaleSession session, ILogger<ProductSelectViewModel> logger)
     {
         _catalog = catalog;
         _stocks = stocks;
+        _sales = sales;
+        _session = session;
         _logger = logger;
         SearchAsyncCommand = new AsyncRelayCommand(SearchAsync);
         _ = LoadCategoriesAsync();
@@ -81,6 +85,10 @@ public partial class ProductSelectViewModel : ObservableObject
             ErrorMessage = null;
             _logger.LogInformation("[ProductSelectViewModel] LoadCategoriesAsync started");
             Categories.Clear();
+            
+            // Добавляем опцию "Все категории"
+            Categories.Add("Все категории");
+            
             var cats = await _catalog.GetCategoriesAsync();
             _logger.LogInformation("[ProductSelectViewModel] LoadCategoriesAsync received {Count} categories", cats?.Count() ?? 0);
             foreach (var c in cats) Categories.Add(c);
@@ -104,15 +112,18 @@ public partial class ProductSelectViewModel : ObservableObject
             ErrorMessage = null;
             Results.Clear();
             
-            _logger.LogInformation("[ProductSelectViewModel] SearchAsync started: query={Query}, category={Category}", Query, SelectedCategory);
-            var list = await _catalog.SearchAsync(Query, SelectedCategory);
+            // Если выбрано "Все категории", передаем null для поиска по всем
+            var categoryFilter = SelectedCategory == "Все категории" ? null : SelectedCategory;
+            
+            _logger.LogInformation("[ProductSelectViewModel] SearchAsync started: query={Query}, category={Category}", Query, categoryFilter);
+            var list = await _catalog.SearchAsync(Query, categoryFilter);
             _logger.LogInformation("[ProductSelectViewModel] SearchAsync received {Count} products", list?.Count() ?? 0);
             
             // Try to load stocks, but don't crash if it fails
             var stockList = Enumerable.Empty<dynamic>();
             try
             {
-                stockList = (await _stocks.GetStocksAsync(Query, SelectedCategory)) ?? Enumerable.Empty<dynamic>();
+                stockList = (await _stocks.GetStocksAsync(Query, categoryFilter)) ?? Enumerable.Empty<dynamic>();
                 _logger.LogInformation("[ProductSelectViewModel] SearchAsync received {Count} stocks", stockList.Count());
             }
             catch (Exception ex)
@@ -196,10 +207,55 @@ public partial class ProductSelectViewModel : ObservableObject
             await NavigationHelper.DisplayAlert("Корзина пуста", "Добавьте товары для оформления продажи", "OK");
             return;
         }
-        
-        // TODO: Implement checkout logic - send sale with ClientId (can be null)
-        var clientInfo = SelectedClientId.HasValue ? $"Клиент ID: {SelectedClientId}" : "Без клиента";
-        await NavigationHelper.DisplayAlert("Оформление продажи", $"Функция в разработке\n{clientInfo}\nТоваров: {CartItems.Count}\nИтого: {CartTotal:N0} сум", "OK");
+
+        try
+        {
+            IsBusy = true;
+
+            // Prepare sale draft
+            var draft = new SaleDraft
+            {
+                ClientId = SelectedClientId,
+                ClientName = SelectedClientId.HasValue ? SelectedClientName : string.Empty,
+                PaymentType = _session.PaymentType,
+                Items = CartItems.Select(item => new SaleDraftItem
+                {
+                    ProductId = item.ProductId,
+                    Qty = (double)item.Qty,
+                    UnitPrice = item.UnitPrice
+                }).ToList()
+            };
+
+            // Submit sale
+            var result = await _sales.SubmitSaleAsync(draft);
+
+            if (result.Success)
+            {
+                await NavigationHelper.DisplayAlert("✅ Успех", $"Продажа оформлена!\nЧек #{result.SaleId}\nСумма: {CartTotal:N0} сум", "OK");
+                
+                // Clear cart and return to payment selection
+                CartItems.Clear();
+                RecalculateTotal();
+                SelectedClientId = null;
+                SelectedClientName = "Выберите клиента...";
+                
+                // Navigate back to payment select
+                await NavigationHelper.PopAsync();
+            }
+            else
+            {
+                await NavigationHelper.DisplayAlert("❌ Ошибка", result.ErrorMessage ?? "Не удалось оформить продажу", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при оформлении продажи");
+            await NavigationHelper.DisplayAlert("❌ Ошибка", $"Произошла ошибка: {ex.Message}", "OK");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 }
 

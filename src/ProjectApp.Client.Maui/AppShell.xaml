@@ -28,25 +28,63 @@
   </Shell.Resources>
 
   <Shell.TitleView>
-    <Grid x:Name="TitleBar" Padding="16,8" HeightRequest="60">
+    <Grid x:Name="TitleBar" Padding="16,8" HeightRequest="70">
       <Grid.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
           <GradientStop Color="#0D47A1" Offset="0.0" />
           <GradientStop Color="#1976D2" Offset="1.0" />
         </LinearGradientBrush>
       </Grid.Background>
-      <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
-        <Frame Padding="8,4" CornerRadius="6" BackgroundColor="#1565C0" HasShadow="False">
-          <Label Text="POJ" FontSize="20" FontAttributes="Bold" TextColor="White" />
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+        <!-- POJ PRO Branding -->
+        <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+          <HorizontalStackLayout Spacing="8">
+            <Frame Padding="8,4" CornerRadius="6" BackgroundColor="#1565C0" HasShadow="False">
+              <Label Text="POJ" FontSize="20" FontAttributes="Bold" TextColor="White" />
+            </Frame>
+            <Label Text="PRO" FontSize="24" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
+          </HorizontalStackLayout>
+          <Label Text="{Binding UserDisplayName}" 
+                 FontSize="12" 
+                 TextColor="#E3F2FD" 
+                 Margin="4,0,0,0"
+                 FontAttributes="Italic"/>
+        </VerticalStackLayout>
+        
+        <!-- Subtitle -->
+        <Label Grid.Column="1"
+               Text="Управление продажами" 
+               FontSize="12" 
+               TextColor="#B3E5FC" 
+               VerticalOptions="Center"
+               HorizontalOptions="Start"/>
+        
+        <!-- Online/Offline Indicator -->
+        <Frame Grid.Column="2"
+               x:Name="StatusIndicator"
+               Padding="12,8"
+               CornerRadius="20"
+               BackgroundColor="#4CAF50"
+               HasShadow="False"
+               VerticalOptions="Center">
+          <HorizontalStackLayout Spacing="8">
+            <Ellipse Fill="White" 
+                     WidthRequest="12" 
+                     HeightRequest="12"
+                     VerticalOptions="Center"/>
+            <Label Text="Онлайн" 
+                   FontSize="13" 
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   VerticalOptions="Center"/>
+          </HorizontalStackLayout>
         </Frame>
-        <Label Text="PRO" FontSize="24" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
-        <Label Text="| Управление продажами" FontSize="12" TextColor="#B3E5FC" VerticalOptions="Center" Margin="8,0,0,0" />
-      </HorizontalStackLayout>
+      </Grid>
     </Grid>
   </Shell.TitleView>
 
   <Shell.FlyoutHeader>
-    <Grid Padding="20" HeightRequest="140">
+    <Grid Padding="20" HeightRequest="160">
       <Grid.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
           <GradientStop Color="#0D47A1" Offset="0.0" />
@@ -61,6 +99,11 @@
           </Frame>
           <Label Text="PRO" FontSize="32" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
         </HorizontalStackLayout>
+        <Label Text="{Binding UserDisplayName}" 
+               FontSize="14" 
+               TextColor="White" 
+               FontAttributes="Bold"
+               Margin="4,0,0,0" />
         <Label Text="Профессиональная система управления" FontSize="11" TextColor="#B3E5FC" Margin="4,0,0,0" />
       </VerticalStackLayout>
     </Grid>
@@ -87,6 +130,11 @@
                  FontAttributes="Bold"
                  TextColor="{DynamicResource Color.Text.Primary}" />
         </HorizontalStackLayout>
+        <Label Text="{Binding UserDisplayName}"
+               FontSize="{StaticResource Font.Size.Body.Small}"
+               FontAttributes="Bold"
+               TextColor="#1976D2" 
+               Margin="0,4,0,0"/>
         <Label Text="Панель управления"
                FontSize="{StaticResource Font.Size.Body.Small}"
                TextColor="{DynamicResource Color.Text.Secondary}" />

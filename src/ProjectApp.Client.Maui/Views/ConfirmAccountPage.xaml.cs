@@ -9,16 +9,15 @@ public partial class ConfirmAccountPage : ContentPage
 {
     private readonly IAudioManager _audioManager;
     private readonly string _accountName;
-    private readonly Func<Task> _onYes;
-    private readonly Func<Task> _onNo;
+    private readonly TaskCompletionSource<bool> _resultSource = new();
 
-    public ConfirmAccountPage(IAudioManager audioManager, string accountDisplayName, Func<Task> onYes, Func<Task> onNo)
+    public Task<bool> Result => _resultSource.Task;
+
+    public ConfirmAccountPage(IAudioManager audioManager, string accountDisplayName)
     {
         InitializeComponent();
         _audioManager = audioManager;
         _accountName = accountDisplayName;
-        _onYes = onYes;
-        _onNo = onNo;
         SubtitleLabel.Text = $"\"{_accountName}\"?";
     }
 
@@ -45,14 +44,14 @@ public partial class ConfirmAccountPage : ContentPage
 
     private async void OnYesClicked(object? sender, EventArgs e)
     {
-        try { if (_onYes != null) await _onYes(); } catch { }
-        try { await Navigation.PopModalAsync(); } catch { }
+        _resultSource.TrySetResult(true);
+        await Navigation.PopModalAsync();
     }
 
     private async void OnNoClicked(object? sender, EventArgs e)
     {
-        try { if (_onNo != null) await _onNo(); } catch { }
-        try { await Navigation.PopModalAsync(); } catch { }
+        _resultSource.TrySetResult(false);
+        await Navigation.PopModalAsync();
     }
 }
 
