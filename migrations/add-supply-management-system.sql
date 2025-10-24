@@ -1,11 +1,4 @@
--- Миграция для MySQL: Система управления поставками НД-40/ИМ-40 и расчета себестоимости
--- Дата: 2025-01-24
--- Описание: Полностью новая система поставок с расчетом себестоимости
-
--- Удаляем старую таблицу (если есть)
 DROP TABLE IF EXISTS `SupplyCostCalculations`;
-
--- Создаём таблицу поставок
 CREATE TABLE IF NOT EXISTS `Supplies` (
     `Id` INT AUTO_INCREMENT PRIMARY KEY,
     `Code` VARCHAR(200) NOT NULL COMMENT '№ ГТД, ввод вручную',
@@ -20,8 +13,6 @@ CREATE TABLE IF NOT EXISTS `Supplies` (
     INDEX `IX_Supplies_CreatedAt` (`CreatedAt` DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Поставки товара (ND-40 / IM-40)';
-
--- Создаём таблицу позиций поставки
 CREATE TABLE IF NOT EXISTS `SupplyItems` (
     `Id` INT AUTO_INCREMENT PRIMARY KEY,
     `SupplyId` INT NOT NULL,
@@ -40,15 +31,10 @@ CREATE TABLE IF NOT EXISTS `SupplyItems` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Позиции поставки';
 
--- Создаём таблицу сессий расчета себестоимости
 CREATE TABLE IF NOT EXISTS `CostingSessions` (
     `Id` INT AUTO_INCREMENT PRIMARY KEY,
     `SupplyId` INT NOT NULL,
-    
-    -- Ручной ввод пользователем (все поля обязательны)
     `ExchangeRate` DECIMAL(18,4) NOT NULL COMMENT 'Курс RUB→UZS',
-    
-    -- Проценты (к «цена сум»)
     `VatPct` DECIMAL(18,4) NOT NULL DEFAULT 0.2200 COMMENT 'НДС, 0.22 = 22%',
     `LogisticsPct` DECIMAL(18,4) NOT NULL DEFAULT 0.0050 COMMENT 'Логистика',
     `StoragePct` DECIMAL(18,4) NOT NULL DEFAULT 0.0020 COMMENT 'Склад',
@@ -56,9 +42,7 @@ CREATE TABLE IF NOT EXISTS `CostingSessions` (
     `CertificationPct` DECIMAL(18,4) NOT NULL DEFAULT 0.0100 COMMENT 'Сертификация',
     `MChsPct` DECIMAL(18,4) NOT NULL DEFAULT 0.0000 COMMENT 'МЧС',
     `UnforeseenPct` DECIMAL(18,4) NOT NULL DEFAULT 0.0150 COMMENT 'Непредвиденные',
-    
-    -- Абсолюты (UZS), распределяются по количеству (шт)
-    `CustomsFeeAbs` DECIMAL(18,4) NOT NULL DEFAULT 0.0000 COMMENT 'Таможня, сбор (UZS)',
+        `CustomsFeeAbs` DECIMAL(18,4) NOT NULL DEFAULT 0.0000 COMMENT 'Таможня, сбор (UZS)',
     `LoadingAbs` DECIMAL(18,4) NOT NULL DEFAULT 0.0000 COMMENT 'Погрузка (UZS)',
     `ReturnsAbs` DECIMAL(18,4) NOT NULL DEFAULT 0.0000 COMMENT 'Возврат (UZS)',
     
@@ -75,19 +59,16 @@ CREATE TABLE IF NOT EXISTS `CostingSessions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Сессии расчета себестоимости';
 
--- Создаём таблицу снапшотов расчета позиций
 CREATE TABLE IF NOT EXISTS `CostingItemSnapshots` (
     `Id` INT AUTO_INCREMENT PRIMARY KEY,
     `CostingSessionId` INT NOT NULL,
     `SupplyItemId` INT NOT NULL,
     
-    -- Снятые данные на момент расчёта
     `Name` VARCHAR(500) NOT NULL,
     `Quantity` INT NOT NULL,
     `PriceRub` DECIMAL(18,4) NOT NULL,
     `PriceUzs` DECIMAL(18,4) NOT NULL COMMENT 'PriceRub * ExchangeRate',
     
-    -- Процентные статьи (к «цена сум»)
     `VatUzs` DECIMAL(18,4) NOT NULL DEFAULT 0.0000,
     `LogisticsUzs` DECIMAL(18,4) NOT NULL DEFAULT 0.0000,
     `StorageUzs` DECIMAL(18,4) NOT NULL DEFAULT 0.0000,
@@ -96,7 +77,6 @@ CREATE TABLE IF NOT EXISTS `CostingItemSnapshots` (
     `MChsUzs` DECIMAL(18,4) NOT NULL DEFAULT 0.0000,
     `UnforeseenUzs` DECIMAL(18,4) NOT NULL DEFAULT 0.0000,
     
-    -- Абсолюты (распределены по шт)
     `CustomsUzs` DECIMAL(18,4) NOT NULL DEFAULT 0.0000,
     `LoadingUzs` DECIMAL(18,4) NOT NULL DEFAULT 0.0000,
     `ReturnsUzs` DECIMAL(18,4) NOT NULL DEFAULT 0.0000,
@@ -113,8 +93,6 @@ CREATE TABLE IF NOT EXISTS `CostingItemSnapshots` (
     INDEX `IX_CostingItemSnapshots_SupplyItemId` (`SupplyItemId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Снапшоты расчета себестоимости для каждой позиции';
-
--- Комментарии к таблицам
 ALTER TABLE `Supplies` COMMENT = 'Поставки товара (ND-40 / IM-40). Создаются в ND-40, переводятся целиком в IM-40';
 ALTER TABLE `SupplyItems` COMMENT = 'Позиции поставки с привязкой к Products';
 ALTER TABLE `CostingSessions` COMMENT = 'Сессии расчета себестоимости с параметрами (курс, проценты, абсолюты)';

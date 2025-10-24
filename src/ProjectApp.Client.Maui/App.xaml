@@ -80,6 +80,12 @@
       <conv:SupplyStatusConverter x:Key="SupplyStatusConverter" />
       <conv:SupplyStatusColorConverter x:Key="SupplyStatusColorConverter" />
       <conv:IsNd40Converter x:Key="IsNd40Converter" />
+      
+      <!-- Costing Converters -->
+      <conv:NullToBoolConverter x:Key="NullToBoolConverter" />
+      <conv:NotNullToBoolConverter x:Key="NotNullToBoolConverter" />
+      <conv:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+      <conv:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter" />
 
       <!-- Safe ASCII icon resources -->
       <FontImageSource x:Key="IconAdd" Glyph="+" Color="{DynamicResource Color.Primary}" Size="18" />

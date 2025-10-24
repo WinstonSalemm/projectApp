@@ -93,6 +93,93 @@ public class SupplyDto
     public DateTime UpdatedAt { get; set; }
 }
 
+public interface ICostingService
+{
+    Task<List<CostingSessionDto>> GetSessionsAsync(int supplyId);
+    Task<CostingSessionDetailsDto> GetSessionDetailsAsync(int sessionId);
+    Task<CostingSessionDto> CreateSessionAsync(CreateCostingSessionRequest request);
+    Task<RecalculateResultDto> RecalculateAsync(int sessionId);
+    Task<FinalizeResultDto> FinalizeAsync(int sessionId);
+}
+
+public class CostingSessionDto
+{
+    public int Id { get; set; }
+    public int SupplyId { get; set; }
+    public decimal ExchangeRate { get; set; }
+    public decimal VatPct { get; set; }
+    public decimal LogisticsPct { get; set; }
+    public decimal StoragePct { get; set; }
+    public decimal DeclarationPct { get; set; }
+    public decimal CertificationPct { get; set; }
+    public decimal MChsPct { get; set; }
+    public decimal UnforeseenPct { get; set; }
+    public decimal CustomsFeeAbs { get; set; }
+    public decimal LoadingAbs { get; set; }
+    public decimal ReturnsAbs { get; set; }
+    public bool IsFinalized { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CostingItemDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal PriceRub { get; set; }
+    public decimal PriceUzs { get; set; }
+    public decimal VatUzs { get; set; }
+    public decimal LogisticsUzs { get; set; }
+    public decimal StorageUzs { get; set; }
+    public decimal DeclarationUzs { get; set; }
+    public decimal CertificationUzs { get; set; }
+    public decimal MChsUzs { get; set; }
+    public decimal UnforeseenUzs { get; set; }
+    public decimal CustomsUzs { get; set; }
+    public decimal LoadingUzs { get; set; }
+    public decimal ReturnsUzs { get; set; }
+    public decimal TotalCostUzs { get; set; }
+    public decimal UnitCostUzs { get; set; }
+}
+
+public class CostingSessionDetailsDto
+{
+    public CostingSessionDto Session { get; set; } = null!;
+    public List<CostingItemDto> Snapshots { get; set; } = new();
+    public decimal GrandTotal { get; set; }
+}
+
+public class CreateCostingSessionRequest
+{
+    public int SupplyId { get; set; }
+    public decimal ExchangeRate { get; set; }
+    public decimal VatPct { get; set; }
+    public decimal LogisticsPct { get; set; }
+    public decimal StoragePct { get; set; }
+    public decimal DeclarationPct { get; set; }
+    public decimal CertificationPct { get; set; }
+    public decimal MChsPct { get; set; }
+    public decimal UnforeseenPct { get; set; }
+    public decimal CustomsFeeAbs { get; set; }
+    public decimal LoadingAbs { get; set; }
+    public decimal ReturnsAbs { get; set; }
+}
+
+public class RecalculateResultDto
+{
+    public bool Success { get; set; }
+    public int SnapshotsCount { get; set; }
+    public decimal GrandTotal { get; set; }
+    public bool InvariantValid { get; set; }
+}
+
+public class FinalizeResultDto
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public int BatchesCreated { get; set; }
+}
+
 public interface IReturnsService
 {
     Task<bool> CreateReturnAsync(ReturnDraft draft, CancellationToken ct = default);
