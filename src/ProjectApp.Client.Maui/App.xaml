@@ -73,6 +73,7 @@
       <conv:CurrencyConverter x:Key="CurrencyConverter" />
       <conv:ClientTypeToRuConverter x:Key="ClientTypeToRuConverter" />
       <conv:DateTimeToRuConverter x:Key="DateTimeToRuConverter" />
+      <conv:BoolToExpandCollapseConverter x:Key="BoolToExpandCollapseConverter" />
 
       <!-- Safe ASCII icon resources -->
       <FontImageSource x:Key="IconAdd" Glyph="+" Color="{DynamicResource Color.Primary}" Size="18" />

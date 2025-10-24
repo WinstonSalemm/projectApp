@@ -44,6 +44,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ProductCostHistory> ProductCostHistories => Set<ProductCostHistory>();
     public DbSet<DefectiveItem> DefectiveItems => Set<DefectiveItem>();
     public DbSet<RefillOperation> RefillOperations => Set<RefillOperation>();
+    public DbSet<SupplyCostCalculation> SupplyCostCalculations => Set<SupplyCostCalculation>();
     
     // Financial System
     public DbSet<Cashbox> Cashboxes => Set<Cashbox>();

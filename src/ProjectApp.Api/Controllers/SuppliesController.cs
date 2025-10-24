@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Dtos;
 using ProjectApp.Api.Models;
+using ProjectApp.Api.Services;
 
 namespace ProjectApp.Api.Controllers;
 
@@ -13,11 +14,120 @@ public class SuppliesController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ILogger<SuppliesController> _logger;
+    private readonly SupplyCostCalculationService _costCalcService;
 
-    public SuppliesController(AppDbContext db, ILogger<SuppliesController> logger)
+    public SuppliesController(AppDbContext db, ILogger<SuppliesController> logger, SupplyCostCalculationService costCalcService)
     {
         _db = db;
         _logger = logger;
+        _costCalcService = costCalcService;
+    }
+
+    /// <summary>
+    /// Получить значения по умолчанию для параметров расчета НД-40
+    /// </summary>
+    [HttpGet("cost-defaults")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(typeof(Dictionary<string, decimal>), StatusCodes.Status200OK)]
+    public IActionResult GetCostDefaults()
+    {
+        return Ok(_costCalcService.GetDefaults());
+    }
+
+    /// <summary>
+    /// Предварительный расчет себестоимости НД-40 (без создания поставки)
+    /// </summary>
+    [HttpPost("cost-preview")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(typeof(SupplyCostPreviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> PreviewCost([FromBody] SupplyCreateDto dto, CancellationToken ct)
+    {
+        if (dto.Items is null || dto.Items.Count == 0)
+            return ValidationProblem(detail: "At least one supply item is required");
+
+        var calculations = new List<SupplyCostCalculationDto>();
+        decimal grandTotal = 0m;
+
+        foreach (var item in dto.Items)
+        {
+            // Проверка существования товара
+            var product = await _db.Products
+                .AsNoTracking()
+                .Where(p => p.Id == item.ProductId)
+                .Select(p => new { p.Id, p.Name, p.Sku })
+                .FirstOrDefaultAsync(ct);
+
+            if (product is null)
+                return ValidationProblem(detail: $"Product not found: {item.ProductId}");
+
+            // Используем PriceRub если есть, иначе UnitCost
+            var priceRub = item.PriceRub ?? item.UnitCost;
+
+            // Рассчитываем себестоимость
+            var calc = _costCalcService.Calculate(
+                productId: product.Id,
+                productName: product.Name,
+                sku: product.Sku,
+                quantity: item.Qty,
+                priceRub: priceRub,
+                weight: item.Weight,
+                exchangeRate: dto.ExchangeRate,
+                customsFee: dto.CustomsFee,
+                vatPercent: dto.VatPercent,
+                correctionPercent: dto.CorrectionPercent,
+                securityPercent: dto.SecurityPercent,
+                declarationPercent: dto.DeclarationPercent,
+                certificationPercent: dto.CertificationPercent,
+                calculationBase: dto.CalculationBase,
+                loadingPercent: dto.LoadingPercent
+            );
+
+            calculations.Add(new SupplyCostCalculationDto
+            {
+                ProductId = calc.ProductId,
+                ProductName = calc.ProductName,
+                Sku = calc.Sku,
+                Quantity = calc.Quantity,
+                PriceRub = calc.PriceRub,
+                PriceTotal = calc.PriceTotal,
+                Weight = calc.Weight,
+                CustomsAmount = calc.CustomsAmount,
+                VatAmount = calc.VatAmount,
+                CorrectionAmount = calc.CorrectionAmount,
+                SecurityAmount = calc.SecurityAmount,
+                DeclarationAmount = calc.DeclarationAmount,
+                CertificationAmount = calc.CertificationAmount,
+                LoadingAmount = calc.LoadingAmount,
+                DeviationAmount = calc.DeviationAmount,
+                TotalCost = calc.TotalCost,
+                UnitCost = calc.UnitCost
+            });
+
+            grandTotal += calc.TotalCost;
+        }
+
+        // Берем параметры из первого расчета (они одинаковые для всех)
+        var firstCalc = calculations.FirstOrDefault();
+        if (firstCalc is null)
+            return ValidationProblem(detail: "No calculations generated");
+
+        var defaults = _costCalcService.GetDefaults();
+
+        return Ok(new SupplyCostPreviewDto
+        {
+            Items = calculations,
+            GrandTotalCost = Math.Round(grandTotal, 2),
+            ExchangeRate = dto.ExchangeRate ?? defaults["ExchangeRate"],
+            CustomsFee = dto.CustomsFee ?? defaults["CustomsFee"],
+            VatPercent = dto.VatPercent ?? defaults["VatPercent"],
+            CorrectionPercent = dto.CorrectionPercent ?? defaults["CorrectionPercent"],
+            SecurityPercent = dto.SecurityPercent ?? defaults["SecurityPercent"],
+            DeclarationPercent = dto.DeclarationPercent ?? defaults["DeclarationPercent"],
+            CertificationPercent = dto.CertificationPercent ?? defaults["CertificationPercent"],
+            CalculationBase = dto.CalculationBase ?? defaults["CalculationBase"],
+            LoadingPercent = dto.LoadingPercent ?? defaults["LoadingPercent"]
+        });
     }
 
     [HttpPost]

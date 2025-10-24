@@ -78,38 +78,54 @@ public partial class SaleStartPage : ContentPage
 
     private async Task HandleSaleMethodAsync(SaleStartViewModel vm, SaleMethodOption option)
     {
-        if (option.Id == SaleMethodKind.CommissionClients)
+        try
         {
-            await NavigateToClientsAsync();
-            return;
-        }
-
-        switch (option.PaymentType)
-        {
-            case PaymentType.Return:
+            if (option.Id == SaleMethodKind.CommissionClients)
             {
-                var history = _services.GetRequiredService<SalesHistoryPage>();
-                if (history.BindingContext is SalesHistoryViewModel historyVm)
+                await NavigateToClientsAsync();
+                return;
+            }
+
+            switch (option.PaymentType)
+            {
+                case PaymentType.Return:
                 {
-                    historyVm.ShowAll = true;
-                    if (historyVm.LoadCommand is IAsyncRelayCommand loadCommand)
+                    System.Diagnostics.Debug.WriteLine("[SaleStartPage] Getting SalesHistoryPage from DI...");
+                    var history = _services.GetRequiredService<SalesHistoryPage>();
+                    System.Diagnostics.Debug.WriteLine("[SaleStartPage] SalesHistoryPage created successfully");
+                    
+                    if (history.BindingContext is SalesHistoryViewModel historyVm)
                     {
-                        await loadCommand.ExecuteAsync(null);
+                        System.Diagnostics.Debug.WriteLine("[SaleStartPage] Setting ShowAll = true");
+                        historyVm.ShowAll = true;
+                        if (historyVm.LoadCommand is IAsyncRelayCommand loadCommand)
+                        {
+                            System.Diagnostics.Debug.WriteLine("[SaleStartPage] Executing LoadCommand...");
+                            await loadCommand.ExecuteAsync(null);
+                            System.Diagnostics.Debug.WriteLine("[SaleStartPage] LoadCommand completed");
+                        }
                     }
-                }
 
-                await Navigation.PushAsync(history);
-                break;
+                    System.Diagnostics.Debug.WriteLine("[SaleStartPage] Pushing to navigation...");
+                    await Navigation.PushAsync(history);
+                    System.Diagnostics.Debug.WriteLine("[SaleStartPage] Navigation push completed");
+                    break;
+                }
+                case PaymentType.Contract:
+                {
+                    var contracts = _services.GetRequiredService<ContractsListPage>();
+                    await Navigation.PushAsync(contracts);
+                    break;
+                }
+                default:
+                    await NavigateToQuickSaleAsync(vm);
+                    break;
             }
-            case PaymentType.Contract:
-            {
-                var contracts = _services.GetRequiredService<ContractsListPage>();
-                await Navigation.PushAsync(contracts);
-                break;
-            }
-            default:
-                await NavigateToQuickSaleAsync(vm);
-                break;
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка", $"Не удалось открыть страницу: {ex.Message}\n\nТип: {ex.GetType().Name}", "OK");
+            System.Diagnostics.Debug.WriteLine($"[SaleStartPage] Error in HandleSaleMethodAsync: {ex}");
         }
     }
 

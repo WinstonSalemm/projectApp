@@ -285,6 +285,9 @@ builder.Services.AddScoped<ProjectApp.Api.Integrations.Email.IEmailService, Proj
 // Commission (Partner Program)
 builder.Services.AddScoped<ProjectApp.Api.Services.CommissionService>();
 
+// Supply Cost Calculation (НД-40)
+builder.Services.AddScoped<ProjectApp.Api.Services.SupplyCostCalculationService>();
+
 // Finance module
 builder.Services.Configure<FinanceSettings>(builder.Configuration.GetSection("Finance"));
 // Register FinanceSettings as singleton for services that need it directly (not via IOptions)

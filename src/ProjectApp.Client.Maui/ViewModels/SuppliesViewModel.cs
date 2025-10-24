@@ -18,6 +18,46 @@ public partial class SuppliesViewModel : ObservableObject
     [ObservableProperty]
     private string statusMessage = string.Empty;
 
+    // === ПАРАМЕТРЫ РАСЧЕТА НД-40 ===
+    [ObservableProperty]
+    private bool showCostParams = true;
+
+    [ObservableProperty]
+    private decimal exchangeRate = 158.08m;
+
+    [ObservableProperty]
+    private decimal customsFee = 105000m;
+
+    [ObservableProperty]
+    private decimal vatPercent = 22m;
+
+    [ObservableProperty]
+    private decimal correctionPercent = 0.50m;
+
+    [ObservableProperty]
+    private decimal securityPercent = 0.2m;
+
+    [ObservableProperty]
+    private decimal declarationPercent = 1m;
+
+    [ObservableProperty]
+    private decimal certificationPercent = 1m;
+
+    [ObservableProperty]
+    private decimal calculationBase = 10000000m;
+
+    [ObservableProperty]
+    private decimal loadingPercent = 1.6m;
+
+    // === ПРЕДВАРИТЕЛЬНЫЙ РАСЧЕТ ===
+    [ObservableProperty]
+    private bool hasCostPreview;
+
+    [ObservableProperty]
+    private decimal grandTotalCost;
+
+    public ObservableCollection<CostPreviewItemVm> CostPreviewItems { get; } = new();
+
     // New supply item editor
     [ObservableProperty] private int newProductId;
     [ObservableProperty] private string? newProductSku;
@@ -54,6 +94,34 @@ public partial class SuppliesViewModel : ObservableObject
     public SuppliesViewModel(ISuppliesService supplies)
     {
         _supplies = supplies;
+        _ = LoadDefaultsAsync();
+    }
+
+    private async Task LoadDefaultsAsync()
+    {
+        try
+        {
+            var defaults = await _supplies.GetCostDefaultsAsync();
+            if (defaults != null)
+            {
+                if (defaults.TryGetValue("ExchangeRate", out var rate)) ExchangeRate = rate;
+                if (defaults.TryGetValue("CustomsFee", out var customs)) CustomsFee = customs;
+                if (defaults.TryGetValue("VatPercent", out var vat)) VatPercent = vat;
+                if (defaults.TryGetValue("CorrectionPercent", out var corr)) CorrectionPercent = corr;
+                if (defaults.TryGetValue("SecurityPercent", out var sec)) SecurityPercent = sec;
+                if (defaults.TryGetValue("DeclarationPercent", out var decl)) DeclarationPercent = decl;
+                if (defaults.TryGetValue("CertificationPercent", out var cert)) CertificationPercent = cert;
+                if (defaults.TryGetValue("CalculationBase", out var calcBase)) CalculationBase = calcBase;
+                if (defaults.TryGetValue("LoadingPercent", out var load)) LoadingPercent = load;
+            }
+        }
+        catch { /* Используем хардкодные дефолты */ }
+    }
+
+    [RelayCommand]
+    private void ToggleCostParams()
+    {
+        ShowCostParams = !ShowCostParams;
     }
 
     [RelayCommand]
@@ -150,6 +218,90 @@ public partial class SuppliesViewModel : ObservableObject
         }
         finally { IsBusy = false; }
     }
+
+    [RelayCommand]
+    private async Task PreviewCostAsync()
+    {
+        if (Items.Count == 0)
+        {
+            StatusMessage = "Добавьте позиции для расчета";
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = string.Empty;
+            HasCostPreview = false;
+
+            var preview = await _supplies.PreviewCostAsync(new SupplyDraft
+            {
+                Items = Items.ToList(),
+                ExchangeRate = ExchangeRate,
+                CustomsFee = CustomsFee,
+                VatPercent = VatPercent,
+                CorrectionPercent = CorrectionPercent,
+                SecurityPercent = SecurityPercent,
+                DeclarationPercent = DeclarationPercent,
+                CertificationPercent = CertificationPercent,
+                CalculationBase = CalculationBase,
+                LoadingPercent = LoadingPercent
+            });
+
+            if (preview != null)
+            {
+                CostPreviewItems.Clear();
+                foreach (var item in preview.Items)
+                {
+                    CostPreviewItems.Add(new CostPreviewItemVm
+                    {
+                        ProductId = item.ProductId,
+                        ProductName = item.ProductName,
+                        Sku = item.Sku,
+                        Quantity = item.Quantity,
+                        PriceRub = item.PriceRub,
+                        PriceTotal = item.PriceTotal,
+                        CustomsAmount = item.CustomsAmount,
+                        VatAmount = item.VatAmount,
+                        CorrectionAmount = item.CorrectionAmount,
+                        SecurityAmount = item.SecurityAmount,
+                        DeclarationAmount = item.DeclarationAmount,
+                        CertificationAmount = item.CertificationAmount,
+                        LoadingAmount = item.LoadingAmount,
+                        TotalCost = item.TotalCost,
+                        UnitCost = item.UnitCost
+                    });
+                }
+                GrandTotalCost = preview.GrandTotalCost;
+                HasCostPreview = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Ошибка расчета: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
 }
 
-
+public class CostPreviewItemVm
+{
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string? Sku { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal PriceRub { get; set; }
+    public decimal PriceTotal { get; set; }
+    public decimal CustomsAmount { get; set; }
+    public decimal VatAmount { get; set; }
+    public decimal CorrectionAmount { get; set; }
+    public decimal SecurityAmount { get; set; }
+    public decimal DeclarationAmount { get; set; }
+    public decimal CertificationAmount { get; set; }
+    public decimal LoadingAmount { get; set; }
+    public decimal TotalCost { get; set; }
+    public decimal UnitCost { get; set; }
+}

@@ -31,19 +31,24 @@ public partial class SalesHistoryViewModel : ObservableObject
         _sales = sales;
         _auth = auth;
         _services = services;
-        _ = LoadAsync();
+        // НЕ загружаем автоматически - загрузка будет вызвана вручную из SaleStartPage
     }
 
     [RelayCommand]
     private async Task LoadAsync()
     {
+        System.Diagnostics.Debug.WriteLine("[SalesHistoryViewModel] LoadAsync START");
         if (IsLoading) return;
         try
         {
             IsLoading = true;
+            System.Diagnostics.Debug.WriteLine("[SalesHistoryViewModel] Checking auth...");
             var isAdmin = string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
             var createdBy = (ShowAll || isAdmin) ? null : _auth.UserName;
+            System.Diagnostics.Debug.WriteLine($"[SalesHistoryViewModel] Calling API GetSalesAsync (ShowAll={ShowAll}, createdBy={createdBy ?? "null"})...");
             var list = await _sales.GetSalesAsync(DateFrom, DateTo, createdBy: createdBy, all: ShowAll);
+            int count = list == null ? 0 : list.Count();
+            System.Diagnostics.Debug.WriteLine($"[SalesHistoryViewModel] API returned {count} sales");
             await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
             {
                 Items.Clear();
@@ -62,8 +67,18 @@ public partial class SalesHistoryViewModel : ObservableObject
                     });
                 }
             });
+            System.Diagnostics.Debug.WriteLine("[SalesHistoryViewModel] LoadAsync COMPLETED successfully");
         }
-        finally { IsLoading = false; }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[SalesHistoryViewModel] LoadAsync ERROR: {ex}");
+            throw;
+        }
+        finally 
+        { 
+            IsLoading = false; 
+            System.Diagnostics.Debug.WriteLine("[SalesHistoryViewModel] LoadAsync FINISHED");
+        }
     }
 
     [RelayCommand]

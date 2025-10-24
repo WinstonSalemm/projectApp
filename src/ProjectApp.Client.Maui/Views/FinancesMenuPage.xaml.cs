@@ -13,11 +13,19 @@ public partial class FinancesMenuPage : ContentPage
     private readonly AuthService _authService;
     private readonly ApiService _apiService;
 
+    // Конструктор для DI (используется в SimpleAdminPage)
     public FinancesMenuPage(AuthService authService, ApiService apiService)
     {
         InitializeComponent();
         _authService = authService;
         _apiService = apiService;
+    }
+
+    // Конструктор для DataTemplate в AppShell
+    public FinancesMenuPage() : this(
+        App.Services.GetRequiredService<AuthService>(),
+        App.Services.GetRequiredService<ApiService>())
+    {
     }
 
     protected override async void OnAppearing()
@@ -94,14 +102,12 @@ public partial class FinancesMenuPage : ContentPage
 
     private async void OnPLReportClicked(object sender, EventArgs e)
     {
-        // TODO: Navigate to P&L report
-        await DisplayAlert("P&L", "Отчет о прибылях и убытках", "OK");
+        await Shell.Current.GoToAsync("analytics/finance");
     }
 
     private async void OnCashFlowClicked(object sender, EventArgs e)
     {
-        // TODO: Navigate to Cash Flow report
-        await DisplayAlert("Cash Flow", "Отчет о движении денежных средств", "OK");
+        await Shell.Current.GoToAsync("analytics/finance");
     }
 
     private async void OnCashCollectionClicked(object sender, EventArgs e)

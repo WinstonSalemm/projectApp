@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using ProjectApp.Client.Maui.Services;
 
 namespace ProjectApp.Client.Maui.Services;
@@ -27,6 +27,15 @@ public class ApiSuppliesService : ISuppliesService
     private class SupplyCreateDto
     {
         public List<SupplyLineDto> Items { get; set; } = new();
+        public decimal? ExchangeRate { get; set; }
+        public decimal? CustomsFee { get; set; }
+        public decimal? VatPercent { get; set; }
+        public decimal? CorrectionPercent { get; set; }
+        public decimal? SecurityPercent { get; set; }
+        public decimal? DeclarationPercent { get; set; }
+        public decimal? CertificationPercent { get; set; }
+        public decimal? CalculationBase { get; set; }
+        public decimal? LoadingPercent { get; set; }
     }
 
     private class SupplyTransferItemDto
@@ -64,7 +73,16 @@ public class ApiSuppliesService : ISuppliesService
                 UnitCost = i.UnitCost,
                 Code = i.Code ?? string.Empty,
                 Note = i.Note
-            }).ToList()
+            }).ToList(),
+            ExchangeRate = draft.ExchangeRate,
+            CustomsFee = draft.CustomsFee,
+            VatPercent = draft.VatPercent,
+            CorrectionPercent = draft.CorrectionPercent,
+            SecurityPercent = draft.SecurityPercent,
+            DeclarationPercent = draft.DeclarationPercent,
+            CertificationPercent = draft.CertificationPercent,
+            CalculationBase = draft.CalculationBase,
+            LoadingPercent = draft.LoadingPercent
         };
         var resp = await client.PostAsJsonAsync("/api/supplies", dto, ct);
         if ((int)resp.StatusCode == 201) return true;
@@ -135,6 +153,60 @@ public class ApiSuppliesService : ISuppliesService
         var url = "/api/supplies" + (qs.Count > 0 ? ("?" + string.Join("&", qs)) : string.Empty);
         var list = await client.GetFromJsonAsync<List<SupplyBatchDto>>(url, ct);
         return list ?? Enumerable.Empty<SupplyBatchDto>();
+    }
+
+    public async Task<Dictionary<string, decimal>?> GetCostDefaultsAsync(CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+
+        try
+        {
+            return await client.GetFromJsonAsync<Dictionary<string, decimal>>("/api/supplies/cost-defaults", ct);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<SupplyCostPreview?> PreviewCostAsync(SupplyDraft draft, CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+
+        var dto = new SupplyCreateDto
+        {
+            Items = draft.Items.Select(i => new SupplyLineDto
+            {
+                ProductId = i.ProductId,
+                Qty = i.Qty,
+                UnitCost = i.UnitCost,
+                Code = i.Code ?? string.Empty,
+                Note = i.Note
+            }).ToList(),
+            ExchangeRate = draft.ExchangeRate,
+            CustomsFee = draft.CustomsFee,
+            VatPercent = draft.VatPercent,
+            CorrectionPercent = draft.CorrectionPercent,
+            SecurityPercent = draft.SecurityPercent,
+            DeclarationPercent = draft.DeclarationPercent,
+            CertificationPercent = draft.CertificationPercent,
+            CalculationBase = draft.CalculationBase,
+            LoadingPercent = draft.LoadingPercent
+        };
+
+        var resp = await client.PostAsJsonAsync("/api/supplies/cost-preview", dto, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException($"HTTP {(int)resp.StatusCode}: {await resp.Content.ReadAsStringAsync(ct)}");
+        }
+
+        return await resp.Content.ReadFromJsonAsync<SupplyCostPreview>(cancellationToken: ct);
     }
 }
 

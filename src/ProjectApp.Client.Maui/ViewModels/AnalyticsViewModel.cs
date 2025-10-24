@@ -8,7 +8,8 @@ namespace ProjectApp.Client.Maui.ViewModels;
 
 public partial class AnalyticsViewModel : ObservableObject
 {
-    private readonly ILogger<AnalyticsViewModel> _logger;
+    private readonly ILogger<AnalyticsViewModel>? _logger;
+    private readonly Services.ApiService? _apiService;
 
     [ObservableProperty] private bool isLoading;
     [ObservableProperty] private bool hasNoStats;
@@ -59,9 +60,10 @@ public partial class AnalyticsViewModel : ObservableObject
     [ObservableProperty] private string selectedCategory = "Все категории";
     public ObservableCollection<string> Categories { get; } = new() { "Все категории" };
 
-    public AnalyticsViewModel(ILogger<AnalyticsViewModel> logger)
+    public AnalyticsViewModel(ILogger<AnalyticsViewModel>? logger = null, Services.ApiService? apiService = null)
     {
         _logger = logger;
+        _apiService = apiService;
     }
     
     [RelayCommand]
@@ -71,10 +73,11 @@ public partial class AnalyticsViewModel : ObservableObject
         {
             IsLoading = true;
             
-            var client = new HttpClient 
-            { 
-                BaseAddress = new Uri("https://tranquil-upliftment-production.up.railway.app") 
-            };
+            if (_apiService == null)
+            {
+                _logger?.LogWarning("[AnalyticsViewModel] ApiService not available");
+                return;
+            }
 
             // Определяем период
             var now = DateTime.UtcNow;
@@ -91,17 +94,9 @@ public partial class AnalyticsViewModel : ObservableObject
                 to = from.AddMonths(1);
             }
 
-            // Загружаем KPI (без авторизации для теста, потом добавим токен)
-            var url = $"/api/finance/kpi?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}";
-            var response = await client.GetAsync(url);
-            
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("[AnalyticsViewModel] Failed to load finance KPI: {StatusCode}", response.StatusCode);
-                return;
-            }
-
-            var kpi = await response.Content.ReadFromJsonAsync<FinanceKpiDto>();
+            // Загружаем KPI через ApiService (с авторизацией)
+            var url = $"api/finance/kpi?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}";
+            var kpi = await _apiService.GetAsync<FinanceKpiDto>(url);
             
             if (kpi != null)
             {
@@ -116,11 +111,11 @@ public partial class AnalyticsViewModel : ObservableObject
                 });
             }
 
-            _logger.LogInformation("[AnalyticsViewModel] Loaded finance KPI");
+            _logger?.LogInformation("[AnalyticsViewModel] Loaded finance KPI");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[AnalyticsViewModel] Failed to load finance KPI");
+            _logger?.LogError(ex, "[AnalyticsViewModel] Failed to load finance KPI");
         }
         finally
         {

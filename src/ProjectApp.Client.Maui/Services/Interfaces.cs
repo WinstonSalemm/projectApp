@@ -79,6 +79,8 @@ public interface ISuppliesService
 {
     Task<bool> CreateSupplyAsync(SupplyDraft draft, CancellationToken ct = default);
     Task<bool> TransferToIm40Async(string code, List<SupplyTransferItem> items, CancellationToken ct = default);
+    Task<Dictionary<string, decimal>?> GetCostDefaultsAsync(CancellationToken ct = default);
+    Task<SupplyCostPreview?> PreviewCostAsync(SupplyDraft draft, CancellationToken ct = default);
 }
 
 public interface IReturnsService
@@ -138,6 +140,17 @@ public class SaleDraftItem
 public class SupplyDraft
 {
     public List<SupplyDraftItem> Items { get; set; } = new();
+    
+    // Cost calculation parameters
+    public decimal? ExchangeRate { get; set; }
+    public decimal? CustomsFee { get; set; }
+    public decimal? VatPercent { get; set; }
+    public decimal? CorrectionPercent { get; set; }
+    public decimal? SecurityPercent { get; set; }
+    public decimal? DeclarationPercent { get; set; }
+    public decimal? CertificationPercent { get; set; }
+    public decimal? CalculationBase { get; set; }
+    public decimal? LoadingPercent { get; set; }
 }
 
 public class SupplyDraftItem : System.ComponentModel.INotifyPropertyChanged
@@ -174,6 +187,46 @@ public class SupplyTransferItem
 {
     public int ProductId { get; set; }
     public decimal Qty { get; set; }
+}
+
+// Supply cost calculation response
+public class SupplyCostPreview
+{
+    public List<SupplyCostCalculationItem> Items { get; set; } = new();
+    public decimal GrandTotalCost { get; set; }
+    public decimal ExchangeRate { get; set; }
+    public decimal CustomsFee { get; set; }
+    public decimal VatPercent { get; set; }
+    public decimal CorrectionPercent { get; set; }
+    public decimal SecurityPercent { get; set; }
+    public decimal DeclarationPercent { get; set; }
+    public decimal CertificationPercent { get; set; }
+    public decimal CalculationBase { get; set; }
+    public decimal LoadingPercent { get; set; }
+}
+
+public class SupplyCostCalculationItem
+{
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string? Sku { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal PriceRub { get; set; }
+    public decimal PriceTotal { get; set; }
+    public decimal? Weight { get; set; }
+    
+    // Calculated values
+    public decimal CustomsAmount { get; set; }
+    public decimal VatAmount { get; set; }
+    public decimal CorrectionAmount { get; set; }
+    public decimal SecurityAmount { get; set; }
+    public decimal DeclarationAmount { get; set; }
+    public decimal CertificationAmount { get; set; }
+    public decimal LoadingAmount { get; set; }
+    public decimal? DeviationAmount { get; set; }
+    
+    public decimal TotalCost { get; set; }
+    public decimal UnitCost { get; set; }
 }
 
 // Returns

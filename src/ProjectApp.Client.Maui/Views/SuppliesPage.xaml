@@ -170,6 +170,265 @@
         </VerticalStackLayout>
       </Border>
       
+      <!-- Cost Calculation Parameters Card -->
+      <Border Style="{StaticResource Card.Container}">
+        <VerticalStackLayout Spacing="16">
+          <!-- Header with toggle -->
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <HorizontalStackLayout Spacing="8">
+              <Label Text="💰" FontSize="24"/>
+              <Label Text="Параметры расчета НД-40" 
+                     FontSize="18" 
+                     FontAttributes="Bold"
+                     VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+            <Button Grid.Column="1"
+                    Text="{Binding ShowCostParams, Converter={StaticResource BoolToExpandCollapseConverter}}"
+                    Command="{Binding ToggleCostParamsCommand}"
+                    Style="{StaticResource Button.Secondary}"
+                    FontSize="18"
+                    WidthRequest="40"
+                    HeightRequest="40"
+                    Padding="0"/>
+          </Grid>
+          
+          <!-- Parameters (collapsible) -->
+          <VerticalStackLayout Spacing="12" IsVisible="{Binding ShowCostParams}">
+            
+            <!-- Row 1: Exchange Rate, Customs Fee, VAT -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+              <VerticalStackLayout Spacing="4">
+                <Label Text="Курс (руб/$)" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                <Border StrokeShape="RoundRectangle 6" Stroke="{DynamicResource Color.Border}" StrokeThickness="1">
+                  <Entry Text="{Binding ExchangeRate}" 
+                         Keyboard="Numeric" 
+                         FontSize="14"
+                         BackgroundColor="Transparent">
+                    <Entry.Behaviors>
+                      <behaviors:DecimalBehavior />
+                    </Entry.Behaviors>
+                  </Entry>
+                </Border>
+              </VerticalStackLayout>
+              
+              <VerticalStackLayout Grid.Column="1" Spacing="4">
+                <Label Text="Таможня (сум)" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                <Border StrokeShape="RoundRectangle 6" Stroke="{DynamicResource Color.Border}" StrokeThickness="1">
+                  <Entry Text="{Binding CustomsFee}" 
+                         Keyboard="Numeric" 
+                         FontSize="14"
+                         BackgroundColor="Transparent">
+                    <Entry.Behaviors>
+                      <behaviors:DecimalBehavior />
+                    </Entry.Behaviors>
+                  </Entry>
+                </Border>
+              </VerticalStackLayout>
+              
+              <VerticalStackLayout Grid.Column="2" Spacing="4">
+                <Label Text="НДС %" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                <Border StrokeShape="RoundRectangle 6" Stroke="{DynamicResource Color.Border}" StrokeThickness="1">
+                  <Entry Text="{Binding VatPercent}" 
+                         Keyboard="Numeric" 
+                         FontSize="14"
+                         BackgroundColor="Transparent">
+                    <Entry.Behaviors>
+                      <behaviors:DecimalBehavior />
+                    </Entry.Behaviors>
+                  </Entry>
+                </Border>
+              </VerticalStackLayout>
+            </Grid>
+            
+            <!-- Row 2: Correction, Security, Declaration -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+              <VerticalStackLayout Spacing="4">
+                <Label Text="Корректива %" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                <Border StrokeShape="RoundRectangle 6" Stroke="{DynamicResource Color.Border}" StrokeThickness="1">
+                  <Entry Text="{Binding CorrectionPercent}" 
+                         Keyboard="Numeric" 
+                         FontSize="14"
+                         BackgroundColor="Transparent">
+                    <Entry.Behaviors>
+                      <behaviors:DecimalBehavior />
+                    </Entry.Behaviors>
+                  </Entry>
+                </Border>
+              </VerticalStackLayout>
+              
+              <VerticalStackLayout Grid.Column="1" Spacing="4">
+                <Label Text="Охрана %" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                <Border StrokeShape="RoundRectangle 6" Stroke="{DynamicResource Color.Border}" StrokeThickness="1">
+                  <Entry Text="{Binding SecurityPercent}" 
+                         Keyboard="Numeric" 
+                         FontSize="14"
+                         BackgroundColor="Transparent">
+                    <Entry.Behaviors>
+                      <behaviors:DecimalBehavior />
+                    </Entry.Behaviors>
+                  </Entry>
+                </Border>
+              </VerticalStackLayout>
+              
+              <VerticalStackLayout Grid.Column="2" Spacing="4">
+                <Label Text="Декларация %" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                <Border StrokeShape="RoundRectangle 6" Stroke="{DynamicResource Color.Border}" StrokeThickness="1">
+                  <Entry Text="{Binding DeclarationPercent}" 
+                         Keyboard="Numeric" 
+                         FontSize="14"
+                         BackgroundColor="Transparent">
+                    <Entry.Behaviors>
+                      <behaviors:DecimalBehavior />
+                    </Entry.Behaviors>
+                  </Entry>
+                </Border>
+              </VerticalStackLayout>
+            </Grid>
+            
+            <!-- Row 3: Certification, Loading, Calculation Base -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+              <VerticalStackLayout Spacing="4">
+                <Label Text="Сертификация %" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                <Border StrokeShape="RoundRectangle 6" Stroke="{DynamicResource Color.Border}" StrokeThickness="1">
+                  <Entry Text="{Binding CertificationPercent}" 
+                         Keyboard="Numeric" 
+                         FontSize="14"
+                         BackgroundColor="Transparent">
+                    <Entry.Behaviors>
+                      <behaviors:DecimalBehavior />
+                    </Entry.Behaviors>
+                  </Entry>
+                </Border>
+              </VerticalStackLayout>
+              
+              <VerticalStackLayout Grid.Column="1" Spacing="4">
+                <Label Text="Погрузка %" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                <Border StrokeShape="RoundRectangle 6" Stroke="{DynamicResource Color.Border}" StrokeThickness="1">
+                  <Entry Text="{Binding LoadingPercent}" 
+                         Keyboard="Numeric" 
+                         FontSize="14"
+                         BackgroundColor="Transparent">
+                    <Entry.Behaviors>
+                      <behaviors:DecimalBehavior />
+                    </Entry.Behaviors>
+                  </Entry>
+                </Border>
+              </VerticalStackLayout>
+              
+              <VerticalStackLayout Grid.Column="2" Spacing="4">
+                <Label Text="База расчета" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                <Border StrokeShape="RoundRectangle 6" Stroke="{DynamicResource Color.Border}" StrokeThickness="1">
+                  <Entry Text="{Binding CalculationBase}" 
+                         Keyboard="Numeric" 
+                         FontSize="14"
+                         BackgroundColor="Transparent">
+                    <Entry.Behaviors>
+                      <behaviors:DecimalBehavior />
+                    </Entry.Behaviors>
+                  </Entry>
+                </Border>
+              </VerticalStackLayout>
+            </Grid>
+            
+            <!-- Preview Button -->
+            <Button Text="🔍 Рассчитать предварительно" 
+                    Command="{Binding PreviewCostCommand}"
+                    Style="{StaticResource Button.Secondary}"
+                    FontSize="14"/>
+            
+            <!-- Calculation Result -->
+            <Border StrokeShape="RoundRectangle 8" 
+                    Stroke="#E8F5E9" 
+                    StrokeThickness="2"
+                    Padding="16"
+                    BackgroundColor="#F1F8F4"
+                    IsVisible="{Binding HasCostPreview}">
+              <VerticalStackLayout Spacing="12">
+                <Label Text="📊 Предварительный расчет" 
+                       FontSize="16" 
+                       FontAttributes="Bold"
+                       TextColor="#2E7D32"/>
+                
+                <!-- Preview Items -->
+                <CollectionView ItemsSource="{Binding CostPreviewItems}">
+                  <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                      <Border StrokeShape="RoundRectangle 6" 
+                              Stroke="#C8E6C9" 
+                              StrokeThickness="1"
+                              Padding="12"
+                              Margin="0,0,0,8"
+                              BackgroundColor="White">
+                        <VerticalStackLayout Spacing="8">
+                          <!-- Product Info -->
+                          <HorizontalStackLayout Spacing="8">
+                            <Label Text="{Binding Sku}" 
+                                   FontAttributes="Bold" 
+                                   FontSize="14"
+                                   TextColor="{DynamicResource Color.Primary}"/>
+                            <Label Text="{Binding ProductName}" 
+                                   FontSize="12" 
+                                   TextColor="{DynamicResource Color.Text.Secondary}"
+                                   VerticalOptions="Center"/>
+                          </HorizontalStackLayout>
+                          
+                          <!-- Breakdown Grid -->
+                          <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8" RowSpacing="4">
+                            <VerticalStackLayout Spacing="2">
+                              <Label Text="Кол-во" FontSize="10" TextColor="Gray"/>
+                              <Label Text="{Binding Quantity, StringFormat='{0:N0}'}" FontSize="12" FontAttributes="Bold"/>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                              <Label Text="Цена (руб)" FontSize="10" TextColor="Gray"/>
+                              <Label Text="{Binding PriceRub, StringFormat='{0:N2}'}" FontSize="12" FontAttributes="Bold"/>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="2">
+                              <Label Text="Сумма" FontSize="10" TextColor="Gray"/>
+                              <Label Text="{Binding PriceTotal, StringFormat='{0:N0}'}" FontSize="12" FontAttributes="Bold"/>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="3" Spacing="2">
+                              <Label Text="Себес/шт" FontSize="10" TextColor="Gray"/>
+                              <Label Text="{Binding UnitCost, StringFormat='{0:N2}'}" FontSize="12" FontAttributes="Bold" TextColor="#2E7D32"/>
+                            </VerticalStackLayout>
+                          </Grid>
+                          
+                          <!-- Components Details -->
+                          <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="4" RowSpacing="2">
+                            <Label Text="{Binding CustomsAmount, StringFormat='Там: {0:N0}'}" FontSize="10" TextColor="#666"/>
+                            <Label Grid.Column="1" Text="{Binding VatAmount, StringFormat='НДС: {0:N0}'}" FontSize="10" TextColor="#666"/>
+                            <Label Grid.Column="2" Text="{Binding LoadingAmount, StringFormat='Погр: {0:N0}'}" FontSize="10" TextColor="#666"/>
+                            <Label Grid.Column="3" Text="{Binding TotalCost, StringFormat='Итого: {0:N0}'}" FontSize="10" FontAttributes="Bold" TextColor="#2E7D32"/>
+                          </Grid>
+                        </VerticalStackLayout>
+                      </Border>
+                    </DataTemplate>
+                  </CollectionView.ItemTemplate>
+                </CollectionView>
+                
+                <!-- Grand Total -->
+                <Border StrokeShape="RoundRectangle 6" 
+                        Stroke="#2E7D32" 
+                        StrokeThickness="2"
+                        Padding="12"
+                        BackgroundColor="#C8E6C9">
+                  <HorizontalStackLayout Spacing="8" HorizontalOptions="Center">
+                    <Label Text="💵 ОБЩАЯ СЕБЕСТОИМОСТЬ:" 
+                           FontSize="14" 
+                           FontAttributes="Bold"
+                           TextColor="#1B5E20"
+                           VerticalOptions="Center"/>
+                    <Label Text="{Binding GrandTotalCost, StringFormat='{0:N2} сум'}" 
+                           FontSize="18" 
+                           FontAttributes="Bold"
+                           TextColor="#1B5E20"/>
+                  </HorizontalStackLayout>
+                </Border>
+              </VerticalStackLayout>
+            </Border>
+          </VerticalStackLayout>
+        </VerticalStackLayout>
+      </Border>
+      
       <!-- Items List Card -->
       <Border Style="{StaticResource Card.Container}">
         <VerticalStackLayout Spacing="12">
