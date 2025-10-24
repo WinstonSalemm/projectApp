@@ -2,316 +2,209 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Data;
-using ProjectApp.Api.Dtos;
 using ProjectApp.Api.Models;
-using ProjectApp.Api.Services;
 
 namespace ProjectApp.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Policy = "AdminOnly")]
 public class SuppliesController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ILogger<SuppliesController> _logger;
-    private readonly SupplyCostCalculationService _costCalcService;
 
-    public SuppliesController(AppDbContext db, ILogger<SuppliesController> logger, SupplyCostCalculationService costCalcService)
+    public SuppliesController(AppDbContext db, ILogger<SuppliesController> logger)
     {
         _db = db;
         _logger = logger;
-        _costCalcService = costCalcService;
     }
 
     /// <summary>
-    /// Получить значения по умолчанию для параметров расчета НД-40
+    /// Получить список поставок с фильтром по типу регистра
     /// </summary>
-    [HttpGet("cost-defaults")]
-    [Authorize(Policy = "AdminOnly")]
-    [ProducesResponseType(typeof(Dictionary<string, decimal>), StatusCodes.Status200OK)]
-    public IActionResult GetCostDefaults()
-    {
-        return Ok(_costCalcService.GetDefaults());
-    }
-
-    /// <summary>
-    /// Предварительный расчет себестоимости НД-40 (без создания поставки)
-    /// </summary>
-    [HttpPost("cost-preview")]
-    [Authorize(Policy = "AdminOnly")]
-    [ProducesResponseType(typeof(SupplyCostPreviewDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> PreviewCost([FromBody] SupplyCreateDto dto, CancellationToken ct)
-    {
-        if (dto.Items is null || dto.Items.Count == 0)
-            return ValidationProblem(detail: "At least one supply item is required");
-
-        var calculations = new List<SupplyCostCalculationDto>();
-        decimal grandTotal = 0m;
-
-        foreach (var item in dto.Items)
-        {
-            // Проверка существования товара
-            var product = await _db.Products
-                .AsNoTracking()
-                .Where(p => p.Id == item.ProductId)
-                .Select(p => new { p.Id, p.Name, p.Sku })
-                .FirstOrDefaultAsync(ct);
-
-            if (product is null)
-                return ValidationProblem(detail: $"Product not found: {item.ProductId}");
-
-            // Используем PriceRub если есть, иначе UnitCost
-            var priceRub = item.PriceRub ?? item.UnitCost;
-
-            // Рассчитываем себестоимость
-            var calc = _costCalcService.Calculate(
-                productId: product.Id,
-                productName: product.Name,
-                sku: product.Sku,
-                quantity: item.Qty,
-                priceRub: priceRub,
-                weight: item.Weight,
-                exchangeRate: dto.ExchangeRate,
-                customsFee: dto.CustomsFee,
-                vatPercent: dto.VatPercent,
-                correctionPercent: dto.CorrectionPercent,
-                securityPercent: dto.SecurityPercent,
-                declarationPercent: dto.DeclarationPercent,
-                certificationPercent: dto.CertificationPercent,
-                calculationBase: dto.CalculationBase,
-                loadingPercent: dto.LoadingPercent
-            );
-
-            calculations.Add(new SupplyCostCalculationDto
-            {
-                ProductId = calc.ProductId,
-                ProductName = calc.ProductName,
-                Sku = calc.Sku,
-                Quantity = calc.Quantity,
-                PriceRub = calc.PriceRub,
-                PriceTotal = calc.PriceTotal,
-                Weight = calc.Weight,
-                CustomsAmount = calc.CustomsAmount,
-                VatAmount = calc.VatAmount,
-                CorrectionAmount = calc.CorrectionAmount,
-                SecurityAmount = calc.SecurityAmount,
-                DeclarationAmount = calc.DeclarationAmount,
-                CertificationAmount = calc.CertificationAmount,
-                LoadingAmount = calc.LoadingAmount,
-                DeviationAmount = calc.DeviationAmount,
-                TotalCost = calc.TotalCost,
-                UnitCost = calc.UnitCost
-            });
-
-            grandTotal += calc.TotalCost;
-        }
-
-        // Берем параметры из первого расчета (они одинаковые для всех)
-        var firstCalc = calculations.FirstOrDefault();
-        if (firstCalc is null)
-            return ValidationProblem(detail: "No calculations generated");
-
-        var defaults = _costCalcService.GetDefaults();
-
-        return Ok(new SupplyCostPreviewDto
-        {
-            Items = calculations,
-            GrandTotalCost = Math.Round(grandTotal, 2),
-            ExchangeRate = dto.ExchangeRate ?? defaults["ExchangeRate"],
-            CustomsFee = dto.CustomsFee ?? defaults["CustomsFee"],
-            VatPercent = dto.VatPercent ?? defaults["VatPercent"],
-            CorrectionPercent = dto.CorrectionPercent ?? defaults["CorrectionPercent"],
-            SecurityPercent = dto.SecurityPercent ?? defaults["SecurityPercent"],
-            DeclarationPercent = dto.DeclarationPercent ?? defaults["DeclarationPercent"],
-            CertificationPercent = dto.CertificationPercent ?? defaults["CertificationPercent"],
-            CalculationBase = dto.CalculationBase ?? defaults["CalculationBase"],
-            LoadingPercent = dto.LoadingPercent ?? defaults["LoadingPercent"]
-        });
-    }
-
-    [HttpPost]
-    [Authorize(Policy = "AdminOnly")]
-    [ProducesResponseType(typeof(IEnumerable<Batch>), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Create([FromBody] SupplyCreateDto dto, CancellationToken ct)
-    {
-        if (dto.Items is null || dto.Items.Count == 0)
-            return ValidationProblem(detail: "At least one supply item is required");
-
-        var created = new List<Batch>();
-
-        foreach (var it in dto.Items)
-        {
-            if (it.ProductId <= 0 || it.Qty <= 0)
-                return ValidationProblem(detail: $"Invalid item: productId={it.ProductId}, qty={it.Qty}");
-
-            // Ensure product exists
-            var exists = await _db.Products.AnyAsync(p => p.Id == it.ProductId, ct);
-            if (!exists) return ValidationProblem(detail: $"Product not found: {it.ProductId}");
-
-            // Pull product-level GTD code if available
-            // Temporarily disabled - GtdCode column doesn't exist in Railway
-            string? prodGtd = null;
-            // var prodGtd = await _db.Products
-            //     .Where(p => p.Id == it.ProductId)
-            //     .Select(p => p.GtdCode)
-            //     .FirstOrDefaultAsync(ct);
-
-            // Increase ND40 stock
-            var stockNd = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == it.ProductId && s.Register == StockRegister.ND40, ct);
-            if (stockNd is null)
-            {
-                stockNd = new Stock { ProductId = it.ProductId, Register = StockRegister.ND40, Qty = 0m };
-                _db.Stocks.Add(stockNd);
-            }
-            stockNd.Qty += it.Qty;
-
-            // Add batch in ND40
-            var b = new Batch
-            {
-                ProductId = it.ProductId,
-                Register = StockRegister.ND40,
-                Qty = it.Qty,
-                UnitCost = it.UnitCost,
-                CreatedAt = DateTime.UtcNow,
-                Code = string.IsNullOrWhiteSpace(it.Code) ? null : it.Code.Trim(),
-                Note = it.Note,
-                SupplierName = dto.SupplierName,
-                InvoiceNumber = dto.InvoiceNumber,
-                PurchaseDate = dto.PurchaseDate ?? DateTime.UtcNow,
-                VatRate = it.VatRate ?? dto.VatRate,
-                PurchaseSource = string.IsNullOrWhiteSpace(it.Code) ? "supply" : $"supply:{it.Code}",
-                GtdCode = string.IsNullOrWhiteSpace(prodGtd) ? null : prodGtd
-            };
-            _db.Batches.Add(b);
-            created.Add(b);
-
-            // Inventory transaction (purchase)
-            _db.InventoryTransactions.Add(new InventoryTransaction
-            {
-                ProductId = it.ProductId,
-                Register = StockRegister.ND40,
-                Type = InventoryTransactionType.Purchase,
-                Qty = it.Qty,
-                UnitCost = it.UnitCost,
-                BatchId = null, // will not have ID until save; acceptable for audit
-                CreatedAt = DateTime.UtcNow,
-                Note = $"supply code={(string.IsNullOrWhiteSpace(it.Code) ? "-" : it.Code)} supplier={(dto.SupplierName ?? "-")} invoice={(dto.InvoiceNumber ?? "-" )}"
-            });
-        }
-
-        await _db.SaveChangesAsync(ct);
-        return Created("/api/supplies", created);
-    }
-
     [HttpGet]
-    [Authorize(Policy = "AdminOnly")]
-    [ProducesResponseType(typeof(IEnumerable<Batch>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Query([FromQuery] string? code, [FromQuery] int? productId, [FromQuery] string? register, CancellationToken ct)
+    [ProducesResponseType(typeof(IEnumerable<Supply>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] RegisterType? registerType, CancellationToken ct)
     {
-        var q = _db.Batches.AsNoTracking().AsQueryable();
-        if (!string.IsNullOrWhiteSpace(code)) q = q.Where(b => b.Code == code);
-        if (productId.HasValue) q = q.Where(b => b.ProductId == productId.Value);
-        if (!string.IsNullOrWhiteSpace(register) && Enum.TryParse<StockRegister>(register, out var reg)) q = q.Where(b => b.Register == reg);
-        var list = await q.OrderByDescending(b => b.CreatedAt).ThenByDescending(b => b.Id).ToListAsync(ct);
-        return Ok(list);
+        var query = _db.Supplies
+            .Include(s => s.Items)
+            .ThenInclude(i => i.Product)
+            .AsQueryable();
+
+        if (registerType.HasValue)
+            query = query.Where(s => s.RegisterType == registerType.Value);
+
+        // Сортировка: HasStock сверху, Finished внизу
+        var supplies = await query
+            .OrderBy(s => s.Status == SupplyStatus.Finished ? 1 : 0)
+            .ThenByDescending(s => s.CreatedAt)
+            .ToListAsync(ct);
+
+        return Ok(supplies);
     }
 
-    [HttpPost("{code}/to-im40")]
-    [Authorize(Policy = "AdminOnly")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> MoveToIm40([FromRoute] string code, [FromBody] SupplyTransferDto dto, CancellationToken ct)
+    /// <summary>
+    /// Получить поставку по ID
+    /// </summary>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(Supply), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int id, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(code)) return ValidationProblem(detail: "Code is required");
-        if (dto.Items is null || dto.Items.Count == 0) return ValidationProblem(detail: "At least one transfer item is required");
+        var supply = await _db.Supplies
+            .Include(s => s.Items)
+            .ThenInclude(i => i.Product)
+            .Include(s => s.CostingSessions)
+            .FirstOrDefaultAsync(s => s.Id == id, ct);
 
-        foreach (var it in dto.Items)
+        if (supply == null)
+            return NotFound();
+
+        return Ok(supply);
+    }
+
+    /// <summary>
+    /// Создать новую поставку (по умолчанию в ND-40)
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(Supply), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] CreateSupplyDto dto, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Code))
+            return BadRequest("Code (№ ГТД) is required");
+
+        // Проверка уникальности кода
+        var exists = await _db.Supplies.AnyAsync(s => s.Code == dto.Code, ct);
+        if (exists)
+            return BadRequest($"Supply with code '{dto.Code}' already exists");
+
+        var supply = new Supply
         {
-            if (it.ProductId <= 0 || it.Qty <= 0)
-                return ValidationProblem(detail: $"Invalid transfer item: productId={it.ProductId}, qty={it.Qty}");
+            Code = dto.Code,
+            RegisterType = RegisterType.ND40, // всегда создаётся в ND-40
+            Status = SupplyStatus.HasStock,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
 
-            var remain = it.Qty;
-            var ndBatches = await _db.Batches
-                .Where(b => b.ProductId == it.ProductId && b.Register == StockRegister.ND40 && b.Code == code && b.Qty > 0)
-                .OrderBy(b => b.CreatedAt).ThenBy(b => b.Id)
-                .ToListAsync(ct);
+        _db.Supplies.Add(supply);
+        await _db.SaveChangesAsync(ct);
 
-            decimal moved = 0m;
-            foreach (var b in ndBatches)
-            {
-                if (remain <= 0) break;
-                var take = Math.Min(b.Qty, remain);
-                if (take <= 0) continue;
+        return CreatedAtAction(nameof(GetById), new { id = supply.Id }, supply);
+    }
 
-                // decrease ND40 batch
-                b.Qty -= take;
-                moved += take;
+    /// <summary>
+    /// Обновить поставку
+    /// </summary>
+    [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateSupplyDto dto, CancellationToken ct)
+    {
+        var supply = await _db.Supplies.FindAsync(new object[] { id }, ct);
+        if (supply == null)
+            return NotFound();
 
-                // Log ND40 move out
-                _db.InventoryTransactions.Add(new InventoryTransaction
-                {
-                    ProductId = it.ProductId,
-                    Register = StockRegister.ND40,
-                    Type = InventoryTransactionType.MoveNdToIm,
-                    Qty = -take,
-                    UnitCost = b.UnitCost,
-                    BatchId = b.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    Note = $"move ND->IM code={code}"
-                });
+        // После перевода в IM-40 - read-only
+        if (supply.RegisterType == RegisterType.IM40)
+            return BadRequest("Cannot update supply after transfer to IM-40");
 
-                // increase IM40 stock and add IM40 batch with same cost and code
-                var stockIm = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == it.ProductId && s.Register == StockRegister.IM40, ct);
-                if (stockIm is null)
-                {
-                    stockIm = new Stock { ProductId = it.ProductId, Register = StockRegister.IM40, Qty = 0m };
-                    _db.Stocks.Add(stockIm);
-                }
-                stockIm.Qty += take;
+        if (!string.IsNullOrWhiteSpace(dto.Code))
+        {
+            // Проверка уникальности кода
+            var codeExists = await _db.Supplies
+                .AnyAsync(s => s.Code == dto.Code && s.Id != id, ct);
+            if (codeExists)
+                return BadRequest($"Supply with code '{dto.Code}' already exists");
 
-                var imBatch = new Batch
-                {
-                    ProductId = it.ProductId,
-                    Register = StockRegister.IM40,
-                    Qty = take,
-                    UnitCost = b.UnitCost,
-                    CreatedAt = DateTime.UtcNow,
-                    Code = b.Code,
-                    Note = $"move from ND40 code={code}"
-                };
-                _db.Batches.Add(imBatch);
-
-                // Log IM40 move in (batchId unknown until save)
-                _db.InventoryTransactions.Add(new InventoryTransaction
-                {
-                    ProductId = it.ProductId,
-                    Register = StockRegister.IM40,
-                    Type = InventoryTransactionType.MoveNdToIm,
-                    Qty = take,
-                    UnitCost = b.UnitCost,
-                    BatchId = null,
-                    CreatedAt = DateTime.UtcNow,
-                    Note = $"move ND->IM code={code}"
-                });
-            }
-
-            // decrease ND40 stock for moved qty
-            if (moved > 0)
-            {
-                var stockNd = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == it.ProductId && s.Register == StockRegister.ND40, ct);
-                if (stockNd is null) stockNd = new Stock { ProductId = it.ProductId, Register = StockRegister.ND40, Qty = 0m };
-                stockNd.Qty -= moved;
-            }
-
-            if (moved < it.Qty)
-            {
-                return ValidationProblem(detail: $"Insufficient ND40 quantity for product {it.ProductId} with code {code}. Requested={it.Qty}, Moved={moved}");
-            }
+            supply.Code = dto.Code;
         }
 
+        supply.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
-        return Ok(new { message = $"Moved to IM40 for code={code}" });
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Удалить поставку
+    /// </summary>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        var supply = await _db.Supplies
+            .Include(s => s.Items)
+            .Include(s => s.CostingSessions)
+            .FirstOrDefaultAsync(s => s.Id == id, ct);
+
+        if (supply == null)
+            return NotFound();
+
+        // Удаляем связанные сущности
+        _db.CostingItemSnapshots.RemoveRange(
+            _db.CostingItemSnapshots.Where(cs => cs.CostingSessionId ==
+                supply.CostingSessions.Select(s => s.Id).FirstOrDefault()));
+        _db.CostingSessions.RemoveRange(supply.CostingSessions);
+        _db.SupplyItems.RemoveRange(supply.Items);
+        _db.Supplies.Remove(supply);
+
+        await _db.SaveChangesAsync(ct);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Перевод поставки целиком из ND-40 в IM-40
+    /// </summary>
+    [HttpPost("{id}/transfer-to-im40")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TransferToIm40(int id, CancellationToken ct)
+    {
+        var supply = await _db.Supplies.FindAsync(new object[] { id }, ct);
+        if (supply == null)
+            return NotFound();
+
+        if (supply.RegisterType != RegisterType.ND40)
+            return BadRequest("Supply is not in ND-40");
+
+        // Перевод целиком
+        supply.RegisterType = RegisterType.IM40;
+        supply.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Изменить статус поставки
+    /// </summary>
+    [HttpPut("{id}/status")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto dto, CancellationToken ct)
+    {
+        var supply = await _db.Supplies.FindAsync(new object[] { id }, ct);
+        if (supply == null)
+            return NotFound();
+
+        supply.Status = dto.Status;
+        supply.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        return NoContent();
     }
 }
+
+// DTOs
+public record CreateSupplyDto(string Code);
+public record UpdateSupplyDto(string? Code);
+public record UpdateStatusDto(SupplyStatus Status);

@@ -285,8 +285,8 @@ builder.Services.AddScoped<ProjectApp.Api.Integrations.Email.IEmailService, Proj
 // Commission (Partner Program)
 builder.Services.AddScoped<ProjectApp.Api.Services.CommissionService>();
 
-// Supply Cost Calculation (НД-40)
-builder.Services.AddScoped<ProjectApp.Api.Services.SupplyCostCalculationService>();
+// Supply Management & Costing System (НД-40 / ИМ-40)
+builder.Services.AddScoped<ProjectApp.Api.Services.CostingCalculationService>();
 
 // Finance module
 builder.Services.Configure<FinanceSettings>(builder.Configuration.GetSection("Finance"));
