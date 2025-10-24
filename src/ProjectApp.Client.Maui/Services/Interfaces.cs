@@ -77,10 +77,20 @@ public interface ISalesService
 
 public interface ISuppliesService
 {
-    Task<bool> CreateSupplyAsync(SupplyDraft draft, CancellationToken ct = default);
-    Task<bool> TransferToIm40Async(string code, List<SupplyTransferItem> items, CancellationToken ct = default);
-    Task<Dictionary<string, decimal>?> GetCostDefaultsAsync(CancellationToken ct = default);
-    Task<SupplyCostPreview?> PreviewCostAsync(SupplyDraft draft, CancellationToken ct = default);
+    Task<List<SupplyDto>> GetSuppliesAsync(string registerType);
+    Task<SupplyDto> CreateSupplyAsync(string code);
+    Task DeleteSupplyAsync(int id);
+    Task TransferToIm40Async(int id);
+}
+
+public class SupplyDto
+{
+    public int Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string RegisterType { get; set; } = "ND40"; // ND40 или IM40
+    public string Status { get; set; } = "HasStock"; // HasStock или Finished
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
 
 public interface IReturnsService

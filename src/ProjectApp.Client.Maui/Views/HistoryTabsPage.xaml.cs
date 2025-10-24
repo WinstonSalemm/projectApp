@@ -11,12 +11,10 @@ public partial class HistoryTabsPage : TabbedPage
 
         var sales = services.GetRequiredService<SalesHistoryPage>();
         var returns = services.GetRequiredService<ReturnsHistoryPage>();
-        var supplies = services.GetRequiredService<SuppliesHistoryPage>();
         var contracts = services.GetRequiredService<ContractsHistoryPage>();
 
         Children.Add(sales);
         Children.Add(returns);
-        Children.Add(supplies);
         Children.Add(contracts);
     }
 }
