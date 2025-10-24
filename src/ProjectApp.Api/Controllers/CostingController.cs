@@ -14,12 +14,18 @@ public class CostingController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly CostingCalculationService _costingService;
+    private readonly BatchIntegrationService _batchService;
     private readonly ILogger<CostingController> _logger;
 
-    public CostingController(AppDbContext db, CostingCalculationService costingService, ILogger<CostingController> logger)
+    public CostingController(
+        AppDbContext db, 
+        CostingCalculationService costingService,
+        BatchIntegrationService batchService,
+        ILogger<CostingController> logger)
     {
         _db = db;
         _costingService = costingService;
+        _batchService = batchService;
         _logger = logger;
     }
 
@@ -162,9 +168,10 @@ public class CostingController : ControllerBase
 
     /// <summary>
     /// Зафиксировать расчет (после этого - только чтение)
+    /// АВТОМАТИЧЕСКИ создаёт партии (Batch) с рассчитанной себестоимостью
     /// </summary>
     [HttpPost("sessions/{id}/finalize")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(FinalizeResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Finalize(int id, CancellationToken ct)
@@ -182,10 +189,32 @@ public class CostingController : ControllerBase
         if (session.ItemSnapshots.Count == 0)
             return BadRequest("No snapshots calculated. Run recalculate first.");
 
+        // 1. Финализируем сессию
         session.IsFinalized = true;
         await _db.SaveChangesAsync(ct);
 
-        return NoContent();
+        // 2. АВТОМАТИЧЕСКИ создаём партии с рассчитанной себестоимостью
+        try
+        {
+            await _batchService.CreateBatchesFromCostingSession(id, ct);
+            
+            return Ok(new FinalizeResult
+            {
+                Success = true,
+                Message = "Session finalized and batches created successfully",
+                BatchesCreated = session.ItemSnapshots.Count
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create batches for session {SessionId}", id);
+            
+            // Откатываем финализацию
+            session.IsFinalized = false;
+            await _db.SaveChangesAsync(ct);
+            
+            return BadRequest($"Failed to create batches: {ex.Message}");
+        }
     }
 }
 
@@ -218,4 +247,11 @@ public record RecalculateResult
     public int SnapshotsCount { get; init; }
     public decimal GrandTotal { get; init; }
     public bool InvariantValid { get; init; }
+}
+
+public record FinalizeResult
+{
+    public bool Success { get; init; }
+    public string Message { get; init; } = string.Empty;
+    public int BatchesCreated { get; init; }
 }

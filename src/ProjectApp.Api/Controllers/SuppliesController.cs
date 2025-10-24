@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Models;
+using ProjectApp.Api.Services;
 
 namespace ProjectApp.Api.Controllers;
 
@@ -12,11 +13,13 @@ namespace ProjectApp.Api.Controllers;
 public class SuppliesController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly BatchIntegrationService _batchService;
     private readonly ILogger<SuppliesController> _logger;
 
-    public SuppliesController(AppDbContext db, ILogger<SuppliesController> logger)
+    public SuppliesController(AppDbContext db, BatchIntegrationService batchService, ILogger<SuppliesController> logger)
     {
         _db = db;
+        _batchService = batchService;
         _logger = logger;
     }
 
@@ -160,9 +163,10 @@ public class SuppliesController : ControllerBase
 
     /// <summary>
     /// Перевод поставки целиком из ND-40 в IM-40
+    /// АВТОМАТИЧЕСКИ переводит все партии (Batches) в IM-40
     /// </summary>
     [HttpPost("{id}/transfer-to-im40")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> TransferToIm40(int id, CancellationToken ct)
@@ -174,13 +178,23 @@ public class SuppliesController : ControllerBase
         if (supply.RegisterType != RegisterType.ND40)
             return BadRequest("Supply is not in ND-40");
 
-        // Перевод целиком
-        supply.RegisterType = RegisterType.IM40;
-        supply.UpdatedAt = DateTime.UtcNow;
+        try
+        {
+            // 1. Переводим партии из ND-40 в IM-40
+            await _batchService.TransferBatchesToIm40(id, ct);
 
-        await _db.SaveChangesAsync(ct);
+            // 2. Обновляем статус поставки
+            supply.RegisterType = RegisterType.IM40;
+            supply.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
 
-        return NoContent();
+            return Ok(new { message = $"Supply {supply.Code} transferred to IM-40 successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to transfer supply {SupplyId} to IM-40", id);
+            return BadRequest($"Failed to transfer: {ex.Message}");
+        }
     }
 
     /// <summary>

@@ -287,6 +287,7 @@ builder.Services.AddScoped<ProjectApp.Api.Services.CommissionService>();
 
 // Supply Management & Costing System (НД-40 / ИМ-40)
 builder.Services.AddScoped<ProjectApp.Api.Services.CostingCalculationService>();
+builder.Services.AddScoped<ProjectApp.Api.Services.BatchIntegrationService>();
 
 // Finance module
 builder.Services.Configure<FinanceSettings>(builder.Configuration.GetSection("Finance"));
