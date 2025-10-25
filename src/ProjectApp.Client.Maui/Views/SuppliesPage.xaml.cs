@@ -16,7 +16,7 @@ public partial class SuppliesPage : ContentPage
         
         if (BindingContext is SuppliesViewModel vm)
         {
-            await vm.LoadSupplies();
+            await vm.LoadSuppliesCommand.ExecuteAsync(null);
         }
     }
 }

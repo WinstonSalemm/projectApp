@@ -14,7 +14,7 @@ public partial class SuppliesViewModel : ObservableObject
     private bool _isBusy;
 
     [ObservableProperty]
-    private string _currentTab = "ND40"; // ND40 или IM40
+    private string _currentTab = ""; // ND40 или IM40, по умолчанию пусто
 
     public ObservableCollection<SupplyDto> Nd40Supplies { get; } = new();
     public ObservableCollection<SupplyDto> Im40Supplies { get; } = new();
@@ -102,25 +102,32 @@ public partial class SuppliesViewModel : ObservableObject
     [RelayCommand]
     private async Task CreateSupply()
     {
-        var code = await Shell.Current.DisplayPromptAsync(
-            "Новая поставка",
-            "Введите № ГТД:",
-            "Создать",
-            "Отмена",
-            placeholder: "ГТД-123");
-
-        if (string.IsNullOrWhiteSpace(code))
-            return;
-
         try
         {
+            var code = await Shell.Current.DisplayPromptAsync(
+                "Новая поставка",
+                "Введите № ГТД:",
+                "Создать",
+                "Отмена",
+                placeholder: "ГТД-123");
+
+            if (string.IsNullOrWhiteSpace(code))
+                return;
+
             IsBusy = true;
-            await _suppliesService.CreateSupplyAsync(code);
-            await LoadSupplies();
-            await Shell.Current.DisplayAlert("Успех", $"Поставка {code} создана", "ОК");
+            var newSupply = await _suppliesService.CreateSupplyAsync(code);
+            
+            // Добавляем в нужную коллекцию
+            if (newSupply.RegisterType == "ND40")
+                Nd40Supplies.Insert(0, newSupply);
+            else
+                Im40Supplies.Insert(0, newSupply);
+            
+            await Shell.Current.DisplayAlert("Успех", $"Поставка {code} создана в {newSupply.RegisterType}", "ОК");
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"CreateSupply error: {ex}");
             await Shell.Current.DisplayAlert("Ошибка", $"Не удалось создать поставку: {ex.Message}", "ОК");
         }
         finally
