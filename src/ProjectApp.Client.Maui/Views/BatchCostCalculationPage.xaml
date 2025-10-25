@@ -77,7 +77,7 @@
                             <Label Grid.Column="3" 
                                    Text="{Binding PriceRub, StringFormat='{0:F2}'}" 
                                    VerticalTextAlignment="Center" 
-                                   HorizontalTextAlignment="Right"/>
+                                   HorizontalTextAlignment="End"/>
                             
                             <Label Grid.Column="4" 
                                    Text="{Binding ExchangeRate, StringFormat='{0:F2}'}" 
@@ -87,7 +87,7 @@
                             <Label Grid.Column="5" 
                                    Text="{Binding PriceSom, StringFormat='{0:N0}'}" 
                                    VerticalTextAlignment="Center" 
-                                   HorizontalTextAlignment="Right"
+                                   HorizontalTextAlignment="End"
                                    FontAttributes="Bold"
                                    TextColor="#2980b9"/>
                             
