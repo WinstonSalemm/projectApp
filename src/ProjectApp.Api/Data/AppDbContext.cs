@@ -50,6 +50,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SupplyItem> SupplyItems => Set<SupplyItem>();
     public DbSet<CostingSession> CostingSessions => Set<CostingSession>();
     public DbSet<CostingItemSnapshot> CostingItemSnapshots => Set<CostingItemSnapshot>();
+    public DbSet<BatchCostCalculation> BatchCostCalculations => Set<BatchCostCalculation>();
+    public DbSet<BatchCostSettings> BatchCostSettings => Set<BatchCostSettings>();
     
     // Financial System
     public DbSet<Cashbox> Cashboxes => Set<Cashbox>();

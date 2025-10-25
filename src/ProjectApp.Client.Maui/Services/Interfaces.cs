@@ -450,3 +450,13 @@ public interface IFinanceService
     Task<string> GetAlertsPreviewJsonAsync(DateTime? from, DateTime? to, CancellationToken ct = default);
 }
 
+// ===== Batch Cost Calculation Service =====
+public interface IBatchCostService
+{
+    Task<List<ViewModels.BatchCostItemDto>> GetItemsAsync(int supplyId, CancellationToken ct = default);
+    Task AddItemAsync(int supplyId, string productName, int quantity, decimal priceRub, CancellationToken ct = default);
+    Task DeleteItemAsync(int itemId, int supplyId, CancellationToken ct = default);
+    Task RecalculateAsync(int supplyId, CancellationToken ct = default);
+    Task<decimal> GetTotalCostAsync(int supplyId, CancellationToken ct = default);
+}
+

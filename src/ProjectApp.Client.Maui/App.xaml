@@ -87,6 +87,7 @@
       <conv:NotNullToBoolConverter x:Key="NotNullToBoolConverter" />
       <conv:InvertedBoolConverter x:Key="InvertedBoolConverter" />
       <conv:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter" />
+      <conv:RowColorConverter x:Key="RowColorConverter" />
 
       <!-- Safe ASCII icon resources -->
       <FontImageSource x:Key="IconAdd" Glyph="+" Color="{DynamicResource Color.Primary}" Size="18" />

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             x:Class="ProjectApp.Client.Maui.Views.BatchCostCalculationPage"
+             Title="Расчет себестоимости партии"
+             x:DataType="vm:BatchCostCalculationViewModel">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Добавить товар" 
+                     Clicked="OnAddItemClicked"
+                     IconImageSource="add.png"/>
+        <ToolbarItem Text="Настройки" 
+                     Clicked="OnSettingsClicked"
+                     IconImageSource="settings.png"/>
+        <ToolbarItem Text="Пересчитать" 
+                     Clicked="OnRecalculateClicked"
+                     IconImageSource="refresh.png"/>
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        
+        <!-- Заголовок с общей информацией -->
+        <Frame Grid.Row="0" BackgroundColor="#3498db" Padding="15" Margin="10">
+            <VerticalStackLayout Spacing="5">
+                <Label Text="{Binding SupplyCode, StringFormat='Поставка: {0}'}" 
+                       TextColor="White" 
+                       FontSize="18" 
+                       FontAttributes="Bold"/>
+                <Label Text="{Binding TotalCost, StringFormat='ИТОГО СЕБЕСТОИМОСТЬ ПАРТИИ: {0:N0} UZS'}" 
+                       TextColor="#f1c40f" 
+                       FontSize="20" 
+                       FontAttributes="Bold"/>
+            </VerticalStackLayout>
+        </Frame>
+
+        <!-- Таблица товаров -->
+        <ScrollView Grid.Row="1" Orientation="Both">
+            <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
+                <CollectionView.Header>
+                    <Grid ColumnDefinitions="40,200,80,100,80,100,80,*" 
+                          BackgroundColor="#2c3e50" 
+                          Padding="5"
+                          HeightRequest="60">
+                        <Label Grid.Column="0" Text="№" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="1" Text="Наименование" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center"/>
+                        <Label Grid.Column="2" Text="Кол-во" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="3" Text="Цена в рублях" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="4" Text="Курс" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="5" Text="Цена в сумах" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="6" Text="НДС %" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="7" Text="Действия" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                    </Grid>
+                </CollectionView.Header>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:BatchCostItemDto">
+                        <Grid ColumnDefinitions="40,200,80,100,80,100,80,*" 
+                              Padding="5"
+                              BackgroundColor="{Binding RowNumber, Converter={StaticResource RowColorConverter}}">
+                            
+                            <Label Grid.Column="0" 
+                                   Text="{Binding RowNumber}" 
+                                   VerticalTextAlignment="Center" 
+                                   HorizontalTextAlignment="Center"/>
+                            
+                            <Label Grid.Column="1" 
+                                   Text="{Binding ProductName}" 
+                                   VerticalTextAlignment="Center"
+                                   FontAttributes="Bold"/>
+                            
+                            <Label Grid.Column="2" 
+                                   Text="{Binding Quantity}" 
+                                   VerticalTextAlignment="Center" 
+                                   HorizontalTextAlignment="Center"/>
+                            
+                            <Label Grid.Column="3" 
+                                   Text="{Binding PriceRub, StringFormat='{0:F2}'}" 
+                                   VerticalTextAlignment="Center" 
+                                   HorizontalTextAlignment="Right"/>
+                            
+                            <Label Grid.Column="4" 
+                                   Text="{Binding ExchangeRate, StringFormat='{0:F2}'}" 
+                                   VerticalTextAlignment="Center" 
+                                   HorizontalTextAlignment="Center"/>
+                            
+                            <Label Grid.Column="5" 
+                                   Text="{Binding PriceSom, StringFormat='{0:N0}'}" 
+                                   VerticalTextAlignment="Center" 
+                                   HorizontalTextAlignment="Right"
+                                   FontAttributes="Bold"
+                                   TextColor="#2980b9"/>
+                            
+                            <Label Grid.Column="6" 
+                                   Text="{Binding VatPercent, StringFormat='{0:F2}'}" 
+                                   VerticalTextAlignment="Center" 
+                                   HorizontalTextAlignment="Center"/>
+                            
+                            <HorizontalStackLayout Grid.Column="7" 
+                                                   HorizontalOptions="Center" 
+                                                   VerticalOptions="Center">
+                                <Button Text="✏️" 
+                                        Clicked="OnEditItemClicked"
+                                        CommandParameter="{Binding .}"
+                                        BackgroundColor="#3498db"
+                                        TextColor="White"
+                                        WidthRequest="40"
+                                        HeightRequest="35"
+                                        Margin="2"/>
+                                <Button Text="🗑️" 
+                                        Clicked="OnDeleteItemClicked"
+                                        CommandParameter="{Binding .}"
+                                        BackgroundColor="#e74c3c"
+                                        TextColor="White"
+                                        WidthRequest="40"
+                                        HeightRequest="35"
+                                        Margin="2"/>
+                                <Button Text="📊" 
+                                        Clicked="OnViewDetailsClicked"
+                                        CommandParameter="{Binding .}"
+                                        BackgroundColor="#27ae60"
+                                        TextColor="White"
+                                        WidthRequest="40"
+                                        HeightRequest="35"
+                                        Margin="2"/>
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="50" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label Text="📦" FontSize="60" HorizontalTextAlignment="Center"/>
+                        <Label Text="Нет товаров в расчете" 
+                               FontSize="18" 
+                               TextColor="Gray" 
+                               HorizontalTextAlignment="Center"
+                               Margin="0,10,0,0"/>
+                        <Label Text="Нажмите '+' чтобы добавить товар" 
+                               FontSize="14" 
+                               TextColor="Gray" 
+                               HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+            </CollectionView>
+        </ScrollView>
+
+        <!-- Итоги -->
+        <Frame Grid.Row="2" BackgroundColor="#ecf0f1" Padding="15" Margin="10">
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Grid.Column="0" 
+                       Text="ИТОГО СЕБЕСТОИМОСТЬ ПАРТИИ:" 
+                       FontSize="18" 
+                       FontAttributes="Bold"
+                       VerticalTextAlignment="Center"/>
+                <Label Grid.Column="1" 
+                       Text="{Binding TotalCost, StringFormat='{0:N0} UZS'}" 
+                       FontSize="24" 
+                       FontAttributes="Bold"
+                       TextColor="#e74c3c"
+                       VerticalTextAlignment="Center"/>
+            </Grid>
+        </Frame>
+    </Grid>
+</ContentPage>

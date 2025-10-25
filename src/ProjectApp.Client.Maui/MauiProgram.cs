@@ -136,6 +136,13 @@ public static class MauiProgram
             var authService = sp.GetRequiredService<AuthService>();
             return new RefillsApiService(httpClient, authService);
         });
+        builder.Services.AddSingleton<IBatchCostService>(sp =>
+        {
+            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient(HttpClientNames.Api);
+            var logger = sp.GetService<ILogger<BatchCostApiService>>();
+            return new BatchCostApiService(httpClient, logger);
+        });
         
         // Camera Service (platform-specific)
 #if ANDROID
@@ -160,6 +167,8 @@ public static class MauiProgram
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<SuppliesViewModel>();
         builder.Services.AddTransient<SuppliesPage>();
+        builder.Services.AddTransient<SupplyEditViewModel>();
+        builder.Services.AddTransient<SupplyEditPage>();
         builder.Services.AddTransient<CostingViewModel>();
         builder.Services.AddTransient<CostingPage>();
         builder.Services.AddTransient<ReturnsViewModel>();
@@ -242,6 +251,9 @@ public static class MauiProgram
         
         builder.Services.AddTransient<RefillsViewModel>();
         builder.Services.AddTransient<RefillsPage>();
+        
+        builder.Services.AddTransient<BatchCostCalculationViewModel>();
+        builder.Services.AddTransient<BatchCostCalculationPage>();
         
         builder.Services.AddSingleton<AppShell>();
 

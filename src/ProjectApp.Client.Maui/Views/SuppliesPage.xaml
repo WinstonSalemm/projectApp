@@ -9,10 +9,10 @@
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Создать поставку" 
-                     Command="{Binding CreateSupplyCommand}" 
+                     Clicked="OnCreateSupplyClicked"
                      IconImageSource="add.png"/>
         <ToolbarItem Text="Обновить" 
-                     Command="{Binding LoadSuppliesCommand}" 
+                     Clicked="OnRefreshClicked"
                      IconImageSource="refresh.png"/>
     </ContentPage.ToolbarItems>
 
@@ -100,8 +100,8 @@
                                 <!-- Редактировать -->
                                 <Button Grid.Column="0" 
                                         Text="✏️" 
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SuppliesViewModel}}, Path=EditSupplyCommand}"
-                                        CommandParameter="{Binding .}"
+                                        Clicked="OnEditSupplyClicked"
+                                        BindingContext="{Binding .}"
                                         FontSize="12"
                                         Padding="5"
                                         Margin="0,0,2,0"
@@ -111,8 +111,8 @@
                                 <!-- Удалить -->
                                 <Button Grid.Column="1" 
                                         Text="🗑️" 
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SuppliesViewModel}}, Path=DeleteSupplyCommand}"
-                                        CommandParameter="{Binding .}"
+                                        Clicked="OnDeleteSupplyClicked"
+                                        BindingContext="{Binding .}"
                                         FontSize="12"
                                         Padding="5"
                                         Margin="2,0"
@@ -122,8 +122,8 @@
                                 <!-- Перевести в IM-40 (только для ND-40) -->
                                 <Button Grid.Column="2" 
                                         Text="➡️ IM" 
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SuppliesViewModel}}, Path=TransferToIm40Command}"
-                                        CommandParameter="{Binding .}"
+                                        Clicked="OnTransferToIm40Clicked"
+                                        BindingContext="{Binding .}"
                                         FontSize="12"
                                         Padding="5"
                                         Margin="2,0"
@@ -134,8 +134,8 @@
                                 <!-- Расчёт себестоимости -->
                                 <Button Grid.Column="3" 
                                         Text="💰" 
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SuppliesViewModel}}, Path=OpenCostingCommand}"
-                                        CommandParameter="{Binding .}"
+                                        Clicked="OnOpenCostingClicked"
+                                        BindingContext="{Binding .}"
                                         FontSize="12"
                                         Padding="5"
                                         Margin="2,0,0,0"
@@ -209,8 +209,8 @@
                                 <!-- Редактировать -->
                                 <Button Grid.Column="0" 
                                         Text="✏️" 
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SuppliesViewModel}}, Path=EditSupplyCommand}"
-                                        CommandParameter="{Binding .}"
+                                        Clicked="OnEditSupplyClicked"
+                                        BindingContext="{Binding .}"
                                         FontSize="12"
                                         Padding="5"
                                         Margin="0,0,2,0"
@@ -220,8 +220,8 @@
                                 <!-- Удалить -->
                                 <Button Grid.Column="1" 
                                         Text="🗑️" 
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SuppliesViewModel}}, Path=DeleteSupplyCommand}"
-                                        CommandParameter="{Binding .}"
+                                        Clicked="OnDeleteSupplyClicked"
+                                        BindingContext="{Binding .}"
                                         FontSize="12"
                                         Padding="5"
                                         Margin="2,0"
@@ -231,8 +231,8 @@
                                 <!-- Расчёт себестоимости -->
                                 <Button Grid.Column="2" 
                                         Text="💰" 
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SuppliesViewModel}}, Path=OpenCostingCommand}"
-                                        CommandParameter="{Binding .}"
+                                        Clicked="OnOpenCostingClicked"
+                                        BindingContext="{Binding .}"
                                         FontSize="12"
                                         Padding="5"
                                         Margin="2,0,0,0"

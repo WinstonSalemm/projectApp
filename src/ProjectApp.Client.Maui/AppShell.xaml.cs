@@ -75,6 +75,7 @@ public partial class AppShell : Shell
         RegisterRoute<ContractDetailsPage>("contracts/details");
         RegisterRoute<ContractsHistoryPage>("contracts/history");
         RegisterRoute<SuppliesPage>("supplies/list");
+        RegisterRoute<SupplyEditPage>("supplies/edit");
         RegisterRoute<CostingPage>("costing");
         RegisterRoute<SalePickerForReturnPage>("returns/picker");
         RegisterRoute<ReturnForSalePage>("returns/create");

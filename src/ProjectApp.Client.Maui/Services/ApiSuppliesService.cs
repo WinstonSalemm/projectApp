@@ -4,16 +4,35 @@ namespace ProjectApp.Client.Maui.Services;
 
 public class ApiSuppliesService : ISuppliesService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly AppSettings _settings;
+    private readonly AuthService _auth;
 
-    public ApiSuppliesService(IHttpClientFactory httpClientFactory)
+    public ApiSuppliesService(
+        IHttpClientFactory httpClientFactory,
+        AppSettings settings,
+        AuthService auth)
     {
-        _httpClient = httpClientFactory.CreateClient(HttpClientNames.Api);
+        _httpClientFactory = httpClientFactory;
+        _settings = settings;
+        _auth = auth;
+    }
+    
+    private HttpClient CreateClient()
+    {
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) 
+            ? "http://localhost:5028" 
+            : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+        return client;
     }
 
     public async Task<List<SupplyDto>> GetSuppliesAsync(string registerType)
     {
-        var response = await _httpClient.GetAsync($"/api/supplies?registerType={registerType}");
+        var client = CreateClient();
+        var response = await client.GetAsync($"/api/supplies?registerType={registerType}");
         response.EnsureSuccessStatusCode();
         
         var supplies = await response.Content.ReadFromJsonAsync<List<SupplyDto>>();
@@ -25,7 +44,8 @@ public class ApiSuppliesService : ISuppliesService
         try
         {
             System.Diagnostics.Debug.WriteLine($"API: Creating supply with code {code}");
-            var response = await _httpClient.PostAsJsonAsync("/api/supplies", new { Code = code });
+            var client = CreateClient();
+            var response = await client.PostAsJsonAsync("/api/supplies", new { Code = code });
             
             System.Diagnostics.Debug.WriteLine($"API Response Status: {response.StatusCode}");
             
@@ -56,13 +76,15 @@ public class ApiSuppliesService : ISuppliesService
 
     public async Task DeleteSupplyAsync(int id)
     {
-        var response = await _httpClient.DeleteAsync($"/api/supplies/{id}");
+        var client = CreateClient();
+        var response = await client.DeleteAsync($"/api/supplies/{id}");
         response.EnsureSuccessStatusCode();
     }
 
     public async Task TransferToIm40Async(int id)
     {
-        var response = await _httpClient.PostAsync($"/api/supplies/{id}/transfer-to-im40", null);
+        var client = CreateClient();
+        var response = await client.PostAsync($"/api/supplies/{id}/transfer-to-im40", null);
         response.EnsureSuccessStatusCode();
     }
 }

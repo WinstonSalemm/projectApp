@@ -24,7 +24,7 @@ public partial class SuppliesViewModel : ObservableObject
 
     public bool IsNd40Visible => CurrentTab == "ND40";
     public bool IsIm40Visible => CurrentTab == "IM40";
-
+    
     public SuppliesViewModel(ISuppliesService suppliesService)
     {
         _suppliesService = suppliesService;
@@ -42,7 +42,7 @@ public partial class SuppliesViewModel : ObservableObject
         OnPropertyChanged(nameof(IsIm40Visible));
     }
 
-    [RelayCommand]
+    [RelayCommand(AllowConcurrentExecutions = true)]
     public async Task LoadSupplies()
     {
         if (IsBusy) return;
@@ -99,155 +99,4 @@ public partial class SuppliesViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    private async Task CreateSupply()
-    {
-        try
-        {
-            if (Shell.Current == null)
-            {
-                System.Diagnostics.Debug.WriteLine("Shell.Current is null");
-                return;
-            }
-
-            var code = await Shell.Current.DisplayPromptAsync(
-                "Новая поставка",
-                "Введите № ГТД:",
-                "Создать",
-                "Отмена",
-                placeholder: "ГТД-123");
-
-            if (string.IsNullOrWhiteSpace(code))
-                return;
-
-            IsBusy = true;
-            
-            System.Diagnostics.Debug.WriteLine($"Creating supply with code: {code}");
-            var newSupply = await _suppliesService.CreateSupplyAsync(code);
-            
-            if (newSupply == null)
-            {
-                System.Diagnostics.Debug.WriteLine("CreateSupplyAsync returned null");
-                await Shell.Current.DisplayAlert("Ошибка", "Не удалось создать поставку", "ОК");
-                return;
-            }
-            
-            System.Diagnostics.Debug.WriteLine($"Supply created: {newSupply.Code}, Type: {newSupply.RegisterType}");
-            
-            // Добавляем в нужную коллекцию
-            if (newSupply.RegisterType == "ND40")
-            {
-                Nd40Supplies.Insert(0, newSupply);
-                System.Diagnostics.Debug.WriteLine($"Added to ND40, total: {Nd40Supplies.Count}");
-            }
-            else
-            {
-                Im40Supplies.Insert(0, newSupply);
-                System.Diagnostics.Debug.WriteLine($"Added to IM40, total: {Im40Supplies.Count}");
-            }
-            
-            await Shell.Current.DisplayAlert("Успех", $"Поставка {code} создана в {newSupply.RegisterType}", "ОК");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"CreateSupply error: {ex}");
-            System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}");
-            
-            try
-            {
-                if (Shell.Current != null)
-                    await Shell.Current.DisplayAlert("Ошибка", $"Не удалось создать поставку: {ex.Message}", "ОК");
-            }
-            catch
-            {
-                System.Diagnostics.Debug.WriteLine("Failed to show error alert");
-            }
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    [RelayCommand]
-    private async Task EditSupply(SupplyDto supply)
-    {
-        if (supply.RegisterType == "IM40")
-        {
-            await Shell.Current.DisplayAlert("Внимание", "Поставки в IM-40 нельзя редактировать", "ОК");
-            return;
-        }
-
-        // TODO: Открыть страницу редактирования позиций
-        await Shell.Current.DisplayAlert("Редактирование", $"Открыть редактор для {supply.Code}", "ОК");
-    }
-
-    [RelayCommand]
-    private async Task DeleteSupply(SupplyDto supply)
-    {
-        var confirm = await Shell.Current.DisplayAlert(
-            "Подтверждение",
-            $"Удалить поставку {supply.Code}?",
-            "Да",
-            "Нет");
-
-        if (!confirm) return;
-
-        try
-        {
-            IsBusy = true;
-            await _suppliesService.DeleteSupplyAsync(supply.Id);
-            await LoadSupplies();
-            await Shell.Current.DisplayAlert("Успех", "Поставка удалена", "ОК");
-        }
-        catch (Exception ex)
-        {
-            await Shell.Current.DisplayAlert("Ошибка", $"Не удалось удалить: {ex.Message}", "ОК");
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    [RelayCommand]
-    private async Task TransferToIm40(SupplyDto supply)
-    {
-        if (supply.RegisterType != "ND40")
-        {
-            await Shell.Current.DisplayAlert("Ошибка", "Можно переводить только из ND-40", "ОК");
-            return;
-        }
-
-        var confirm = await Shell.Current.DisplayAlert(
-            "Подтверждение",
-            $"Перевести поставку {supply.Code} в IM-40?\n\nВсе партии будут перенесены автоматически.",
-            "Да",
-            "Нет");
-
-        if (!confirm) return;
-
-        try
-        {
-            IsBusy = true;
-            await _suppliesService.TransferToIm40Async(supply.Id);
-            await LoadSupplies();
-            await Shell.Current.DisplayAlert("Успех", "Поставка переведена в IM-40", "ОК");
-        }
-        catch (Exception ex)
-        {
-            await Shell.Current.DisplayAlert("Ошибка", $"Не удалось перевести: {ex.Message}", "ОК");
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    [RelayCommand]
-    private async Task OpenCosting(SupplyDto supply)
-    {
-        // Переход на страницу расчета себестоимости
-        await Shell.Current.GoToAsync($"costing?supplyId={supply.Id}");
-    }
 }

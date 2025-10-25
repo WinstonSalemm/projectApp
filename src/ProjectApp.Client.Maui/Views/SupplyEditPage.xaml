@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             x:Class="ProjectApp.Client.Maui.Views.SupplyEditPage"
+             Title="Редактирование поставки"
+             x:DataType="vm:SupplyEditViewModel">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Добавить товар" 
+                     Clicked="OnAddProductClicked"
+                     IconImageSource="add.png"/>
+        <ToolbarItem Text="📊 Расчет себес" 
+                     Clicked="OnCostCalculationClicked"/>
+        <ToolbarItem Text="Сохранить" 
+                     Clicked="OnSaveClicked"
+                     IconImageSource="save.png"/>
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="10" Spacing="10">
+            
+            <!-- Заголовок поставки -->
+            <Frame BorderColor="LightGray" CornerRadius="8" Padding="15">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{Binding Supply.Code, StringFormat='Поставка: {0}', FallbackValue='Поставка: Загрузка...'}" 
+                           FontSize="20" 
+                           FontAttributes="Bold"/>
+                    <Label Text="{Binding Supply.RegisterType, StringFormat='Регистр: {0}', FallbackValue='Регистр: ...'}" 
+                           FontSize="14" 
+                           TextColor="Gray"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Список товаров в поставке -->
+            <Label Text="Товары в поставке:" FontSize="16" FontAttributes="Bold" Margin="0,10,0,0"/>
+            
+            <CollectionView ItemsSource="{Binding SupplyItems}" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <Label Text="Нет товаров. Нажмите '+' чтобы добавить." 
+                           TextColor="Gray" 
+                           HorizontalTextAlignment="Center"
+                           Margin="0,20,0,0"/>
+                </CollectionView.EmptyView>
+                
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SupplyItemDto">
+                        <Frame Margin="0,5" Padding="10" BorderColor="LightGray">
+                            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+                                <Label Grid.Row="0" Grid.Column="0"
+                                       Text="{Binding ProductName}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"/>
+                                
+                                <Button Grid.Row="0" Grid.Column="1"
+                                        Text="🗑️"
+                                        Clicked="OnRemoveProductClicked"
+                                        CommandParameter="{Binding .}"
+                                        BackgroundColor="#e74c3c"
+                                        TextColor="White"
+                                        WidthRequest="40"
+                                        HeightRequest="40"/>
+                                
+                                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                       Text="{Binding Sku, StringFormat='SKU: {0}'}"
+                                       FontSize="12"
+                                       TextColor="Gray"/>
+                                
+                                <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                      ColumnDefinitions="*,*,*"
+                                      Margin="0,5,0,0">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding Quantity, StringFormat='Кол-во: {0}'}"
+                                           FontSize="12"/>
+                                    <Label Grid.Column="1"
+                                           Text="{Binding PriceRub, StringFormat='Цена: {0:F2} ₽'}"
+                                           FontSize="12"/>
+                                    <Label Grid.Column="2"
+                                           Text="{Binding Weight, StringFormat='Вес: {0:F2} кг'}"
+                                           FontSize="12"/>
+                                </Grid>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Параметры расчета НД-40 -->
+            <Frame BorderColor="#3498db" CornerRadius="8" Padding="15" Margin="0,10,0,0"
+                   IsVisible="{Binding IsNd40}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="💰 Параметры расчета НД-40" 
+                           FontSize="18" 
+                           FontAttributes="Bold"
+                           TextColor="#3498db"/>
+                    
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Label Grid.Row="0" Grid.Column="0" Text="Курс RUB:"/>
+                        <Entry Grid.Row="0" Grid.Column="1" Text="{Binding ExchangeRate}" Keyboard="Numeric"/>
+                        
+                        <Label Grid.Row="1" Grid.Column="0" Text="Таможня:"/>
+                        <Entry Grid.Row="1" Grid.Column="1" Text="{Binding CustomsFee}" Keyboard="Numeric"/>
+                        
+                        <Label Grid.Row="2" Grid.Column="0" Text="НДС %:"/>
+                        <Entry Grid.Row="2" Grid.Column="1" Text="{Binding VatPercent}" Keyboard="Numeric"/>
+                        
+                        <Label Grid.Row="3" Grid.Column="0" Text="Коррекция %:"/>
+                        <Entry Grid.Row="3" Grid.Column="1" Text="{Binding CorrectionPercent}" Keyboard="Numeric"/>
+                        
+                        <Label Grid.Row="4" Grid.Column="0" Text="Охрана %:"/>
+                        <Entry Grid.Row="4" Grid.Column="1" Text="{Binding SecurityPercent}" Keyboard="Numeric"/>
+                    </Grid>
+                    
+                    <Button Text="🔍 Рассчитать себестоимость"
+                            Clicked="OnCalculateCostClicked"
+                            BackgroundColor="#27ae60"
+                            TextColor="White"
+                            Margin="0,10,0,0"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Результаты расчета -->
+            <Frame BorderColor="#27ae60" CornerRadius="8" Padding="15" Margin="0,10,0,0"
+                   IsVisible="{Binding HasCostPreview}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="📊 Результаты расчета" 
+                           FontSize="18" 
+                           FontAttributes="Bold"
+                           TextColor="#27ae60"/>
+                    
+                    <Label Text="{Binding TotalCostPreview, StringFormat='ОБЩАЯ СЕБЕСТОИМОСТЬ: {0:N0} UZS'}"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           TextColor="#e67e22"/>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
