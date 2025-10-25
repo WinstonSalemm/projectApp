@@ -22,11 +22,36 @@ public class ApiSuppliesService : ISuppliesService
 
     public async Task<SupplyDto> CreateSupplyAsync(string code)
     {
-        var response = await _httpClient.PostAsJsonAsync("/api/supplies", new { Code = code });
-        response.EnsureSuccessStatusCode();
-        
-        var supply = await response.Content.ReadFromJsonAsync<SupplyDto>();
-        return supply ?? throw new Exception("Failed to create supply");
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"API: Creating supply with code {code}");
+            var response = await _httpClient.PostAsJsonAsync("/api/supplies", new { Code = code });
+            
+            System.Diagnostics.Debug.WriteLine($"API Response Status: {response.StatusCode}");
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"API Error: {errorContent}");
+                throw new Exception($"API returned {response.StatusCode}: {errorContent}");
+            }
+            
+            var supply = await response.Content.ReadFromJsonAsync<SupplyDto>();
+            
+            if (supply == null)
+            {
+                System.Diagnostics.Debug.WriteLine("API returned null supply");
+                throw new Exception("API returned null supply");
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"API: Supply created successfully - Id: {supply.Id}, Code: {supply.Code}, Type: {supply.RegisterType}");
+            return supply;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"CreateSupplyAsync exception: {ex}");
+            throw;
+        }
     }
 
     public async Task DeleteSupplyAsync(int id)

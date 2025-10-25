@@ -78,7 +78,7 @@ public class SuppliesController : ControllerBase
     /// Создать новую поставку (по умолчанию в ND-40)
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(typeof(Supply), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(SupplyDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateSupplyDto dto, CancellationToken ct)
     {
@@ -102,7 +102,17 @@ public class SuppliesController : ControllerBase
         _db.Supplies.Add(supply);
         await _db.SaveChangesAsync(ct);
 
-        return CreatedAtAction(nameof(GetById), new { id = supply.Id }, supply);
+        var result = new SupplyDto
+        {
+            Id = supply.Id,
+            Code = supply.Code,
+            RegisterType = supply.RegisterType.ToString(),
+            Status = supply.Status.ToString(),
+            CreatedAt = supply.CreatedAt,
+            UpdatedAt = supply.UpdatedAt
+        };
+
+        return CreatedAtAction(nameof(GetById), new { id = supply.Id }, result);
     }
 
     /// <summary>

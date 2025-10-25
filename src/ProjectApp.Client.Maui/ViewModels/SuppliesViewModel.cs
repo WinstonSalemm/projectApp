@@ -104,6 +104,12 @@ public partial class SuppliesViewModel : ObservableObject
     {
         try
         {
+            if (Shell.Current == null)
+            {
+                System.Diagnostics.Debug.WriteLine("Shell.Current is null");
+                return;
+            }
+
             var code = await Shell.Current.DisplayPromptAsync(
                 "Новая поставка",
                 "Введите № ГТД:",
@@ -115,20 +121,47 @@ public partial class SuppliesViewModel : ObservableObject
                 return;
 
             IsBusy = true;
+            
+            System.Diagnostics.Debug.WriteLine($"Creating supply with code: {code}");
             var newSupply = await _suppliesService.CreateSupplyAsync(code);
+            
+            if (newSupply == null)
+            {
+                System.Diagnostics.Debug.WriteLine("CreateSupplyAsync returned null");
+                await Shell.Current.DisplayAlert("Ошибка", "Не удалось создать поставку", "ОК");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"Supply created: {newSupply.Code}, Type: {newSupply.RegisterType}");
             
             // Добавляем в нужную коллекцию
             if (newSupply.RegisterType == "ND40")
+            {
                 Nd40Supplies.Insert(0, newSupply);
+                System.Diagnostics.Debug.WriteLine($"Added to ND40, total: {Nd40Supplies.Count}");
+            }
             else
+            {
                 Im40Supplies.Insert(0, newSupply);
+                System.Diagnostics.Debug.WriteLine($"Added to IM40, total: {Im40Supplies.Count}");
+            }
             
             await Shell.Current.DisplayAlert("Успех", $"Поставка {code} создана в {newSupply.RegisterType}", "ОК");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"CreateSupply error: {ex}");
-            await Shell.Current.DisplayAlert("Ошибка", $"Не удалось создать поставку: {ex.Message}", "ОК");
+            System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}");
+            
+            try
+            {
+                if (Shell.Current != null)
+                    await Shell.Current.DisplayAlert("Ошибка", $"Не удалось создать поставку: {ex.Message}", "ОК");
+            }
+            catch
+            {
+                System.Diagnostics.Debug.WriteLine("Failed to show error alert");
+            }
         }
         finally
         {
