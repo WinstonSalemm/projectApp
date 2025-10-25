@@ -22,6 +22,9 @@ public partial class SuppliesViewModel : ObservableObject
     public ObservableCollection<SupplyDto> CurrentSupplies =>
         CurrentTab == "ND40" ? Nd40Supplies : Im40Supplies;
 
+    public bool IsNd40Visible => CurrentTab == "ND40";
+    public bool IsIm40Visible => CurrentTab == "IM40";
+
     public SuppliesViewModel(ISuppliesService suppliesService)
     {
         _suppliesService = suppliesService;
@@ -30,8 +33,13 @@ public partial class SuppliesViewModel : ObservableObject
     [RelayCommand]
     private void SelectTab(string tab)
     {
+        System.Diagnostics.Debug.WriteLine($"SelectTab called: {tab}");
         CurrentTab = tab;
+        System.Diagnostics.Debug.WriteLine($"CurrentTab set to: {CurrentTab}");
+        System.Diagnostics.Debug.WriteLine($"IsNd40Visible: {IsNd40Visible}, IsIm40Visible: {IsIm40Visible}");
         OnPropertyChanged(nameof(CurrentSupplies));
+        OnPropertyChanged(nameof(IsNd40Visible));
+        OnPropertyChanged(nameof(IsIm40Visible));
     }
 
     [RelayCommand]
@@ -50,6 +58,7 @@ public partial class SuppliesViewModel : ObservableObject
                 Nd40Supplies.Clear();
                 foreach (var supply in nd40)
                     Nd40Supplies.Add(supply);
+                System.Diagnostics.Debug.WriteLine($"Loaded {Nd40Supplies.Count} ND-40 supplies");
             }
             catch (Exception ex)
             {
@@ -63,6 +72,7 @@ public partial class SuppliesViewModel : ObservableObject
                 Im40Supplies.Clear();
                 foreach (var supply in im40)
                     Im40Supplies.Add(supply);
+                System.Diagnostics.Debug.WriteLine($"Loaded {Im40Supplies.Count} IM-40 supplies");
             }
             catch (Exception ex)
             {

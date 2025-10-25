@@ -43,7 +43,7 @@
         <CollectionView Grid.Row="1" 
                         ItemsSource="{Binding Nd40Supplies}"
                         SelectionMode="None"
-                        IsVisible="{Binding CurrentTab, Converter={StaticResource IsNd40Converter}}">
+                        IsVisible="{Binding IsNd40Visible}">
             <CollectionView.EmptyView>
                 <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="20">
                     <Label Text="Нет поставок" 
@@ -152,7 +152,7 @@
         <CollectionView Grid.Row="1" 
                         ItemsSource="{Binding Im40Supplies}"
                         SelectionMode="None"
-                        IsVisible="{Binding CurrentTab, Converter={StaticResource IsIm40Converter}}">
+                        IsVisible="{Binding IsIm40Visible}">
             <CollectionView.EmptyView>
                 <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="20">
                     <Label Text="Нет поставок" 
