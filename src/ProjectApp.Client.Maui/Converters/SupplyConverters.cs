@@ -71,8 +71,25 @@ public class IsNd40Converter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value == null) return false;
-        return value.ToString() == "ND40";
+        if (value is string registerType)
+            return registerType == "ND40";
+        return false;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+// Конвертер для проверки IM-40
+public class IsIm40Converter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is string registerType)
+            return registerType == "IM40";
+        return false;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
