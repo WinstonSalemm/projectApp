@@ -44,22 +44,44 @@ public partial class SuppliesViewModel : ObservableObject
             IsBusy = true;
 
             // Загружаем ND-40
-            var nd40 = await _suppliesService.GetSuppliesAsync("ND40");
-            Nd40Supplies.Clear();
-            foreach (var supply in nd40)
-                Nd40Supplies.Add(supply);
+            try
+            {
+                var nd40 = await _suppliesService.GetSuppliesAsync("ND40");
+                Nd40Supplies.Clear();
+                foreach (var supply in nd40)
+                    Nd40Supplies.Add(supply);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading ND40: {ex}");
+            }
 
             // Загружаем IM-40
-            var im40 = await _suppliesService.GetSuppliesAsync("IM40");
-            Im40Supplies.Clear();
-            foreach (var supply in im40)
-                Im40Supplies.Add(supply);
+            try
+            {
+                var im40 = await _suppliesService.GetSuppliesAsync("IM40");
+                Im40Supplies.Clear();
+                foreach (var supply in im40)
+                    Im40Supplies.Add(supply);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading IM40: {ex}");
+            }
 
             OnPropertyChanged(nameof(CurrentSupplies));
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Ошибка", $"Не удалось загрузить поставки: {ex.Message}", "ОК");
+            System.Diagnostics.Debug.WriteLine($"LoadSupplies error: {ex}");
+            try
+            {
+                await Shell.Current.DisplayAlert("Ошибка", $"Не удалось загрузить поставки: {ex.Message}", "ОК");
+            }
+            catch
+            {
+                // Ignore if can't show alert
+            }
         }
         finally
         {

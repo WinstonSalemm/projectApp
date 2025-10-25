@@ -1,5 +1,4 @@
 using System.Net.Http.Json;
-using ProjectApp.Client.Maui.ViewModels;
 
 namespace ProjectApp.Client.Maui.Services;
 
@@ -9,7 +8,7 @@ public class ApiSuppliesService : ISuppliesService
 
     public ApiSuppliesService(IHttpClientFactory httpClientFactory)
     {
-        _httpClient = httpClientFactory.CreateClient("ProjectAppApi");
+        _httpClient = httpClientFactory.CreateClient(HttpClientNames.Api);
     }
 
     public async Task<List<SupplyDto>> GetSuppliesAsync(string registerType)

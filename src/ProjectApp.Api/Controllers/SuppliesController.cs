@@ -27,13 +27,10 @@ public class SuppliesController : ControllerBase
     /// Получить список поставок с фильтром по типу регистра
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<Supply>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IEnumerable<SupplyDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll([FromQuery] RegisterType? registerType, CancellationToken ct)
     {
-        var query = _db.Supplies
-            .Include(s => s.Items)
-            .ThenInclude(i => i.Product)
-            .AsQueryable();
+        var query = _db.Supplies.AsQueryable();
 
         if (registerType.HasValue)
             query = query.Where(s => s.RegisterType == registerType.Value);
@@ -44,7 +41,17 @@ public class SuppliesController : ControllerBase
             .ThenByDescending(s => s.CreatedAt)
             .ToListAsync(ct);
 
-        return Ok(supplies);
+        var dtos = supplies.Select(s => new SupplyDto
+        {
+            Id = s.Id,
+            Code = s.Code,
+            RegisterType = s.RegisterType.ToString(),
+            Status = s.Status.ToString(),
+            CreatedAt = s.CreatedAt,
+            UpdatedAt = s.UpdatedAt
+        }).ToList();
+
+        return Ok(dtos);
     }
 
     /// <summary>
@@ -222,3 +229,13 @@ public class SuppliesController : ControllerBase
 public record CreateSupplyDto(string Code);
 public record UpdateSupplyDto(string? Code);
 public record UpdateStatusDto(SupplyStatus Status);
+
+public class SupplyDto
+{
+    public int Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string RegisterType { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}

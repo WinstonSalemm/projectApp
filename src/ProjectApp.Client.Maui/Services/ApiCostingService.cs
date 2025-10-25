@@ -8,7 +8,7 @@ public class ApiCostingService : ICostingService
 
     public ApiCostingService(IHttpClientFactory httpClientFactory)
     {
-        _httpClient = httpClientFactory.CreateClient("ProjectAppApi");
+        _httpClient = httpClientFactory.CreateClient(HttpClientNames.Api);
     }
 
     public async Task<List<CostingSessionDto>> GetSessionsAsync(int supplyId)
