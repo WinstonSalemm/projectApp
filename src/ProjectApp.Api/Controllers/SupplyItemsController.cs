@@ -47,6 +47,11 @@ public class SupplyItemsController : ControllerBase
     {
         try
         {
+            // Загружаем поставку
+            var supply = await _db.Supplies.FindAsync(new object[] { supplyId }, ct);
+            if (supply == null)
+                return NotFound($"Supply {supplyId} not found");
+
             // Проверяем существование продукта по названию
             var product = await _db.Products
                 .FirstOrDefaultAsync(p => p.Name.ToLower() == dto.Name.ToLower(), ct);
@@ -79,7 +84,6 @@ public class SupplyItemsController : ControllerBase
             await _db.SaveChangesAsync(ct);
 
             // ✅ Создаём партию на складе - товар сразу доступен
-            var supply = await _db.Supplies.FindAsync(new object[] { supplyId }, ct);
             if (supply != null)
             {
                 var register = supply.RegisterType == RegisterType.ND40 ? StockRegister.ND40 : StockRegister.IM40;
@@ -127,7 +131,17 @@ public class SupplyItemsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { error = ex.Message, innerError = ex.InnerException?.Message, stack = ex.StackTrace });
+            var details = new
+            {
+                error = ex.Message,
+                innerError = ex.InnerException?.Message,
+                innerInnerError = ex.InnerException?.InnerException?.Message,
+                type = ex.GetType().Name,
+                stack = ex.StackTrace?.Split('\n').Take(5).ToArray()
+            };
+            
+            Console.WriteLine($"[ERROR] Add item failed: {ex}");
+            return StatusCode(500, details);
         }
     }
 
