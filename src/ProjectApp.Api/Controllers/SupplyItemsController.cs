@@ -87,10 +87,10 @@ public class SupplyItemsController : ControllerBase
             if (supply != null)
             {
                 var register = supply.RegisterType == RegisterType.ND40 ? StockRegister.ND40 : StockRegister.IM40;
-                
+
                 // Временная себестоимость = цена в рублях × курс
                 var tempUnitCost = dto.PriceRub * 158.08m;
-                
+
                 var batch = new Batch
                 {
                     ProductId = product.Id,
@@ -103,10 +103,28 @@ public class SupplyItemsController : ControllerBase
                     PurchaseSource = $"SupplyId:{supply.Id}",
                     PurchaseDate = supply.CreatedAt
                 };
-                
+
                 _db.Batches.Add(batch);
+
+                // Синхронизируем агрегированные остатки
+                var stock = await _db.Stocks
+                    .FirstOrDefaultAsync(s => s.ProductId == product.Id && s.Register == register, ct);
+
+                if (stock == null)
+                {
+                    stock = new Stock
+                    {
+                        ProductId = product.Id,
+                        Register = register,
+                        Qty = 0
+                    };
+                    _db.Stocks.Add(stock);
+                }
+
+                stock.Qty += dto.Quantity;
+
                 await _db.SaveChangesAsync(ct);
-                
+
                 // TODO: InventoryTransaction временно отключена для отладки
             }
 
