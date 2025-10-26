@@ -60,6 +60,7 @@ public partial class CostingViewModel : ObservableObject
     private int? _currentSessionId;
 
     public ObservableCollection<CostingItemDto> Items { get; } = new();
+    public ObservableCollection<CostingItemDto> DetailingItems { get; } = new();
 
     public CostingViewModel(ICostingService costingService)
     {
@@ -106,8 +107,12 @@ public partial class CostingViewModel : ObservableObject
                 GrandTotal = details.GrandTotal;
 
                 Items.Clear();
+                DetailingItems.Clear();
                 foreach (var item in details.Snapshots)
+                {
                     Items.Add(item);
+                    DetailingItems.Add(item);
+                }
             }
         }
         catch (Exception ex)

@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              xmlns:services="clr-namespace:ProjectApp.Client.Maui.Services"
              x:Class="ProjectApp.Client.Maui.Views.CostingPage"
+             x:Name="PageRoot"
              Title="💰 Расчёт себестоимости"
              x:DataType="vm:CostingViewModel">
 
@@ -218,6 +219,67 @@
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
+
+                    <!-- Детализация расчета -->
+                    <Label Text="Детализация расчёта" 
+                           FontSize="16" 
+                           FontAttributes="Bold"
+                           Padding="15,10,15,0"/>
+
+                    <ScrollView Orientation="Both" HeightRequest="260" Margin="15,5,15,10">
+                        <VerticalStackLayout>
+                            <Grid ColumnDefinitions="2*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Padding="5" BackgroundColor="#ecf0f1">
+                                <Label Text="Товар" FontAttributes="Bold" />
+                                <Label Grid.Column="1" Text="Кол-во" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="2" Text="Цена ₽" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="3" Text="Курс" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="4" Text="Цена UZS" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="5" Text="Таможня" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="6" Text="НДС" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="7" Text="Логистика" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="8" Text="Склад" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="9" Text="Декларация" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="10" Text="Сертификация" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="11" Text="МЧС" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="12" Text="Погрузка" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="13" Text="Отклонения" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="14" Text="Себестоимость / итого" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                            </Grid>
+
+                            <CollectionView ItemsSource="{Binding DetailingItems}" SelectionMode="None">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="services:CostingItemDto">
+                                        <Border Stroke="#f0f0f0" StrokeThickness="1" Background="White" Padding="0">
+                                            <Grid ColumnDefinitions="2*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Padding="5">
+                                                <Label Text="{Binding Name}" />
+                                                <Label Grid.Column="1" Text="{Binding Quantity, StringFormat='{0} шт'}" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="2" Text="{Binding PriceRub, StringFormat='{0:N2}'}" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="3" Text="{Binding Source={x:Reference PageRoot}, Path=BindingContext.ExchangeRate, StringFormat='{0:N4}'}" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="4" Text="{Binding PriceUzs, StringFormat='{0:N2}'}" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="5" Text="{Binding CustomsUzs, StringFormat='{0:N2}'}" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="6" Text="{Binding VatUzs, StringFormat='{0:N2}'}" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="7" Text="{Binding LogisticsUzs, StringFormat='{0:N2}'}" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="8" Text="{Binding StorageUzs, StringFormat='{0:N2}'}" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="9" Text="{Binding DeclarationUzs, StringFormat='{0:N2}'}" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="10" Text="{Binding CertificationUzs, StringFormat='{0:N2}'}" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="11" Text="{Binding MChsUzs, StringFormat='{0:N2}'}" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="12" Text="{Binding LoadingUzs, StringFormat='{0:N2}'}" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="13" Text="{Binding UnforeseenUzs, StringFormat='{0:N2}'}" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="14" Text="{Binding TotalCostUzs, StringFormat='{0:N2}'}" FontAttributes="Bold" TextColor="#2c3e50" HorizontalTextAlignment="End" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </ScrollView>
+
+                    <!-- Формулы -->
+                    <VerticalStackLayout Padding="15,0,15,10" Spacing="2">
+                        <Label Text="Формулы расчёта" FontAttributes="Bold" FontSize="14" />
+                        <Label Text="• Цена UZS = Цена ₽ × Курс" FontSize="12" TextColor="Gray" />
+                        <Label Text="• Процентные статьи (НДС, логистика, склад, сертификация, МЧС) считаются от цены в UZS; фиксированные статьи (таможня, погрузка) распределяются пропорционально доле товара" FontSize="12" TextColor="Gray" />
+                    </VerticalStackLayout>
 
                     <!-- Общая сумма -->
                     <Frame Padding="15" 

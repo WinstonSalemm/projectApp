@@ -39,6 +39,7 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
     private decimal _securityPercent = 0.5m;
     
     public ObservableCollection<SupplyItemDto> SupplyItems { get; } = new();
+    public ObservableCollection<BatchCostItemDto> CostItems { get; } = new();
     
     public bool IsNd40 => Supply?.RegisterType == "ND40";
     
@@ -227,6 +228,11 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
             
             var items = await _batchCostService.GetItemsAsync(_supplyId);
             CostItemsCount = items.Count;
+            CostItems.Clear();
+            foreach (var costItem in items)
+            {
+                CostItems.Add(costItem);
+            }
             
             var total = await _batchCostService.GetTotalCostAsync(_supplyId);
             TotalCost = total;

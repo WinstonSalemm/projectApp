@@ -121,6 +121,105 @@
                                FontAttributes="Bold"
                                TextColor="#e74c3c"/>
                     </Grid>
+
+                    <Label Text="Детализация расчета:" FontAttributes="Bold" FontSize="16" />
+
+                    <!-- Таблица с формулами -->
+                    <ScrollView Orientation="Both" HeightRequest="250">
+                        <VerticalStackLayout>
+                            <!-- Заголовки -->
+                            <Grid ColumnDefinitions="2*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Padding="5" BackgroundColor="#ecf0f1">
+                                <Label Text="#" FontAttributes="Bold" />
+                                <Label Grid.Column="1" Text="Товар" FontAttributes="Bold" />
+                                <Label Grid.Column="2" Text="Цена ₽" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="3" Text="Курс" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="4" Text="Цена UZS" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="5" Text="Таможня" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="6" Text="Логистика" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="7" Text="Склад" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="8" Text="Прочие" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                <Label Grid.Column="9" Text="Себес / итого" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                            </Grid>
+
+                            <CollectionView ItemsSource="{Binding CostItems}" SelectionMode="None">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:BatchCostItemDto">
+                                        <Grid ColumnDefinitions="2*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Padding="5">
+                                            <Label Text="{Binding RowNumber}" />
+                                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                <Label Text="{Binding ProductName}" FontAttributes="Bold" />
+                                                <Label Text="{Binding Quantity, StringFormat='Кол-во: {0}'}" FontSize="12" TextColor="Gray" />
+                                            </VerticalStackLayout>
+                                            <Label Grid.Column="2" Text="{Binding PriceRub, StringFormat='{0:F2}'}" HorizontalTextAlignment="End" />
+                                            <Label Grid.Column="3" Text="{Binding ExchangeRate, StringFormat='{0:F2}'}" HorizontalTextAlignment="End" />
+                                            <Label Grid.Column="4" Text="{Binding PriceSom, StringFormat='{0:N0}'}" HorizontalTextAlignment="End" />
+                                            <Label Grid.Column="5" Text="{Binding CustomsAmount, StringFormat='{0:N0}'}" HorizontalTextAlignment="End" />
+                                            <Label Grid.Column="6" Text="{Binding LogisticsAmount, StringFormat='{0:N0}'}" HorizontalTextAlignment="End">
+                                                <Label.FormattedText>
+                                                    <FormattedString>
+                                                        <Span Text="{Binding LogisticsAmount, StringFormat='{0:N0}'}" />
+                                                        <Span Text="{Binding LogisticsPercent, StringFormat=' ({0:F1}%)'}" FontSize="12" TextColor="Gray" />
+                                                    </FormattedString>
+                                                </Label.FormattedText>
+                                            </Label>
+                                            <Label Grid.Column="7" HorizontalTextAlignment="End">
+                                                <Label.FormattedText>
+                                                    <FormattedString>
+                                                        <Span Text="{Binding WarehouseAmount, StringFormat='{0:N0}'}" />
+                                                        <Span Text="{Binding WarehousePercent, StringFormat=' ({0:F1}%)'}" FontSize="12" TextColor="Gray" />
+                                                    </FormattedString>
+                                                </Label.FormattedText>
+                                            </Label>
+                                            <VerticalStackLayout Grid.Column="8" Spacing="2" HorizontalOptions="End">
+                                                <Label>
+                                                    <Label.FormattedText>
+                                                        <FormattedString>
+                                                            <Span Text="Декл: {Binding DeclarationAmount, StringFormat='{0:N0}'}" />
+                                                            <Span Text="{Binding DeclarationPercent, StringFormat=' ({0:F1}%)'}" FontSize="12" TextColor="Gray" />
+                                                        </FormattedString>
+                                                    </Label.FormattedText>
+                                                </Label>
+                                                <Label>
+                                                    <Label.FormattedText>
+                                                        <FormattedString>
+                                                            <Span Text="Сертиф: {Binding CertificationAmount, StringFormat='{0:N0}'}" />
+                                                            <Span Text="{Binding CertificationPercent, StringFormat=' ({0:F1}%)'}" FontSize="12" TextColor="Gray" />
+                                                        </FormattedString>
+                                                    </Label.FormattedText>
+                                                </Label>
+                                                <Label>
+                                                    <Label.FormattedText>
+                                                        <FormattedString>
+                                                            <Span Text="МЧС: {Binding MchsAmount, StringFormat='{0:N0}'}" />
+                                                            <Span Text="{Binding MchsPercent, StringFormat=' ({0:F1}%)'}" FontSize="12" TextColor="Gray" />
+                                                        </FormattedString>
+                                                    </Label.FormattedText>
+                                                </Label>
+                                                <Label>
+                                                    <Label.FormattedText>
+                                                        <FormattedString>
+                                                            <Span Text="Откл: {Binding DeviationAmount, StringFormat='{0:N0}'}" />
+                                                            <Span Text="{Binding DeviationPercent, StringFormat=' ({0:F1}%)'}" FontSize="12" TextColor="Gray" />
+                                                        </FormattedString>
+                                                    </Label.FormattedText>
+                                                </Label>
+                                                <Label Text="Погрузка: {Binding ShippingAmount, StringFormat='{0:N0}'}" FontSize="12" TextColor="Gray" HorizontalTextAlignment="End" />
+                                            </VerticalStackLayout>
+                                            <VerticalStackLayout Grid.Column="9" Spacing="2" HorizontalOptions="End">
+                                                <Label Text="{Binding UnitCost, StringFormat='{0:N0} UZS'}" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                                <Label Text="× {Binding Quantity}" FontSize="12" TextColor="Gray" HorizontalTextAlignment="End" />
+                                                <Label Text="= {Binding TotalCost, StringFormat='{0:N0} UZS'}" FontAttributes="Bold" TextColor="#27ae60" HorizontalTextAlignment="End" />
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </ScrollView>
+
+                    <Label Text="Формулы: Цена UZS = Цена ₽ × Курс. Процентные статьи считаются от цены в UZS. Фиксированные суммы (таможня/погрузка) распределяются пропорционально доле товара." 
+                           FontSize="12" 
+                           TextColor="Gray" />
                 </VerticalStackLayout>
             </Frame>
 
