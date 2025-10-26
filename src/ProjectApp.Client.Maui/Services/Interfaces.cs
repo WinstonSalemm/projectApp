@@ -78,6 +78,7 @@ public interface ISalesService
 public interface ISuppliesService
 {
     Task<List<SupplyDto>> GetSuppliesAsync(string registerType);
+    Task<SupplyDto?> GetSupplyByIdAsync(int id);
     Task<SupplyDto> CreateSupplyAsync(string code);
     Task DeleteSupplyAsync(int id);
     Task TransferToIm40Async(int id);

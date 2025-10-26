@@ -39,6 +39,18 @@ public class ApiSuppliesService : ISuppliesService
         return supplies ?? new List<SupplyDto>();
     }
 
+    public async Task<SupplyDto?> GetSupplyByIdAsync(int id)
+    {
+        var client = CreateClient();
+        var response = await client.GetAsync($"/api/supplies/{id}");
+        
+        if (!response.IsSuccessStatusCode)
+            return null;
+        
+        var supply = await response.Content.ReadFromJsonAsync<SupplyDto>();
+        return supply;
+    }
+
     public async Task<SupplyDto> CreateSupplyAsync(string code)
     {
         try

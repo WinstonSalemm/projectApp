@@ -111,18 +111,27 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
             {
                 System.Diagnostics.Debug.WriteLine($"Loading supply {_supplyId}...");
                 
-                // TODO: Загрузить поставку по ID из API
-                // Пока создаем заглушку
-                Supply = new SupplyDto 
-                { 
-                    Id = _supplyId,
-                    Code = $"ГТД-{_supplyId}",
-                    RegisterType = "ND40",
-                    Status = "Draft",
-                    CreatedAt = DateTime.Now
-                };
+                // ✅ Загружаем реальную поставку с сервера
+                var loadedSupply = await _suppliesService.GetSupplyByIdAsync(_supplyId);
                 
-                System.Diagnostics.Debug.WriteLine($"Supply loaded: {Supply.Code}, Type: {Supply.RegisterType}");
+                if (loadedSupply != null)
+                {
+                    Supply = loadedSupply;
+                    System.Diagnostics.Debug.WriteLine($"Supply loaded from server: {Supply.Code}, Type: {Supply.RegisterType}");
+                }
+                else
+                {
+                    // Фоллбэк если не найдена
+                    System.Diagnostics.Debug.WriteLine($"Supply {_supplyId} not found, creating fallback");
+                    Supply = new SupplyDto 
+                    { 
+                        Id = _supplyId,
+                        Code = $"Поставка #{_supplyId}",
+                        RegisterType = "ND40",
+                        Status = "Draft",
+                        CreatedAt = DateTime.Now
+                    };
+                }
             }
             
             OnPropertyChanged(nameof(IsNd40));
