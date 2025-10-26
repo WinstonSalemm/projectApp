@@ -84,6 +84,47 @@ public class SupplyItemsController : ControllerBase
         _db.SupplyItems.Add(item);
         await _db.SaveChangesAsync(ct);
 
+        // ✅ Создаём партию на складе (товар сразу доступен для продажи)
+        var register = supply.RegisterType == RegisterType.ND40 ? StockRegister.ND40 : StockRegister.IM40;
+        
+        // Временная себестоимость = цена в рублях * курс (будет пересчитана позже)
+        var tempUnitCost = dto.PriceRub * 158.08m; // TODO: брать курс из настроек
+        
+        var batch = new Batch
+        {
+            ProductId = product.Id,
+            Register = register,
+            Qty = dto.Quantity,
+            UnitCost = tempUnitCost,
+            CreatedAt = DateTime.UtcNow,
+            Code = supply.Code,
+            Note = $"Автосоздано из поставки {supply.Code}",
+            PurchaseSource = $"SupplyId:{supply.Id}",
+            PurchaseDate = supply.CreatedAt
+        };
+        
+        _db.Batches.Add(batch);
+        
+        // Создаём транзакцию поступления на склад
+        var transaction = new InventoryTransaction
+        {
+            ProductId = product.Id,
+            Type = InventoryTransactionType.Purchase,
+            Qty = dto.Quantity,
+            UnitCost = tempUnitCost,
+            Register = register,
+            BatchId = null, // будет установлен после сохранения batch
+            Note = $"Поступление из поставки {supply.Code}",
+            CreatedAt = DateTime.UtcNow
+        };
+        
+        _db.InventoryTransactions.Add(transaction);
+        await _db.SaveChangesAsync(ct);
+        
+        // Обновляем ссылку на batch в транзакции
+        transaction.BatchId = batch.Id;
+        await _db.SaveChangesAsync(ct);
+
         // Загружаем с Product для ответа
         await _db.Entry(item).Reference(i => i.Product).LoadAsync(ct);
 
@@ -140,6 +181,36 @@ public class SupplyItemsController : ControllerBase
         var item = await _db.SupplyItems.FindAsync(new object[] { itemId }, ct);
         if (item == null || item.SupplyId != supplyId)
             return NotFound("Item not found");
+
+        // ✅ Находим и удаляем соответствующую партию со склада
+        var register = supply.RegisterType == RegisterType.ND40 ? StockRegister.ND40 : StockRegister.IM40;
+        
+        var batch = await _db.Batches
+            .Where(b => b.ProductId == item.ProductId 
+                     && b.Register == register 
+                     && b.PurchaseSource == $"SupplyId:{supply.Id}")
+            .FirstOrDefaultAsync(ct);
+        
+        if (batch != null)
+        {
+            // Создаём обратную транзакцию списания
+            var transaction = new InventoryTransaction
+            {
+                ProductId = item.ProductId,
+                Type = InventoryTransactionType.Adjust, // Корректировка при удалении из поставки
+                Qty = -item.Quantity, // Отрицательное кол-во = списание
+                UnitCost = batch.UnitCost,
+                Register = register,
+                BatchId = batch.Id,
+                Note = $"Удаление из поставки {supply.Code}",
+                CreatedAt = DateTime.UtcNow
+            };
+            
+            _db.InventoryTransactions.Add(transaction);
+            
+            // Удаляем партию
+            _db.Batches.Remove(batch);
+        }
 
         _db.SupplyItems.Remove(item);
         await _db.SaveChangesAsync(ct);
