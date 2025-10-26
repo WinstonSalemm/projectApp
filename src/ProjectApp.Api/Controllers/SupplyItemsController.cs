@@ -110,8 +110,11 @@ public class SupplyItemsController : ControllerBase
                 // TODO: InventoryTransaction временно отключена для отладки
             }
 
-            // Загружаем с Product для ответа
+            // Загружаем с Product для ответа (НЕ загружаем Supply чтобы избежать циклической ссылки)
             await _db.Entry(item).Reference(i => i.Product).LoadAsync(ct);
+            
+            // Обнуляем навигационное свойство Supply чтобы избежать циклов
+            item.Supply = null;
 
             return CreatedAtAction(nameof(GetAll), new { supplyId }, item);
         }
