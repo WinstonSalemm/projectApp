@@ -68,7 +68,15 @@ public static class MauiProgram
 
         // Register concrete API and Mock services
         builder.Services.AddTransient<AuthHeaderHandler>();
-        builder.Services.AddHttpClient(HttpClientNames.Api)
+        builder.Services.AddHttpClient(HttpClientNames.Api, (sp, client) =>
+        {
+            var settings = sp.GetRequiredService<AppSettings>();
+            var baseUrl = string.IsNullOrWhiteSpace(settings.ApiBaseUrl) 
+                ? "http://localhost:5028" 
+                : settings.ApiBaseUrl;
+            client.BaseAddress = new Uri(baseUrl);
+            client.Timeout = TimeSpan.FromSeconds(30);
+        })
             .AddHttpMessageHandler<AuthHeaderHandler>(); // ensure auth header injection
         builder.Services.AddSingleton<AuthService>();
         builder.Services.AddSingleton<SaleSession>();
