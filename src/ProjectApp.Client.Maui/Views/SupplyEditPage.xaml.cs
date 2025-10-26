@@ -174,35 +174,11 @@ public partial class SupplyEditPage : ContentPage
         }
     }
 
-    private async void OnCostCalculationClicked(object sender, EventArgs e)
+    private async void OnRecalculateClicked(object sender, EventArgs e)
     {
-        try
+        if (BindingContext is SupplyEditViewModel vm)
         {
-            if (BindingContext is SupplyEditViewModel vm && vm.Supply != null)
-            {
-                var costPage = App.Current.Handler.MauiContext.Services.GetService<BatchCostCalculationPage>();
-                
-                if (costPage != null && costPage.BindingContext is BatchCostCalculationViewModel costVm)
-                {
-                    var queryParams = new Dictionary<string, object>
-                    {
-                        ["supplyId"] = vm.Supply.Id.ToString(),
-                        ["supplyCode"] = vm.Supply.Code
-                    };
-                    costVm.ApplyQueryAttributes(queryParams);
-                    
-                    await Navigation.PushAsync(costPage);
-                }
-                else
-                {
-                    await DisplayAlert("Ошибка", "Не удалось открыть страницу расчета", "ОК");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"OnCostCalculationClicked error: {ex}");
-            await DisplayAlert("Ошибка", $"Не удалось открыть расчет: {ex.Message}", "ОК");
+            await vm.RecalculateCost();
         }
     }
 }

@@ -8,6 +8,7 @@ namespace ProjectApp.Client.Maui.ViewModels;
 public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
 {
     private readonly ISuppliesService _suppliesService;
+    private readonly IBatchCostService _batchCostService;
     
     [ObservableProperty]
     private SupplyDto _supply = new SupplyDto();
@@ -16,10 +17,10 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
     private bool _isBusy;
     
     [ObservableProperty]
-    private bool _hasCostPreview;
+    private decimal _totalCost;
     
     [ObservableProperty]
-    private decimal _totalCostPreview;
+    private int _costItemsCount;
     
     // Параметры расчета НД-40
     [ObservableProperty]
@@ -43,9 +44,10 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
     
     private int _supplyId;
     
-    public SupplyEditViewModel(ISuppliesService suppliesService)
+    public SupplyEditViewModel(ISuppliesService suppliesService, IBatchCostService batchCostService)
     {
         _suppliesService = suppliesService;
+        _batchCostService = batchCostService;
     }
     
     public void ApplyQueryAttributes(IDictionary<string, object> query)
@@ -136,6 +138,9 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
                     SupplyItems.Add(item);
                 }
                 System.Diagnostics.Debug.WriteLine($"Loaded {items.Count} items from server");
+                
+                // Загружаем расчёт себестоимости
+                await LoadCostCalculation();
             }
             
             System.Diagnostics.Debug.WriteLine("LoadSupply completed successfully");
@@ -205,11 +210,33 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
         }
     }
     
-    public async Task CalculateCost()
+    private async Task LoadCostCalculation()
     {
         try
         {
-            if (!SupplyItems.Any())
+            if (_supplyId <= 0) return;
+            
+            var items = await _batchCostService.GetItemsAsync(_supplyId);
+            CostItemsCount = items.Count;
+            
+            var total = await _batchCostService.GetTotalCostAsync(_supplyId);
+            TotalCost = total;
+            
+            System.Diagnostics.Debug.WriteLine($"Cost calculation loaded: {CostItemsCount} items, total: {TotalCost:N0}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"LoadCostCalculation error: {ex}");
+            CostItemsCount = 0;
+            TotalCost = 0;
+        }
+    }
+    
+    public async Task RecalculateCost()
+    {
+        try
+        {
+            if (_supplyId <= 0 || !SupplyItems.Any())
             {
                 if (Shell.Current != null)
                 {
@@ -220,31 +247,17 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
             
             IsBusy = true;
             
-            // TODO: Вызвать API для расчета себестоимости
-            // Пока делаем простой расчет
-            decimal total = 0;
-            foreach (var item in SupplyItems)
-            {
-                var priceTotal = item.Quantity * item.PriceRub;
-                var customsAmount = priceTotal * CustomsFee / 1000000;
-                var vatAmount = (priceTotal + customsAmount) * (VatPercent / 100);
-                var correction = priceTotal * (CorrectionPercent / 100);
-                var security = priceTotal * (SecurityPercent / 100);
-                
-                total += priceTotal + customsAmount + vatAmount + correction + security;
-            }
-            
-            TotalCostPreview = total * ExchangeRate;
-            HasCostPreview = true;
+            await _batchCostService.RecalculateAsync(_supplyId);
+            await LoadCostCalculation();
             
             if (Shell.Current != null)
             {
-                await Shell.Current.DisplayAlert("✅ Расчет выполнен", $"Общая себестоимость: {TotalCostPreview:N0} UZS", "ОК");
+                await Shell.Current.DisplayAlert("✅ Готово", $"Расчет выполнен\n\nИтого: {TotalCost:N0} UZS", "ОК");
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"CalculateCost error: {ex}");
+            System.Diagnostics.Debug.WriteLine($"RecalculateCost error: {ex}");
             
             if (Shell.Current != null)
             {
