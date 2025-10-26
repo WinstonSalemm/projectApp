@@ -87,4 +87,29 @@ public class ApiSuppliesService : ISuppliesService
         var response = await client.PostAsync($"/api/supplies/{id}/transfer-to-im40", null);
         response.EnsureSuccessStatusCode();
     }
+
+    public async Task<List<SupplyItemDto>> GetSupplyItemsAsync(int supplyId)
+    {
+        var client = CreateClient();
+        var response = await client.GetAsync($"/api/supplies/{supplyId}/items");
+        response.EnsureSuccessStatusCode();
+        
+        var items = await response.Content.ReadFromJsonAsync<List<SupplyItemDto>>();
+        return items ?? new List<SupplyItemDto>();
+    }
+
+    public async Task AddSupplyItemAsync(int supplyId, string name, int quantity, decimal priceRub, string? category = null)
+    {
+        var client = CreateClient();
+        var dto = new { Name = name, Quantity = quantity, PriceRub = priceRub, Category = category };
+        var response = await client.PostAsJsonAsync($"/api/supplies/{supplyId}/items", dto);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task DeleteSupplyItemAsync(int supplyId, int itemId)
+    {
+        var client = CreateClient();
+        var response = await client.DeleteAsync($"/api/supplies/{supplyId}/items/{itemId}");
+        response.EnsureSuccessStatusCode();
+    }
 }

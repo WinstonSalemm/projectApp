@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             xmlns:services="clr-namespace:ProjectApp.Client.Maui.Services"
              x:Class="ProjectApp.Client.Maui.Views.SupplyEditPage"
              Title="Редактирование поставки"
              x:DataType="vm:SupplyEditViewModel">
@@ -12,9 +13,6 @@
                      IconImageSource="add.png"/>
         <ToolbarItem Text="📊 Расчет себес" 
                      Clicked="OnCostCalculationClicked"/>
-        <ToolbarItem Text="Сохранить" 
-                     Clicked="OnSaveClicked"
-                     IconImageSource="save.png"/>
     </ContentPage.ToolbarItems>
 
     <ScrollView>
@@ -44,11 +42,11 @@
                 </CollectionView.EmptyView>
                 
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="vm:SupplyItemDto">
+                    <DataTemplate x:DataType="services:SupplyItemDto">
                         <Frame Margin="0,5" Padding="10" BorderColor="LightGray">
                             <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
                                 <Label Grid.Row="0" Grid.Column="0"
-                                       Text="{Binding ProductName}"
+                                       Text="{Binding Name}"
                                        FontSize="16"
                                        FontAttributes="Bold"/>
                                 

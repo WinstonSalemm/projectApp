@@ -81,6 +81,9 @@ public interface ISuppliesService
     Task<SupplyDto> CreateSupplyAsync(string code);
     Task DeleteSupplyAsync(int id);
     Task TransferToIm40Async(int id);
+    Task<List<SupplyItemDto>> GetSupplyItemsAsync(int supplyId);
+    Task AddSupplyItemAsync(int supplyId, string name, int quantity, decimal priceRub, string? category = null);
+    Task DeleteSupplyItemAsync(int supplyId, int itemId);
 }
 
 public class SupplyDto
@@ -91,6 +94,18 @@ public class SupplyDto
     public string Status { get; set; } = "HasStock"; // HasStock или Finished
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+}
+
+public class SupplyItemDto
+{
+    public int Id { get; set; }
+    public int SupplyId { get; set; }
+    public int ProductId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Sku { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal PriceRub { get; set; }
+    public decimal Weight { get; set; }
 }
 
 public interface ICostingService

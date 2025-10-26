@@ -126,8 +126,17 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
             OnPropertyChanged(nameof(IsNd40));
             OnPropertyChanged(nameof(Supply));
             
-            // TODO: Загрузить товары в поставке
+            // Загружаем товары в поставке
             SupplyItems.Clear();
+            if (_supplyId > 0)
+            {
+                var items = await _suppliesService.GetSupplyItemsAsync(_supplyId);
+                foreach (var item in items)
+                {
+                    SupplyItems.Add(item);
+                }
+                System.Diagnostics.Debug.WriteLine($"Loaded {items.Count} items from server");
+            }
             
             System.Diagnostics.Debug.WriteLine("LoadSupply completed successfully");
         }
@@ -166,17 +175,33 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
             
             if (item is SupplyItemDto supplyItem)
             {
+                IsBusy = true;
+                
+                // Удаляем с сервера
+                if (supplyItem.Id > 0)
+                {
+                    await _suppliesService.DeleteSupplyItemAsync(Supply.Id, supplyItem.Id);
+                }
+                
+                // Удаляем из коллекции
                 SupplyItems.Remove(supplyItem);
                 
                 if (Shell.Current != null)
                 {
                     await Shell.Current.DisplayAlert("Удалено", "Товар удален из поставки", "ОК");
                 }
+                
+                IsBusy = false;
             }
         }
         catch (Exception ex)
         {
+            IsBusy = false;
             System.Diagnostics.Debug.WriteLine($"RemoveProduct error: {ex}");
+            if (Shell.Current != null)
+            {
+                await Shell.Current.DisplayAlert("Ошибка", $"Не удалось удалить: {ex.Message}", "ОК");
+            }
         }
     }
     
@@ -231,44 +256,4 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
             IsBusy = false;
         }
     }
-    
-    public async Task Save()
-    {
-        try
-        {
-            IsBusy = true;
-            
-            // TODO: Сохранить изменения через API
-            
-            if (Shell.Current != null)
-            {
-                await Shell.Current.DisplayAlert("✅ Сохранено", "Поставка успешно сохранена!", "ОК");
-                await Shell.Current.GoToAsync("..");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Save error: {ex}");
-            
-            if (Shell.Current != null)
-            {
-                await Shell.Current.DisplayAlert("Ошибка", $"Не удалось сохранить: {ex.Message}", "ОК");
-            }
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-}
-
-// DTO для товара в поставке - вынесено в namespace для доступа из XAML
-public class SupplyItemDto
-{
-    public int ProductId { get; set; }
-    public string ProductName { get; set; } = "";
-    public string Sku { get; set; } = "";
-    public int Quantity { get; set; }
-    public decimal PriceRub { get; set; }
-    public decimal Weight { get; set; }
 }

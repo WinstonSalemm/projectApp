@@ -124,32 +124,30 @@ public partial class SupplyEditPage : ContentPage
             // 6. Добавляем товар в поставку И сразу в расчёт себестоимости
             if (BindingContext is SupplyEditViewModel vm)
             {
-                var newItem = new SupplyItemDto
+                // ✅ СОХРАНЯЕМ НА СЕРВЕР через API
+                var suppliesService = App.Current.Handler.MauiContext.Services.GetService<ISuppliesService>();
+                if (suppliesService != null && vm.Supply.Id > 0)
                 {
-                    ProductId = 0, // 0 = новый товар, backend назначит реальный ID
-                    ProductName = productName,
-                    Sku = sku,
-                    Quantity = quantity,
-                    PriceRub = price,
-                    Weight = weight
-                };
+                    await suppliesService.AddSupplyItemAsync(vm.Supply.Id, productName, quantity, price);
+                    System.Diagnostics.Debug.WriteLine($"✅ Товар сохранен на сервер");
+                    
+                    // Перезагружаем список товаров с сервера
+                    await vm.LoadSupply();
+                }
                 
-                vm.SupplyItems.Add(newItem);
-                
-                // ✅ АВТОМАТИЧЕСКИ добавляем в расчёт себестоимости
+                // ✅ Добавляем в расчёт себестоимости
                 try
                 {
                     var batchCostService = App.Current.Handler.MauiContext.Services.GetService<IBatchCostService>();
                     if (batchCostService != null && vm.Supply.Id > 0)
                     {
                         await batchCostService.AddItemAsync(vm.Supply.Id, productName, quantity, price);
-                        System.Diagnostics.Debug.WriteLine($"✅ Товар автоматически добавлен в расчёт себестоимости");
+                        System.Diagnostics.Debug.WriteLine($"✅ Товар добавлен в расчёт себестоимости");
                     }
                 }
                 catch (Exception costEx)
                 {
                     System.Diagnostics.Debug.WriteLine($"⚠️ Не удалось добавить в расчёт себеса: {costEx.Message}");
-                    // Не показываем ошибку пользователю, товар уже добавлен в поставку
                 }
                 
                 await DisplayAlert("✅ Добавлено", 
@@ -205,14 +203,6 @@ public partial class SupplyEditPage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"OnCostCalculationClicked error: {ex}");
             await DisplayAlert("Ошибка", $"Не удалось открыть расчет: {ex.Message}", "ОК");
-        }
-    }
-
-    private async void OnSaveClicked(object sender, EventArgs e)
-    {
-        if (BindingContext is SupplyEditViewModel vm)
-        {
-            await vm.Save();
         }
     }
 }
