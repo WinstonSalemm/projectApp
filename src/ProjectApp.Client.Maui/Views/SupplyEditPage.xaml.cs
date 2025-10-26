@@ -113,7 +113,7 @@ public partial class SupplyEditPage : ContentPage
             var weightStr = await DisplayPromptAsync(
                 "Добавить товар",
                 "Введите вес (кг):",
-                "Добавить",
+                "Далее",
                 "Отмена",
                 placeholder: "5.5",
                 keyboard: Keyboard.Numeric);
@@ -121,15 +121,26 @@ public partial class SupplyEditPage : ContentPage
             if (string.IsNullOrWhiteSpace(weightStr) || !decimal.TryParse(weightStr, out decimal weight))
                 return;
             
-            // 6. Добавляем товар в поставку И сразу в расчёт себестоимости
+            // 6. Ввод категории
+            var category = await DisplayPromptAsync(
+                "Добавить товар",
+                "Введите категорию:",
+                "Добавить",
+                "Отмена",
+                placeholder: "Электроника");
+            
+            if (string.IsNullOrWhiteSpace(category))
+                category = "Другое"; // Категория по умолчанию
+            
+            // 7. Добавляем товар в поставку И сразу в расчёт себестоимости
             if (BindingContext is SupplyEditViewModel vm)
             {
                 // ✅ СОХРАНЯЕМ НА СЕРВЕР через API
                 var suppliesService = App.Current.Handler.MauiContext.Services.GetService<ISuppliesService>();
                 if (suppliesService != null && vm.Supply.Id > 0)
                 {
-                    await suppliesService.AddSupplyItemAsync(vm.Supply.Id, productName, quantity, price, null, sku, weight);
-                    System.Diagnostics.Debug.WriteLine($"✅ Товар сохранен на сервер");
+                    await suppliesService.AddSupplyItemAsync(vm.Supply.Id, productName, quantity, price, category, sku, weight);
+                    System.Diagnostics.Debug.WriteLine($"✅ Товар сохранен на сервер с категорией: {category}");
                     
                     // Перезагружаем список товаров с сервера
                     await vm.LoadSupply();
@@ -151,7 +162,7 @@ public partial class SupplyEditPage : ContentPage
                 }
                 
                 await DisplayAlert("✅ Добавлено", 
-                    $"Товар \"{productName}\" добавлен в поставку и в расчёт себестоимости", 
+                    $"Товар \"{productName}\" ({category}) добавлен в поставку и в расчёт себестоимости", 
                     "ОК");
             }
         }
