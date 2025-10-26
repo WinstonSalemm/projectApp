@@ -85,56 +85,6 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <!-- Параметры расчета НД-40 -->
-            <Frame BorderColor="#3498db" CornerRadius="8" Padding="15" Margin="0,10,0,0"
-                   IsVisible="{Binding IsNd40}">
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="💰 Параметры расчета НД-40" 
-                           FontSize="18" 
-                           FontAttributes="Bold"
-                           TextColor="#3498db"/>
-                    
-                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
-                        <Label Grid.Row="0" Grid.Column="0" Text="Курс RUB:"/>
-                        <Entry Grid.Row="0" Grid.Column="1" Text="{Binding ExchangeRate}" Keyboard="Numeric"/>
-                        
-                        <Label Grid.Row="1" Grid.Column="0" Text="Таможня:"/>
-                        <Entry Grid.Row="1" Grid.Column="1" Text="{Binding CustomsFee}" Keyboard="Numeric"/>
-                        
-                        <Label Grid.Row="2" Grid.Column="0" Text="НДС %:"/>
-                        <Entry Grid.Row="2" Grid.Column="1" Text="{Binding VatPercent}" Keyboard="Numeric"/>
-                        
-                        <Label Grid.Row="3" Grid.Column="0" Text="Коррекция %:"/>
-                        <Entry Grid.Row="3" Grid.Column="1" Text="{Binding CorrectionPercent}" Keyboard="Numeric"/>
-                        
-                        <Label Grid.Row="4" Grid.Column="0" Text="Охрана %:"/>
-                        <Entry Grid.Row="4" Grid.Column="1" Text="{Binding SecurityPercent}" Keyboard="Numeric"/>
-                    </Grid>
-                    
-                    <Button Text="🔍 Рассчитать себестоимость"
-                            Clicked="OnCalculateCostClicked"
-                            BackgroundColor="#27ae60"
-                            TextColor="White"
-                            Margin="0,10,0,0"/>
-                </VerticalStackLayout>
-            </Frame>
-
-            <!-- Результаты расчета -->
-            <Frame BorderColor="#27ae60" CornerRadius="8" Padding="15" Margin="0,10,0,0"
-                   IsVisible="{Binding HasCostPreview}">
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="📊 Результаты расчета" 
-                           FontSize="18" 
-                           FontAttributes="Bold"
-                           TextColor="#27ae60"/>
-                    
-                    <Label Text="{Binding TotalCostPreview, StringFormat='ОБЩАЯ СЕБЕСТОИМОСТЬ: {0:N0} UZS'}"
-                           FontSize="20"
-                           FontAttributes="Bold"
-                           TextColor="#e67e22"/>
-                </VerticalStackLayout>
-            </Frame>
-
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

@@ -160,14 +160,6 @@ public partial class SupplyEditPage : ContentPage
         }
     }
 
-    private async void OnCalculateCostClicked(object sender, EventArgs e)
-    {
-        if (BindingContext is SupplyEditViewModel vm)
-        {
-            await vm.CalculateCost();
-        }
-    }
-
     private async void OnCostCalculationClicked(object sender, EventArgs e)
     {
         try
