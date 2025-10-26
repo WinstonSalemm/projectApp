@@ -82,7 +82,7 @@ public interface ISuppliesService
     Task DeleteSupplyAsync(int id);
     Task TransferToIm40Async(int id);
     Task<List<SupplyItemDto>> GetSupplyItemsAsync(int supplyId);
-    Task AddSupplyItemAsync(int supplyId, string name, int quantity, decimal priceRub, string? category = null);
+    Task AddSupplyItemAsync(int supplyId, string name, int quantity, decimal priceRub, string? category = null, string? sku = null, decimal? weight = null);
     Task DeleteSupplyItemAsync(int supplyId, int itemId);
 }
 

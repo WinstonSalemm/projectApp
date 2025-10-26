@@ -75,8 +75,10 @@ public class SupplyItemsController : ControllerBase
             SupplyId = supplyId,
             ProductId = product.Id,
             Name = product.Name, // snapshot
+            Sku = dto.Sku ?? string.Empty,
             Quantity = dto.Quantity,
-            PriceRub = dto.PriceRub
+            PriceRub = dto.PriceRub,
+            Weight = dto.Weight ?? 0
         };
 
         _db.SupplyItems.Add(item);
@@ -147,5 +149,5 @@ public class SupplyItemsController : ControllerBase
 }
 
 // DTOs
-public record AddSupplyItemDto(string Name, int Quantity, decimal PriceRub, string? Category);
+public record AddSupplyItemDto(string Name, int Quantity, decimal PriceRub, string? Category = null, string? Sku = null, decimal? Weight = null);
 public record UpdateSupplyItemDto(int? Quantity, decimal? PriceRub);

@@ -98,10 +98,10 @@ public class ApiSuppliesService : ISuppliesService
         return items ?? new List<SupplyItemDto>();
     }
 
-    public async Task AddSupplyItemAsync(int supplyId, string name, int quantity, decimal priceRub, string? category = null)
+    public async Task AddSupplyItemAsync(int supplyId, string name, int quantity, decimal priceRub, string? category = null, string? sku = null, decimal? weight = null)
     {
         var client = CreateClient();
-        var dto = new { Name = name, Quantity = quantity, PriceRub = priceRub, Category = category };
+        var dto = new { Name = name, Quantity = quantity, PriceRub = priceRub, Category = category, Sku = sku, Weight = weight };
         var response = await client.PostAsJsonAsync($"/api/supplies/{supplyId}/items", dto);
         response.EnsureSuccessStatusCode();
     }

@@ -128,7 +128,7 @@ public partial class SupplyEditPage : ContentPage
                 var suppliesService = App.Current.Handler.MauiContext.Services.GetService<ISuppliesService>();
                 if (suppliesService != null && vm.Supply.Id > 0)
                 {
-                    await suppliesService.AddSupplyItemAsync(vm.Supply.Id, productName, quantity, price);
+                    await suppliesService.AddSupplyItemAsync(vm.Supply.Id, productName, quantity, price, null, sku, weight);
                     System.Diagnostics.Debug.WriteLine($"✅ Товар сохранен на сервер");
                     
                     // Перезагружаем список товаров с сервера

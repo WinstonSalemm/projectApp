@@ -17,8 +17,14 @@ public class SupplyItem
     [MaxLength(500)]
     public string Name { get; set; } = string.Empty; // Snapshot названия товара
     
+    [MaxLength(200)]
+    public string Sku { get; set; } = string.Empty; // Артикул товара
+    
     public int Quantity { get; set; } // шт
     
     [Precision(18, 4)]
     public decimal PriceRub { get; set; } // за 1 шт в рублях
+    
+    [Precision(18, 4)]
+    public decimal Weight { get; set; } // Вес в кг
 }
