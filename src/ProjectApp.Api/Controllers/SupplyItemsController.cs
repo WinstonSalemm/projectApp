@@ -107,21 +107,7 @@ public class SupplyItemsController : ControllerBase
                 _db.Batches.Add(batch);
                 await _db.SaveChangesAsync(ct);
                 
-                // Создаём транзакцию поступления
-                var transaction = new InventoryTransaction
-                {
-                    ProductId = product.Id,
-                    Type = InventoryTransactionType.Purchase,
-                    Qty = dto.Quantity,
-                    UnitCost = tempUnitCost,
-                    Register = register,
-                    BatchId = batch.Id,
-                    Note = $"Поступление из поставки {supply.Code}",
-                    CreatedAt = DateTime.UtcNow
-                };
-                
-                _db.InventoryTransactions.Add(transaction);
-                await _db.SaveChangesAsync(ct);
+                // TODO: InventoryTransaction временно отключена для отладки
             }
 
             // Загружаем с Product для ответа
@@ -207,20 +193,7 @@ public class SupplyItemsController : ControllerBase
         
         if (batch != null)
         {
-            // Создаём обратную транзакцию
-            var transaction = new InventoryTransaction
-            {
-                ProductId = item.ProductId,
-                Type = InventoryTransactionType.Adjust,
-                Qty = -item.Quantity,
-                UnitCost = batch.UnitCost,
-                Register = register,
-                BatchId = batch.Id,
-                Note = $"Удаление из поставки {supply.Code}",
-                CreatedAt = DateTime.UtcNow
-            };
-            
-            _db.InventoryTransactions.Add(transaction);
+            // TODO: InventoryTransaction временно отключена
             _db.Batches.Remove(batch);
         }
 
