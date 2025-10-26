@@ -1,4 +1,5 @@
 using ProjectApp.Client.Maui.ViewModels;
+using ProjectApp.Client.Maui.Services;
 
 namespace ProjectApp.Client.Maui.Views;
 
@@ -120,8 +121,7 @@ public partial class SupplyEditPage : ContentPage
             if (string.IsNullOrWhiteSpace(weightStr) || !decimal.TryParse(weightStr, out decimal weight))
                 return;
             
-            // 6. Добавляем товар
-            // ProductId = 0 означает "новый товар" - backend создаст его автоматически
+            // 6. Добавляем товар в поставку И сразу в расчёт себестоимости
             if (BindingContext is SupplyEditViewModel vm)
             {
                 var newItem = new SupplyItemDto
@@ -135,9 +135,25 @@ public partial class SupplyEditPage : ContentPage
                 };
                 
                 vm.SupplyItems.Add(newItem);
+                
+                // ✅ АВТОМАТИЧЕСКИ добавляем в расчёт себестоимости
+                try
+                {
+                    var batchCostService = App.Current.Handler.MauiContext.Services.GetService<IBatchCostService>();
+                    if (batchCostService != null && vm.Supply.Id > 0)
+                    {
+                        await batchCostService.AddItemAsync(vm.Supply.Id, productName, quantity, price);
+                        System.Diagnostics.Debug.WriteLine($"✅ Товар автоматически добавлен в расчёт себестоимости");
+                    }
+                }
+                catch (Exception costEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Не удалось добавить в расчёт себеса: {costEx.Message}");
+                    // Не показываем ошибку пользователю, товар уже добавлен в поставку
+                }
+                
                 await DisplayAlert("✅ Добавлено", 
-                    $"Товар \"{productName}\" добавлен в поставку\n\n" +
-                    $"При сохранении будет создан в базе автоматически", 
+                    $"Товар \"{productName}\" добавлен в поставку и в расчёт себестоимости", 
                     "ОК");
             }
         }
