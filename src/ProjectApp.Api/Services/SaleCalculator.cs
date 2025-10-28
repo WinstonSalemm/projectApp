@@ -38,7 +38,9 @@ public class SaleCalculator : ISaleCalculator
             {
                 ProductId = product.Id,
                 Qty = it.Qty,
-                UnitPrice = it.UnitPrice
+                UnitPrice = it.UnitPrice,
+                Sku = product.Sku,
+                ProductName = product.Name
             });
         }
 

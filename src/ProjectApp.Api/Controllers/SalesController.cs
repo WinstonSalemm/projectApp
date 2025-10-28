@@ -189,14 +189,7 @@ public class SalesController : ControllerBase
         var sale = await _sales.GetByIdAsync(id, ct);
         if (sale is null) return NotFound();
         
-        // Load product names for items
-        var productIds = sale.Items.Select(i => i.ProductId).Distinct().ToList();
-        var products = await _db.Products.AsNoTracking()
-            .Where(p => productIds.Contains(p.Id))
-            .Select(p => new { p.Id, p.Sku, p.Name })
-            .ToDictionaryAsync(p => p.Id, ct);
-        
-        // Return sale with enriched items
+        // Return sale with items (Sku and ProductName are snapshots from time of sale)
         var result = new
         {
             sale.Id,
@@ -206,18 +199,14 @@ public class SalesController : ControllerBase
             sale.Total,
             sale.CreatedAt,
             sale.CreatedBy,
-            Items = sale.Items.Select(item =>
+            Items = sale.Items.Select(item => new
             {
-                var product = products.GetValueOrDefault(item.ProductId);
-                return new
-                {
-                    item.Id,
-                    item.ProductId,
-                    item.Qty,
-                    item.UnitPrice,
-                    Sku = product?.Sku ?? "",
-                    Name = product?.Name ?? $"Product #{item.ProductId}"
-                };
+                item.Id,
+                item.ProductId,
+                item.Qty,
+                item.UnitPrice,
+                Sku = item.Sku ?? "",
+                Name = item.ProductName ?? $"Product #{item.ProductId}"
             }).ToList()
         };
         

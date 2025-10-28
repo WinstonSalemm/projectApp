@@ -9,4 +9,8 @@ public class SaleItem
     public decimal UnitPrice { get; set; }
     // Average unit cost (COGS) for this sale item, computed from FIFO batches at the time of sale
     public decimal Cost { get; set; }
+    
+    // Snapshot of product info at time of sale (for returns and history)
+    public string? Sku { get; set; }
+    public string? ProductName { get; set; }
 }
