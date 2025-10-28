@@ -115,7 +115,17 @@ public class ReturnsController : ControllerBase
                 {
                     await _retNotifier.NotifyReturnAsync(retFull, sale, ct);
                 }
-                return CreatedAtAction(nameof(GetById), new { id = retFull.Id }, retFull);
+                // Return DTO to avoid circular reference
+                var resultFull = new
+                {
+                    retFull.Id,
+                    retFull.RefSaleId,
+                    retFull.ClientId,
+                    retFull.Sum,
+                    retFull.Reason,
+                    retFull.CreatedAt
+                };
+                return CreatedAtAction(nameof(GetById), new { id = retFull.Id }, resultFull);
             }
 
             // Partial return
@@ -181,7 +191,17 @@ public class ReturnsController : ControllerBase
                 await _retNotifier.NotifyReturnAsync(retPartial, sale, ct);
             }
             _logger.LogInformation("Partial return {ReturnId} for sale {SaleId} client {ClientId} sum {Sum}", retPartial.Id, sale.Id, retPartial.ClientId, retPartial.Sum);
-            return CreatedAtAction(nameof(GetById), new { id = retPartial.Id }, retPartial);
+            // Return DTO to avoid circular reference
+            var resultPartial = new
+            {
+                retPartial.Id,
+                retPartial.RefSaleId,
+                retPartial.ClientId,
+                retPartial.Sum,
+                retPartial.Reason,
+                retPartial.CreatedAt
+            };
+            return CreatedAtAction(nameof(GetById), new { id = retPartial.Id }, resultPartial);
         }
         catch (Exception ex)
         {
