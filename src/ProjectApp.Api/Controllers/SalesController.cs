@@ -206,14 +206,18 @@ public class SalesController : ControllerBase
             sale.Total,
             sale.CreatedAt,
             sale.CreatedBy,
-            Items = sale.Items.Select(item => new
+            Items = sale.Items.Select(item =>
             {
-                item.Id,
-                item.ProductId,
-                item.Qty,
-                item.UnitPrice,
-                Sku = products.TryGetValue(item.ProductId, out var p) ? p.Sku : "",
-                Name = products.TryGetValue(item.ProductId, out var p2) ? p2.Name : $"Product #{item.ProductId}"
+                var product = products.GetValueOrDefault(item.ProductId);
+                return new
+                {
+                    item.Id,
+                    item.ProductId,
+                    item.Qty,
+                    item.UnitPrice,
+                    Sku = product?.Sku ?? "",
+                    Name = product?.Name ?? $"Product #{item.ProductId}"
+                };
             }).ToList()
         };
         
