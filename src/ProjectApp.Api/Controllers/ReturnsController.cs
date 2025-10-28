@@ -45,7 +45,25 @@ public class ReturnsController : ControllerBase
             .FirstOrDefaultAsync(r => r.Id == id, ct);
 
         if (ret is null) return NotFound();
-        return Ok(ret);
+        
+        // Return DTO to avoid circular reference
+        var result = new
+        {
+            ret.Id,
+            ret.RefSaleId,
+            ret.ClientId,
+            ret.Sum,
+            ret.Reason,
+            ret.CreatedAt,
+            Items = ret.Items.Select(i => new
+            {
+                i.Id,
+                i.SaleItemId,
+                i.Qty,
+                i.UnitPrice
+            }).ToList()
+        };
+        return Ok(result);
     }
 
     [HttpGet("history")]
@@ -62,7 +80,19 @@ public class ReturnsController : ControllerBase
             query = query.Where(r => r.CreatedAt < dateTo.Value);
         
         var returns = await query.OrderByDescending(r => r.Id).ToListAsync(ct);
-        return Ok(returns);
+        
+        // Return DTOs to avoid circular reference
+        var result = returns.Select(r => new
+        {
+            r.Id,
+            r.RefSaleId,
+            r.ClientId,
+            r.Sum,
+            r.Reason,
+            r.CreatedAt
+        }).ToList();
+        
+        return Ok(result);
     }
 
     [HttpPost]
@@ -531,7 +561,25 @@ public class ReturnsController : ControllerBase
             .Include(r => r.Items)
             .ToListAsync(ct);
 
-        return Ok(list);
+        // Return DTOs to avoid circular reference
+        var result = list.Select(r => new
+        {
+            r.Id,
+            r.RefSaleId,
+            r.ClientId,
+            r.Sum,
+            r.Reason,
+            r.CreatedAt,
+            Items = r.Items.Select(i => new
+            {
+                i.Id,
+                i.SaleItemId,
+                i.Qty,
+                i.UnitPrice
+            }).ToList()
+        }).ToList();
+
+        return Ok(result);
     }
 
     [HttpGet("/api/sales/{saleId:int}/returns")]
@@ -544,7 +592,25 @@ public class ReturnsController : ControllerBase
             .Include(r => r.Items)
             .ToListAsync(ct);
 
-        return Ok(list);
+        // Return DTOs to avoid circular reference
+        var result = list.Select(r => new
+        {
+            r.Id,
+            r.RefSaleId,
+            r.ClientId,
+            r.Sum,
+            r.Reason,
+            r.CreatedAt,
+            Items = r.Items.Select(i => new
+            {
+                i.Id,
+                i.SaleItemId,
+                i.Qty,
+                i.UnitPrice
+            }).ToList()
+        }).ToList();
+
+        return Ok(result);
     }
 }
 
