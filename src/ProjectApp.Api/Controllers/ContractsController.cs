@@ -206,19 +206,20 @@ public class ContractsController : ControllerBase
         if (!dto.ClientId.HasValue && string.IsNullOrWhiteSpace(dto.OrgName))
             return ValidationProblem(detail: "ClientId or OrgName is required");
 
-        if (dto.Items == null || dto.Items.Count == 0)
-            return ValidationProblem(detail: "At least one item is required");
+        // Для закрытых договоров товары обязательны, для открытых - нет
+        if (contractType == ContractType.Closed && (dto.Items == null || dto.Items.Count == 0))
+            return ValidationProblem(detail: "At least one item is required for Closed contracts");
         
-        if (dto.Items.Any(i => i.Qty <= 0 || i.UnitPrice < 0))
+        if (dto.Items != null && dto.Items.Any(i => i.Qty <= 0 || i.UnitPrice < 0))
             return ValidationProblem(detail: "Invalid item: Qty must be > 0 and UnitPrice >= 0");
 
         // Загружаем товары для заполнения SKU
-        var productIds = dto.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value).ToList();
+        var productIds = dto.Items?.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value).ToList() ?? new List<int>();
         var products = await _db.Products
             .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, ct);
 
-        var totalAmount = dto.TotalAmount ?? dto.Items.Sum(i => i.Qty * i.UnitPrice);
+        var totalAmount = dto.TotalAmount ?? (dto.Items?.Sum(i => i.Qty * i.UnitPrice) ?? 0);
         
         var c = new Contract
         {
@@ -234,10 +235,10 @@ public class ContractsController : ControllerBase
             Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim(),
             Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
             TotalAmount = totalAmount,
-            TotalItemsCount = dto.Items.Count,
+            TotalItemsCount = dto.Items?.Count ?? 0,
             CommissionAgentId = dto.CommissionAgentId,
             CommissionAmount = dto.CommissionAmount,
-            Items = dto.Items.Select(i => new ContractItem
+            Items = dto.Items?.Select(i => new ContractItem
             {
                 ProductId = i.ProductId,
                 Sku = i.ProductId.HasValue && products.TryGetValue(i.ProductId.Value, out var p) ? p.Sku : "",
@@ -248,7 +249,7 @@ public class ContractsController : ControllerBase
                 DeliveredQty = 0,
                 UnitPrice = i.UnitPrice,
                 Status = ContractItemStatus.Reserved
-            }).ToList()
+            }).ToList() ?? new List<ContractItem>()
         };
         _db.Contracts.Add(c);
         await _db.SaveChangesAsync(ct);
