@@ -208,9 +208,13 @@ public class ContractsService
         if (contract.PaidAmount < contract.TotalAmount)
             throw new InvalidOperationException($"Договор не полностью оплачен. Оплачено {contract.PaidAmount} из {contract.TotalAmount}");
 
-        // Проверяем что все позиции отгружены
+        // Проверяем что все позиции отгружены (по количеству)
         if (contract.DeliveredItemsCount < contract.TotalItemsCount)
             throw new InvalidOperationException($"Не все позиции отгружены. Отгружено {contract.DeliveredItemsCount} из {contract.TotalItemsCount}");
+        
+        // Проверяем что полностью отгружено (по сумме)
+        if (contract.ShippedAmount < contract.TotalAmount)
+            throw new InvalidOperationException($"Не вся сумма отгружена. Отгружено {contract.ShippedAmount} из {contract.TotalAmount}");
 
         // Проверяем что все использованные партии теперь в IM-40
         var allBatchIds = contract.Deliveries.SelectMany(d => d.Batches).Select(b => b.BatchId).Distinct().ToList();

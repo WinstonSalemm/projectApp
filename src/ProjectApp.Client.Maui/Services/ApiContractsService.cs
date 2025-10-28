@@ -15,6 +15,46 @@ public class ApiContractsService : IContractsService
         _auth = auth;
     }
 
+    public async Task<IEnumerable<ContractListItem>> GetContractsAsync(CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+
+        var resp = await client.GetAsync("/api/contracts", ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var pd = await TryReadProblem(resp, ct);
+            throw new InvalidOperationException(pd ?? $"HTTP {(int)resp.StatusCode} {resp.StatusCode}");
+        }
+        
+        var list = await resp.Content.ReadFromJsonAsync<List<ContractDto>>(cancellationToken: ct);
+        if (list == null) return Array.Empty<ContractListItem>();
+        
+        return list.Select(dto => new ContractListItem
+        {
+            Id = dto.Id,
+            Type = dto.Type,
+            ContractNumber = dto.ContractNumber,
+            ClientId = dto.ClientId,
+            OrgName = dto.OrgName,
+            Inn = dto.Inn,
+            Phone = dto.Phone,
+            Status = dto.Status,
+            CreatedAt = dto.CreatedAt,
+            CreatedBy = dto.CreatedBy,
+            Note = dto.Note,
+            Description = dto.Description,
+            TotalAmount = dto.TotalAmount,
+            PaidAmount = dto.PaidAmount,
+            ShippedAmount = dto.ShippedAmount,
+            PaidPercent = dto.PaidPercent,
+            ShippedPercent = dto.ShippedPercent,
+            BalanceDue = dto.BalanceDue
+        }).ToList();
+    }
+
     public async Task<ContractDetail?> GetAsync(int id, CancellationToken ct = default)
     {
         var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
@@ -91,16 +131,23 @@ public class ApiContractsService : IContractsService
     public class ContractDto
     {
         public int Id { get; set; }
+        public string Type { get; set; } = "Closed";
+        public string ContractNumber { get; set; } = string.Empty;
+        public int? ClientId { get; set; }
         public string OrgName { get; set; } = string.Empty;
         public string? Inn { get; set; }
         public string? Phone { get; set; }
-        public string Status { get; set; } = "Signed";
+        public string Status { get; set; } = "Active";
         public DateTime CreatedAt { get; set; }
-        public string? Note { get; set; }
-        public string? ContractNumber { get; set; }
-        public string? ClientName { get; set; }
         public string? CreatedBy { get; set; }
-        public decimal Amount { get; set; }
+        public string? Note { get; set; }
+        public string? Description { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal PaidAmount { get; set; }
+        public decimal ShippedAmount { get; set; }
+        public decimal PaidPercent { get; set; }
+        public decimal ShippedPercent { get; set; }
+        public decimal BalanceDue { get; set; }
         public List<ContractItemDto> Items { get; set; } = new();
     }
     private class ContractCreateDto

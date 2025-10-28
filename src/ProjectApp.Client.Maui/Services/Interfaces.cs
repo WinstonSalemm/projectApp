@@ -15,12 +15,23 @@ public class SalesResult
 public class ContractListItem
 {
     public int Id { get; set; }
+    public string Type { get; set; } = "Closed";  // Closed, Open
+    public string ContractNumber { get; set; } = string.Empty;
+    public int? ClientId { get; set; }
     public string OrgName { get; set; } = string.Empty;
     public string? Inn { get; set; }
     public string? Phone { get; set; }
-    public string Status { get; set; } = "Signed";
+    public string Status { get; set; } = "Active";
     public DateTime CreatedAt { get; set; }
+    public string? CreatedBy { get; set; }
     public string? Note { get; set; }
+    public string? Description { get; set; }
+    public decimal TotalAmount { get; set; }
+    public decimal PaidAmount { get; set; }
+    public decimal ShippedAmount { get; set; }
+    public decimal PaidPercent { get; set; }
+    public decimal ShippedPercent { get; set; }
+    public decimal BalanceDue { get; set; }
 }
 
 public class ContractItemDraft
@@ -56,6 +67,7 @@ public class ContractDetail
 
 public interface IContractsService
 {
+    Task<IEnumerable<ContractListItem>> GetContractsAsync(CancellationToken ct = default);
     Task<IEnumerable<ContractListItem>> ListAsync(string? status = null, CancellationToken ct = default);
     Task<bool> CreateAsync(ContractCreateDraft draft, CancellationToken ct = default);
     Task<bool> UpdateStatusAsync(int id, string status, CancellationToken ct = default);

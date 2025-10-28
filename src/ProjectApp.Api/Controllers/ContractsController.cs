@@ -144,14 +144,20 @@ public class ContractsController : ControllerBase
         var dto = new ContractDto
         {
             Id = c.Id,
+            Type = c.Type.ToString(),
+            ContractNumber = c.ContractNumber,
+            ClientId = c.ClientId,
             OrgName = c.OrgName,
             Inn = c.Inn,
             Phone = c.Phone,
             Status = c.Status.ToString(),
             CreatedAt = c.CreatedAt,
+            CreatedBy = c.CreatedBy,
             Note = c.Note,
+            Description = c.Description,
             TotalAmount = c.TotalAmount,
             PaidAmount = c.PaidAmount,
+            ShippedAmount = c.ShippedAmount,
             TotalItemsCount = c.TotalItemsCount,
             DeliveredItemsCount = c.DeliveredItemsCount,
             Items = c.Items.Select(i => new ContractItemDto
@@ -160,10 +166,12 @@ public class ContractsController : ControllerBase
                 ProductId = i.ProductId,
                 Sku = i.Sku,
                 Name = i.Name,
+                Description = i.Description,
                 Unit = i.Unit,
                 Qty = i.Qty,
                 DeliveredQty = i.DeliveredQty,
-                UnitPrice = i.UnitPrice
+                UnitPrice = i.UnitPrice,
+                Status = i.Status.ToString()
             }).ToList(),
             Payments = c.Payments.Select(p => new ContractPaymentDto
             {
@@ -189,8 +197,14 @@ public class ContractsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] ContractCreateDto dto, CancellationToken ct)
     {
         await EnsureSchemaAsync(ct);
-        if (string.IsNullOrWhiteSpace(dto.OrgName))
-            return ValidationProblem(detail: "OrgName is required");
+        
+        // Parse ContractType
+        if (!Enum.TryParse<ContractType>(dto.Type, true, out var contractType))
+            contractType = ContractType.Closed;
+        
+        // Validate
+        if (!dto.ClientId.HasValue && string.IsNullOrWhiteSpace(dto.OrgName))
+            return ValidationProblem(detail: "ClientId or OrgName is required");
 
         if (dto.Items == null || dto.Items.Count == 0)
             return ValidationProblem(detail: "At least one item is required");
@@ -204,17 +218,21 @@ public class ContractsController : ControllerBase
             .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, ct);
 
-        var totalAmount = dto.Items.Sum(i => i.Qty * i.UnitPrice);
+        var totalAmount = dto.TotalAmount ?? dto.Items.Sum(i => i.Qty * i.UnitPrice);
         
         var c = new Contract
         {
-            OrgName = dto.OrgName.Trim(),
+            Type = contractType,
+            ContractNumber = string.IsNullOrWhiteSpace(dto.ContractNumber) ? $"DOG-{DateTime.UtcNow:yyyyMMdd}" : dto.ContractNumber.Trim(),
+            ClientId = dto.ClientId,
+            OrgName = string.IsNullOrWhiteSpace(dto.OrgName) ? "" : dto.OrgName.Trim(),
             Inn = string.IsNullOrWhiteSpace(dto.Inn) ? null : dto.Inn.Trim(),
             Phone = string.IsNullOrWhiteSpace(dto.Phone) ? null : dto.Phone.Trim(),
             Status = ContractStatus.Active,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = User?.Identity?.Name,
             Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim(),
+            Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
             TotalAmount = totalAmount,
             TotalItemsCount = dto.Items.Count,
             CommissionAgentId = dto.CommissionAgentId,
@@ -223,15 +241,42 @@ public class ContractsController : ControllerBase
             {
                 ProductId = i.ProductId,
                 Sku = i.ProductId.HasValue && products.TryGetValue(i.ProductId.Value, out var p) ? p.Sku : "",
-                Name = string.IsNullOrWhiteSpace(i.Name) ? "" : i.Name.Trim(),
+                Name = string.IsNullOrWhiteSpace(i.Name) ? (i.ProductId.HasValue && products.TryGetValue(i.ProductId.Value, out var prod) ? prod.Name : "") : i.Name.Trim(),
+                Description = string.IsNullOrWhiteSpace(i.Description) ? null : i.Description.Trim(),
                 Unit = string.IsNullOrWhiteSpace(i.Unit) ? "шт" : i.Unit.Trim(),
                 Qty = i.Qty,
                 DeliveredQty = 0,
-                UnitPrice = i.UnitPrice
+                UnitPrice = i.UnitPrice,
+                Status = ContractItemStatus.Reserved
             }).ToList()
         };
         _db.Contracts.Add(c);
         await _db.SaveChangesAsync(ct);
+        
+        // РЕЗЕРВИРОВАНИЕ ТОВАРА: списываем из партий
+        var reservationService = HttpContext.RequestServices.GetRequiredService<ContractReservationService>();
+        var reservationErrors = new List<string>();
+        
+        foreach (var item in c.Items.Where(i => i.ProductId.HasValue))
+        {
+            try
+            {
+                await reservationService.ReserveItemAsync(item, ct);
+                _logger.LogInformation("Reserved {Qty} of product {ProductId} for contract {ContractId}",
+                    item.Qty, item.ProductId, c.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to reserve product {ProductId} for contract {ContractId}", item.ProductId, c.Id);
+                reservationErrors.Add($"Product {item.Name}: {ex.Message}");
+            }
+        }
+        
+        if (reservationErrors.Any())
+        {
+            _logger.LogWarning("Contract {ContractId} created with reservation errors: {Errors}",
+                c.Id, string.Join("; ", reservationErrors));
+        }
 
         // КОМИССИЯ ПАРТНЕРУ: Если указан партнер и сумма комиссии - начисляем
         if (c.CommissionAgentId.HasValue && c.CommissionAmount.HasValue && c.CommissionAmount > 0)
