@@ -127,26 +127,22 @@ public partial class ReturnForSaleViewModel : ObservableObject
                 var alreadyReturned = returnedMap.TryGetValue(item.Id, out var done) ? done : 0m;
                 var available = Math.Max(0m, sold - alreadyReturned);
 
-                Lines.Add(new ReturnLine
+                var newLine = new ReturnLine
                 {
                     SaleItemId = item.Id,
                     ProductId = item.ProductId,
+                    Sku = item.Sku, // Use from sale directly
+                    Name = item.Name, // Use from sale directly
                     SoldQty = sold,
                     AlreadyReturnedQty = alreadyReturned,
                     AvailableQty = available,
                     ReturnQty = 0m
-                });
+                };
+                Lines.Add(newLine);
+                System.Diagnostics.Debug.WriteLine($"[ReturnForSaleVM] Added line: Sku={item.Sku}, Name={item.Name}, Sold={sold}, Available={available}");
             }
 
-            var lookup = await _catalog.LookupAsync(Lines.Select(l => l.ProductId));
-            foreach (var line in Lines)
-            {
-                if (lookup.TryGetValue(line.ProductId, out var info))
-                {
-                    line.Sku = info.Sku;
-                    line.Name = info.Name;
-                }
-            }
+            System.Diagnostics.Debug.WriteLine($"[ReturnForSaleVM] Final Lines.Count: {Lines.Count}");
         }
         catch (Exception ex)
         {

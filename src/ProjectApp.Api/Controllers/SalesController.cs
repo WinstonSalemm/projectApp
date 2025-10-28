@@ -182,13 +182,42 @@ public class SalesController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(Sale), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById([FromRoute] int id, CancellationToken ct)
     {
         var sale = await _sales.GetByIdAsync(id, ct);
         if (sale is null) return NotFound();
-        return Ok(sale);
+        
+        // Load product names for items
+        var productIds = sale.Items.Select(i => i.ProductId).Distinct().ToList();
+        var products = await _db.Products.AsNoTracking()
+            .Where(p => productIds.Contains(p.Id))
+            .Select(p => new { p.Id, p.Sku, p.Name })
+            .ToDictionaryAsync(p => p.Id, ct);
+        
+        // Return sale with enriched items
+        var result = new
+        {
+            sale.Id,
+            sale.ClientId,
+            sale.ClientName,
+            sale.PaymentType,
+            sale.Total,
+            sale.CreatedAt,
+            sale.CreatedBy,
+            Items = sale.Items.Select(item => new
+            {
+                item.Id,
+                item.ProductId,
+                item.Qty,
+                item.UnitPrice,
+                Sku = products.TryGetValue(item.ProductId, out var p) ? p.Sku : "",
+                Name = products.TryGetValue(item.ProductId, out var p2) ? p2.Name : $"Product #{item.ProductId}"
+            }).ToList()
+        };
+        
+        return Ok(result);
     }
 
     private static string HtmlEscape(string? s)

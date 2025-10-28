@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -154,6 +154,8 @@ public class ApiSalesService : ISalesService
         public int ProductId { get; set; }
         public decimal Qty { get; set; }
         public decimal UnitPrice { get; set; }
+        public string Sku { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
     }
     public class SaleDetailsDto
     {
