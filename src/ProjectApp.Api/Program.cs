@@ -246,6 +246,7 @@ builder.Services.AddHostedService<ProjectApp.Api.Services.InventoryCleanupJob>()
 
 // Contracts service
 builder.Services.AddScoped<ProjectApp.Api.Services.ContractsService>();
+builder.Services.AddScoped<ProjectApp.Api.Services.ContractReservationService>();
 
 // Manager bonuses service
 builder.Services.AddScoped<ProjectApp.Api.Services.ManagerBonusService>();

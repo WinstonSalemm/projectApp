@@ -516,4 +516,32 @@ public class ContractsController : ControllerBase
             return Problem(detail: ex.Message);
         }
     }
+
+    [HttpPost("{id:int}/cancel")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CancelContract([FromRoute] int id, CancellationToken ct)
+    {
+        try
+        {
+            // Получаем сервис резервирования из DI
+            var reservationService = HttpContext.RequestServices.GetRequiredService<ContractReservationService>();
+            
+            await reservationService.CancelContractAsync(id, ct);
+            
+            _logger.LogInformation("Contract {ContractId} cancelled by user {UserName}", id, User?.Identity?.Name);
+            
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ValidationProblem(detail: ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cancelling contract {ContractId}", id);
+            return Problem(detail: ex.Message);
+        }
+    }
 }

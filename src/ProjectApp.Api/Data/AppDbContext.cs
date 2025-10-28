@@ -28,6 +28,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ContractPayment> ContractPayments => Set<ContractPayment>();
     public DbSet<ContractDelivery> ContractDeliveries => Set<ContractDelivery>();
     public DbSet<ContractDeliveryBatch> ContractDeliveryBatches => Set<ContractDeliveryBatch>();
+    public DbSet<ContractReservation> ContractReservations => Set<ContractReservation>();
     public DbSet<SaleItemConsumption> SaleItemConsumptions => Set<SaleItemConsumption>();
     public DbSet<ReturnItemRestock> ReturnItemRestocks => Set<ReturnItemRestock>();
     public DbSet<SalePhoto> SalePhotos => Set<SalePhoto>();
@@ -264,26 +265,61 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Contract>(b =>
         {
             b.HasKey(c => c.Id);
-            b.Property(c => c.OrgName).IsRequired().HasMaxLength(256);
+            b.Property(c => c.Type).IsRequired();
+            b.Property(c => c.ContractNumber).HasMaxLength(64);
+            b.Property(c => c.OrgName).HasMaxLength(256);
             b.Property(c => c.Inn).HasMaxLength(32);
             b.Property(c => c.Phone).HasMaxLength(32);
             b.Property(c => c.Status).IsRequired();
             b.Property(c => c.CreatedAt).IsRequired();
+            b.Property(c => c.CreatedBy).HasMaxLength(64);
             b.Property(c => c.Note).HasMaxLength(1024);
+            b.Property(c => c.Description).HasColumnType("text");
+            b.Property(c => c.TotalAmount).HasColumnType("decimal(18,2)");
+            b.Property(c => c.PaidAmount).HasColumnType("decimal(18,2)");
+            b.Property(c => c.ShippedAmount).HasColumnType("decimal(18,2)");
+            b.Property(c => c.CommissionAmount).HasColumnType("decimal(18,2)");
+            b.HasIndex(c => c.ClientId);
+            b.HasIndex(c => c.Status);
+            b.HasIndex(c => c.Type);
         });
         modelBuilder.Entity<ContractItem>(b =>
         {
             b.HasKey(i => i.Id);
+            b.Property(i => i.Sku).HasMaxLength(64);
             b.Property(i => i.Name).HasMaxLength(256);
+            b.Property(i => i.Description).HasColumnType("text");
             b.Property(i => i.Unit).HasMaxLength(16);
             b.Property(i => i.Qty).HasColumnType("decimal(18,3)");
+            b.Property(i => i.DeliveredQty).HasColumnType("decimal(18,3)");
             b.Property(i => i.UnitPrice).HasColumnType("decimal(18,2)");
-            b.HasOne<Contract>()
+            b.Property(i => i.Status).IsRequired();
+            b.HasOne(i => i.Contract)
              .WithMany(c => c.Items)
              .HasForeignKey(i => i.ContractId)
              .OnDelete(DeleteBehavior.Cascade);
+            b.HasIndex(i => i.ProductId);
+            b.HasIndex(i => i.Status);
+        });
+        
+        modelBuilder.Entity<ContractReservation>(b =>
+        {
+            b.HasKey(r => r.Id);
+            b.Property(r => r.ReservedQty).HasColumnType("decimal(18,3)");
+            b.Property(r => r.CreatedAt).IsRequired();
+            b.HasOne(r => r.ContractItem)
+             .WithMany()
+             .HasForeignKey(r => r.ContractItemId)
+             .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(r => r.Batch)
+             .WithMany()
+             .HasForeignKey(r => r.BatchId)
+             .OnDelete(DeleteBehavior.Restrict);
+            b.HasIndex(r => r.ContractItemId);
+            b.HasIndex(r => r.BatchId);
         });
 
+        
         modelBuilder.Entity<SalePhoto>(b =>
         {
             b.HasKey(x => x.Id);
