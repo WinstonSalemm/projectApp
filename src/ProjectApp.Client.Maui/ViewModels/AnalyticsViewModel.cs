@@ -29,9 +29,13 @@ public partial class AnalyticsViewModel : ObservableObject
     {
         public string ManagerName { get; set; } = string.Empty;
         public decimal TotalRevenue { get; set; }
+        public decimal TotalReturns { get; set; }
+        public decimal NetRevenue { get; set; }
         public decimal OwnClientsRevenue { get; set; }
         public double OwnClientsPercentage { get; set; }
         public int ClientsCount { get; set; }
+        public int SalesCount { get; set; }
+        public int ReturnsCount { get; set; }
         public double BarWidth { get; set; } // Ширина бара для графика (в пикселях)
     }
     
@@ -175,30 +179,34 @@ public partial class AnalyticsViewModel : ObservableObject
             {
                 await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    var maxRevenue = stats.Max(s => s.TotalRevenue);
+                    var maxRevenue = stats.Max(s => s.NetRevenue);
                     const double maxBarWidth = 300.0; // Максимальная ширина бара в пикселях
                     
-                    foreach (var stat in stats.OrderByDescending(s => s.TotalRevenue))
+                    foreach (var stat in stats.OrderByDescending(s => s.NetRevenue))
                     {
                         var barWidth = maxRevenue > 0 
-                            ? (double)(stat.TotalRevenue / maxRevenue) * maxBarWidth 
+                            ? (double)(stat.NetRevenue / maxRevenue) * maxBarWidth 
                             : 0;
                         
                         ManagerStats.Add(new ManagerStatRow
                         {
                             ManagerName = stat.ManagerDisplayName ?? stat.ManagerUserName ?? "Неизвестно",
                             TotalRevenue = stat.TotalRevenue,
+                            TotalReturns = stat.TotalReturns,
+                            NetRevenue = stat.NetRevenue,
                             OwnClientsRevenue = stat.OwnClientsRevenue,
-                            OwnClientsPercentage = stat.TotalRevenue > 0 
-                                ? (double)(stat.OwnClientsRevenue / stat.TotalRevenue * 100) 
+                            OwnClientsPercentage = stat.NetRevenue > 0 
+                                ? (double)(stat.OwnClientsRevenue / stat.NetRevenue * 100) 
                                 : 0,
                             ClientsCount = stat.ClientsCount,
+                            SalesCount = stat.SalesCount,
+                            ReturnsCount = stat.ReturnsCount,
                             BarWidth = Math.Max(barWidth, 10) // Минимум 10px чтобы было видно
                         });
                     }
                     
                     // Проверяем есть ли хоть одна продажа
-                    HasNoStats = stats.All(s => s.TotalRevenue == 0);
+                    HasNoStats = stats.All(s => s.NetRevenue == 0);
                     HasStats = !HasNoStats;
                 });
             }
@@ -220,8 +228,12 @@ public partial class AnalyticsViewModel : ObservableObject
         public string? ManagerUserName { get; set; }
         public string? ManagerDisplayName { get; set; }
         public decimal TotalRevenue { get; set; }
+        public decimal TotalReturns { get; set; }
+        public decimal NetRevenue { get; set; }
         public decimal OwnClientsRevenue { get; set; }
         public int ClientsCount { get; set; }
+        public int SalesCount { get; set; }
+        public int ReturnsCount { get; set; }
     }
     
     [RelayCommand]

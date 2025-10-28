@@ -17,8 +17,12 @@ public class AnalyticsController(AppDbContext db) : ControllerBase
         public string? ManagerUserName { get; set; }
         public string? ManagerDisplayName { get; set; }
         public decimal TotalRevenue { get; set; }
+        public decimal TotalReturns { get; set; }
+        public decimal NetRevenue { get; set; }
         public decimal OwnClientsRevenue { get; set; }
         public int ClientsCount { get; set; }
+        public int SalesCount { get; set; }
+        public int ReturnsCount { get; set; }
     }
     // GET /api/analytics/managers - статистика по менеджерам
     [HttpGet("managers")]
@@ -42,11 +46,25 @@ public class AnalyticsController(AppDbContext db) : ControllerBase
             foreach (var user in users)
             {
                 // Общий оборот: все продажи где менеджер = этот пользователь ЗА ПЕРИОД
-                var totalRevenue = await db.Sales
+                var salesQuery = db.Sales
                     .AsNoTracking()
-                    .Where(s => s.CreatedBy == user.UserName && s.CreatedAt >= dateFrom && s.CreatedAt < dateTo)
+                    .Where(s => s.CreatedBy == user.UserName && s.CreatedAt >= dateFrom && s.CreatedAt < dateTo);
+                
+                var salesCount = await salesQuery.CountAsync(ct);
+                var totalRevenue = await salesQuery
                     .SelectMany(s => s.Items)
                     .SumAsync(i => i.Qty * i.UnitPrice, ct);
+
+                // Возвраты: ищем по RefSaleId связанным с продажами этого менеджера
+                var salesIds = await salesQuery.Select(s => s.Id).ToListAsync(ct);
+                var returnsQuery = db.Returns
+                    .AsNoTracking()
+                    .Where(r => salesIds.Contains(r.RefSaleId ?? 0));
+                
+                var returnsCount = await returnsQuery.CountAsync(ct);
+                var totalReturns = await returnsQuery.SumAsync(r => (decimal?)r.Sum, ct) ?? 0m;
+                
+                var netRevenue = totalRevenue - totalReturns;
 
                 // Оборот "своим" клиентам: продажи где менеджер = пользователь И клиент принадлежит этому пользователю ЗА ПЕРИОД
                 var ownClientsRevenue = await db.Sales
@@ -61,17 +79,25 @@ public class AnalyticsController(AppDbContext db) : ControllerBase
                     .AsNoTracking()
                     .CountAsync(c => c.OwnerUserName == user.UserName, ct);
 
+                Console.WriteLine($"[MANAGER STATS] {user.UserName}: Sales={salesCount}, Revenue={totalRevenue:N0}, Returns={returnsCount}, ReturnsSum={totalReturns:N0}, Net={netRevenue:N0}");
+
                 stats.Add(new ManagerStatsRow
                 {
                     ManagerUserName = user.UserName,
                     ManagerDisplayName = user.DisplayName,
                     TotalRevenue = totalRevenue,
+                    TotalReturns = totalReturns,
+                    NetRevenue = netRevenue,
                     OwnClientsRevenue = ownClientsRevenue,
-                    ClientsCount = clientsCount
+                    ClientsCount = clientsCount,
+                    SalesCount = salesCount,
+                    ReturnsCount = returnsCount
                 });
             }
 
-            return Ok(stats.OrderByDescending(s => s.TotalRevenue));
+            var result = stats.OrderByDescending(s => s.NetRevenue).ToList();
+            Console.WriteLine($"[MANAGER STATS] Total managers: {result.Count}, Period: {dateFrom:yyyy-MM-dd} to {dateTo:yyyy-MM-dd}");
+            return Ok(result);
         }
         catch (Exception ex)
         {

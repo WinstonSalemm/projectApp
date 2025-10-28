@@ -13,9 +13,9 @@ public class PaymentTypeToRuConverter : IValueConverter
         {
             return pt switch
             {
-                PaymentType.CashWithReceipt => "Наличными с чеком",
-                PaymentType.CashNoReceipt => "Наличными без чека",
-                PaymentType.CardWithReceipt => "Картой с чеком",
+                PaymentType.CashWithReceipt => "Наличные с чеком",
+                PaymentType.CashNoReceipt => "Наличные без чека",
+                PaymentType.CardWithReceipt => "Карта с чеком",
                 PaymentType.ClickWithReceipt => "Click с чеком",
                 PaymentType.ClickNoReceipt => "Click без чека",
                 PaymentType.Click => "Click (старый)",

@@ -1,10 +1,14 @@
 using ProjectApp.Client.Maui.ViewModels;
 using ProjectApp.Client.Maui.Services;
+using System.Globalization;
+using System.Threading;
 
 namespace ProjectApp.Client.Maui.Views;
 
 public partial class SupplyEditPage : ContentPage
 {
+    private CancellationTokenSource? _priceDebounceCts;
+
     public SupplyEditPage(SupplyEditViewModel viewModel)
     {
         InitializeComponent();
@@ -182,6 +186,55 @@ public partial class SupplyEditPage : ContentPage
             {
                 await vm.RemoveProduct(button.CommandParameter);
             }
+        }
+    }
+
+    private void OnInlineNumberChanged(object sender, TextChangedEventArgs e)
+    {
+        if (BindingContext is SupplyEditViewModel vm)
+        {
+            vm.TriggerLocalRecalculate();
+        }
+    }
+
+    private async void OnPriceRubChanged(object sender, TextChangedEventArgs e)
+    {
+        _priceDebounceCts?.Cancel();
+        _priceDebounceCts?.Dispose();
+        _priceDebounceCts = new CancellationTokenSource();
+        var token = _priceDebounceCts.Token;
+
+        try
+        {
+            await Task.Delay(200, token);
+
+            if (token.IsCancellationRequested)
+                return;
+
+            if (sender is Entry entry && entry.BindingContext is BatchCostItemDto item)
+            {
+                var text = entry.Text?.Trim();
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    text = text.Replace(',', '.');
+                    if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var value))
+                    {
+                        if (item.PriceRub != value)
+                        {
+                            item.PriceRub = value;
+                        }
+                    }
+                }
+
+                if (BindingContext is SupplyEditViewModel vm)
+                {
+                    vm.RecalculateSingleItem(item);
+                }
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // debounced
         }
     }
 

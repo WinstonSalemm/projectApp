@@ -99,8 +99,11 @@ public partial class ReturnForSaleViewModel : ObservableObject
             if (sale is null)
             {
                 StatusMessage = $"Продажа #{saleId} не найдена.";
+                System.Diagnostics.Debug.WriteLine($"[ReturnForSaleVM] Sale {saleId} not found");
                 return;
             }
+
+            System.Diagnostics.Debug.WriteLine($"[ReturnForSaleVM] Sale {saleId} loaded, Items count: {sale.Items?.Count ?? 0}");
 
             SaleId = sale.Id;
             ClientId = sale.ClientId;
@@ -117,6 +120,7 @@ public partial class ReturnForSaleViewModel : ObservableObject
                 .ToDictionary(g => g.Key, g => g.Sum(x => x.Qty));
 
             Lines.Clear();
+            System.Diagnostics.Debug.WriteLine($"[ReturnForSaleVM] Processing {sale.Items?.Count ?? 0} items...");
             foreach (var item in sale.Items)
             {
                 var sold = item.Qty;

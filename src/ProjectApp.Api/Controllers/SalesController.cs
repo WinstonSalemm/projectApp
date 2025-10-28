@@ -63,6 +63,9 @@ public class SalesController : ControllerBase
             sale.CreatedBy = User?.Identity?.Name;
             sale = await _sales.AddAsync(sale, ct);
 
+            // Reload sale with Items for notifications and further processing
+            sale = await _sales.GetByIdAsync(sale.Id, ct) ?? sale;
+
             _logger.LogInformation("Sale created {SaleId} for client {ClientId} total {Total} payment {PaymentType}",
                 sale.Id, sale.ClientId, sale.Total, sale.PaymentType);
 

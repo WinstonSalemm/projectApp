@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             xmlns:models="clr-namespace:ProjectApp.Client.Maui.Models"
+             x:Class="ProjectApp.Client.Maui.Views.ReturnSourceSelectorPage"
+             x:DataType="vm:ReturnSourceSelectorViewModel"
+             Title="Выбор операции для возврата"
+             BackgroundColor="{DynamicResource Color.Background}">
+  
+  <Grid RowDefinitions="Auto,*">
+    <!-- Фильтры -->
+    <Border Grid.Row="0" Padding="16" BackgroundColor="{DynamicResource Color.Surface}" 
+            StrokeThickness="0,0,0,1" Stroke="{DynamicResource Color.Border}">
+      <VerticalStackLayout Spacing="12">
+        <Label Text="📋 Выберите продажу или договор для возврата" FontSize="16" FontAttributes="Bold"/>
+        
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+          <VerticalStackLayout Grid.Column="0" Spacing="4">
+            <Label Text="От:" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+            <DatePicker Date="{Binding DateFrom}" Format="dd.MM.yyyy" 
+                       BackgroundColor="{DynamicResource Color.Surface}"
+                       TextColor="{DynamicResource Color.Text.Primary}"/>
+          </VerticalStackLayout>
+          
+          <VerticalStackLayout Grid.Column="1" Spacing="4">
+            <Label Text="До:" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+            <DatePicker Date="{Binding DateTo}" Format="dd.MM.yyyy"
+                       BackgroundColor="{DynamicResource Color.Surface}"
+                       TextColor="{DynamicResource Color.Text.Primary}"/>
+          </VerticalStackLayout>
+        </Grid>
+        
+        <Button Text="🔍 Загрузить" Command="{Binding LoadCommand}" 
+                BackgroundColor="{DynamicResource Color.Primary}" 
+                TextColor="White" CornerRadius="8"/>
+      </VerticalStackLayout>
+    </Border>
+
+    <!-- Список операций -->
+    <ScrollView Grid.Row="1">
+      <VerticalStackLayout Padding="16" Spacing="12">
+        <!-- Индикатор загрузки -->
+        <ActivityIndicator IsRunning="{Binding IsLoading}" 
+                          IsVisible="{Binding IsLoading}"
+                          Color="{DynamicResource Color.Primary}"
+                          HeightRequest="50"/>
+
+        <!-- Пустой список -->
+        <Label Text="Нет данных. Нажмите 'Загрузить' для поиска операций."
+               IsVisible="{Binding HasNoItems}"
+               HorizontalOptions="Center" Margin="0,50,0,0"
+               TextColor="{DynamicResource Color.Text.Secondary}"/>
+
+        <!-- Список -->
+        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}" Spacing="12">
+          <BindableLayout.ItemTemplate>
+            <DataTemplate x:DataType="models:ReturnSourceItem">
+              <Border StrokeThickness="1" 
+                      Stroke="{DynamicResource Color.Border}" 
+                      BackgroundColor="{DynamicResource Color.Surface}" 
+                      Padding="16" 
+                      StrokeShape="RoundRectangle 12">
+                <Border.GestureRecognizers>
+                  <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ReturnSourceSelectorViewModel}}, Path=OpenReturnCommand}"
+                                       CommandParameter="{Binding .}"/>
+                </Border.GestureRecognizers>
+                
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                  <!-- Заголовок -->
+                  <Label Grid.Row="0" Text="{Binding DisplayTitle}" 
+                         FontSize="16" FontAttributes="Bold"/>
+                  
+                  <!-- Подзаголовок -->
+                  <Label Grid.Row="1" Text="{Binding DisplaySubtitle}" 
+                         FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                  
+                  <!-- Тип оплаты -->
+                  <Border Grid.Row="2" 
+                          Padding="8,4" 
+                          BackgroundColor="{DynamicResource Color.Primary}"
+                          StrokeThickness="0"
+                          HorizontalOptions="Start"
+                          StrokeShape="RoundRectangle 4">
+                    <Label Text="{Binding DisplayPaymentType}" 
+                           FontSize="11" 
+                           TextColor="White"
+                           FontAttributes="Bold"/>
+                  </Border>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </BindableLayout.ItemTemplate>
+        </VerticalStackLayout>
+      </VerticalStackLayout>
+    </ScrollView>
+  </Grid>
+</ContentPage>

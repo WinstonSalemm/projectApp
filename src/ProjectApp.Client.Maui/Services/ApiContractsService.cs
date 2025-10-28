@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 
 namespace ProjectApp.Client.Maui.Services;
 
@@ -80,7 +80,7 @@ public class ApiContractsService : IContractsService
         throw new InvalidOperationException(pd ?? $"HTTP {(int)resp.StatusCode} {resp.StatusCode}");
     }
 
-    private class ContractItemDto
+    public class ContractItemDto
     {
         public int? ProductId { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -88,7 +88,7 @@ public class ApiContractsService : IContractsService
         public decimal Qty { get; set; }
         public decimal UnitPrice { get; set; }
     }
-    private class ContractDto
+    public class ContractDto
     {
         public int Id { get; set; }
         public string OrgName { get; set; } = string.Empty;
@@ -97,6 +97,10 @@ public class ApiContractsService : IContractsService
         public string Status { get; set; } = "Signed";
         public DateTime CreatedAt { get; set; }
         public string? Note { get; set; }
+        public string? ContractNumber { get; set; }
+        public string? ClientName { get; set; }
+        public string? CreatedBy { get; set; }
+        public decimal Amount { get; set; }
         public List<ContractItemDto> Items { get; set; } = new();
     }
     private class ContractCreateDto
@@ -190,6 +194,32 @@ public class ApiContractsService : IContractsService
         if (resp.IsSuccessStatusCode) return true;
         var pd = await TryReadProblem(resp, ct);
         throw new InvalidOperationException(pd ?? $"HTTP {(int)resp.StatusCode} {resp.StatusCode}");
+    }
+
+    public async Task<IEnumerable<ContractDto>> GetContractsAsync(DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+
+        var resp = await client.GetAsync("/api/contracts", ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var pd = await TryReadProblem(resp, ct);
+            throw new InvalidOperationException(pd ?? $"HTTP {(int)resp.StatusCode} {resp.StatusCode}");
+        }
+        
+        var list = await resp.Content.ReadFromJsonAsync<List<ContractDto>>(cancellationToken: ct) ?? new();
+        
+        // Client-side date filtering
+        var filtered = list.AsEnumerable();
+        if (from.HasValue)
+            filtered = filtered.Where(c => c.CreatedAt >= from.Value);
+        if (to.HasValue)
+            filtered = filtered.Where(c => c.CreatedAt < to.Value);
+            
+        return filtered;
     }
 
     private static async Task<string?> TryReadProblem(HttpResponseMessage resp, CancellationToken ct)

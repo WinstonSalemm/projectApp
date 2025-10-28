@@ -3,23 +3,31 @@ using Microsoft.Maui.Controls;
 
 namespace ProjectApp.Client.Maui.Converters;
 
-// Formats money as: 12 345 сум (always Uzbek sum text, no decimals)
-public class CurrencyConverter : IValueConverter
+// Formats money as: 12 345 UZS (always Uzbek sum text, no decimals)
+public sealed class CurrencyConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value == null) return string.Empty;
-        try
+        if (value is IFormattable formattable)
         {
-            var dec = System.Convert.ToDecimal(value, CultureInfo.InvariantCulture);
-            // Format with thousands separators and 0 decimals
-            var formatted = dec.ToString("N0", culture);
-            return formatted + " сум";
+            var formatted = formattable.ToString("N0", culture);
+            return string.IsNullOrWhiteSpace(formatted) ? string.Empty : $"{formatted} UZS";
         }
-        catch { return value?.ToString() + " сум" ?? string.Empty; }
+
+        if (value == null)
+        {
+            return string.Empty;
+        }
+
+        if (decimal.TryParse(value.ToString(), NumberStyles.Any, culture, out var parsed))
+        {
+            return $"{parsed.ToString("N0", culture)} UZS";
+        }
+
+        return value.ToString();
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => throw new NotImplementedException();
+        => throw new NotSupportedException();
 }
 

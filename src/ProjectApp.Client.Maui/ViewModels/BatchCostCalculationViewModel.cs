@@ -161,22 +161,164 @@ public class BatchCostCalculationViewModel : INotifyPropertyChanged, IQueryAttri
 }
 
 // DTO для отображения товара в таблице
-public class BatchCostItemDto
+public class BatchCostItemDto : INotifyPropertyChanged
 {
-    public int Id { get; set; }
-    public int RowNumber { get; set; }
-    public string ProductName { get; set; } = string.Empty;
-    public int Quantity { get; set; }
-    public decimal PriceRub { get; set; }
-    public decimal ExchangeRate { get; set; }
-    public decimal PriceSom { get; set; }
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private int _id;
+    public int Id
+    {
+        get => _id;
+        set { if (_id != value) { _id = value; OnPropertyChanged(); } }
+    }
+
+    private int _rowNumber;
+    public int RowNumber
+    {
+        get => _rowNumber;
+        set { if (_rowNumber != value) { _rowNumber = value; OnPropertyChanged(); } }
+    }
+
+    private string _productName = string.Empty;
+    public string ProductName
+    {
+        get => _productName;
+        set { if (_productName != value) { _productName = value; OnPropertyChanged(); } }
+    }
+
+    private int _quantity;
+    public int Quantity
+    {
+        get => _quantity;
+        set { if (_quantity != value) { _quantity = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _priceRub;
+    public decimal PriceRub
+    {
+        get => _priceRub;
+        set { if (_priceRub != value) { _priceRub = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _exchangeRate;
+    public decimal ExchangeRate
+    {
+        get => _exchangeRate;
+        set { if (_exchangeRate != value) { _exchangeRate = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _priceUzs;
+    public decimal PriceUzs
+    {
+        get => _priceUzs;
+        set { if (_priceUzs != value) { _priceUzs = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _priceSom;
+    public decimal PriceSom
+    {
+        get => _priceSom;
+        set { if (_priceSom != value) { _priceSom = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _vatUzs;
+    public decimal VatUzs
+    {
+        get => _vatUzs;
+        set { if (_vatUzs != value) { _vatUzs = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _logisticsUzs;
+    public decimal LogisticsUzs
+    {
+        get => _logisticsUzs;
+        set { if (_logisticsUzs != value) { _logisticsUzs = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _storageUzs;
+    public decimal StorageUzs
+    {
+        get => _storageUzs;
+        set { if (_storageUzs != value) { _storageUzs = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _declarationUzs;
+    public decimal DeclarationUzs
+    {
+        get => _declarationUzs;
+        set { if (_declarationUzs != value) { _declarationUzs = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _certificationUzs;
+    public decimal CertificationUzs
+    {
+        get => _certificationUzs;
+        set { if (_certificationUzs != value) { _certificationUzs = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _mChsUzs;
+    public decimal MChsUzs
+    {
+        get => _mChsUzs;
+        set { if (_mChsUzs != value) { _mChsUzs = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _unforeseenUzs;
+    public decimal UnforeseenUzs
+    {
+        get => _unforeseenUzs;
+        set { if (_unforeseenUzs != value) { _unforeseenUzs = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _customsUzs;
+    public decimal CustomsUzs
+    {
+        get => _customsUzs;
+        set { if (_customsUzs != value) { _customsUzs = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _loadingUzs;
+    public decimal LoadingUzs
+    {
+        get => _loadingUzs;
+        set { if (_loadingUzs != value) { _loadingUzs = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _unitCostUzs;
+    public decimal UnitCostUzs
+    {
+        get => _unitCostUzs;
+        set { if (_unitCostUzs != value) { _unitCostUzs = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _unitCost;
+    public decimal UnitCost
+    {
+        get => _unitCost;
+        set { if (_unitCost != value) { _unitCost = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _totalCostUzs;
+    public decimal TotalCostUzs
+    {
+        get => _totalCostUzs;
+        set { if (_totalCostUzs != value) { _totalCostUzs = value; OnPropertyChanged(); } }
+    }
+
+    private decimal _totalCost;
+    public decimal TotalCost
+    {
+        get => _totalCost;
+        set { if (_totalCost != value) { _totalCost = value; OnPropertyChanged(); } }
+    }
+
+    // Legacy fields (kept for compatibility with API responses)
     public decimal VatPercent { get; set; }
-    
-    // Доли от фиксированных сумм
     public decimal CustomsAmount { get; set; }
     public decimal ShippingAmount { get; set; }
-    
-    // Проценты и суммы
     public decimal LogisticsPercent { get; set; }
     public decimal LogisticsAmount { get; set; }
     public decimal WarehousePercent { get; set; }
@@ -189,8 +331,4 @@ public class BatchCostItemDto
     public decimal MchsAmount { get; set; }
     public decimal DeviationPercent { get; set; }
     public decimal DeviationAmount { get; set; }
-    
-    // Итоги
-    public decimal UnitCost { get; set; }
-    public decimal TotalCost { get; set; }
 }

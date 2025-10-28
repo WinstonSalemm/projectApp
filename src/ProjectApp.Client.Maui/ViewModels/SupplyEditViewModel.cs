@@ -1,7 +1,13 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Maui.ApplicationModel;
 using ProjectApp.Client.Maui.Services;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ProjectApp.Client.Maui.ViewModels;
 
@@ -9,6 +15,10 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
 {
     private readonly ISuppliesService _suppliesService;
     private readonly IBatchCostService _batchCostService;
+    public IAsyncRelayCommand RecalculateCommand { get; }
+
+    private CancellationTokenSource? _recalcCts;
+    private readonly TimeSpan _recalcDelay = TimeSpan.FromMilliseconds(220);
     
     [ObservableProperty]
     private SupplyDto _supply = new SupplyDto();
@@ -25,18 +35,33 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
     // Параметры расчета НД-40
     [ObservableProperty]
     private decimal _exchangeRate = 158.08m;
-    
+
     [ObservableProperty]
-    private decimal _customsFee = 105000m;
-    
+    private decimal _vatPct = 0.22m;
+
     [ObservableProperty]
-    private decimal _vatPercent = 22m;
-    
+    private decimal _logisticsPct = 0.05m;
+
     [ObservableProperty]
-    private decimal _correctionPercent = 5m;
-    
+    private decimal _warehousePct = 0.005m;
+
     [ObservableProperty]
-    private decimal _securityPercent = 0.5m;
+    private decimal _declarationPct = 0.002m;
+
+    [ObservableProperty]
+    private decimal _certificationPct = 0.01m;
+
+    [ObservableProperty]
+    private decimal _mchsPct = 0.01m;
+
+    [ObservableProperty]
+    private decimal _deviationPct = 0.015m;
+
+    [ObservableProperty]
+    private decimal _customsTotalAbs;
+
+    [ObservableProperty]
+    private decimal _loadingTotalAbs;
     
     public ObservableCollection<SupplyItemDto> SupplyItems { get; } = new();
     public ObservableCollection<BatchCostItemDto> CostItems { get; } = new();
@@ -49,6 +74,8 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
     {
         _suppliesService = suppliesService;
         _batchCostService = batchCostService;
+        RecalculateCommand = new AsyncRelayCommand(RecalculateCost);
+        CostItems.CollectionChanged += OnCostItemsCollectionChanged;
     }
     
     public void ApplyQueryAttributes(IDictionary<string, object> query)
@@ -233,6 +260,8 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
             {
                 CostItems.Add(costItem);
             }
+            WireItemHandlers();
+            DebounceRecalculate();
             
             var total = await _batchCostService.GetTotalCostAsync(_supplyId);
             TotalCost = total;
@@ -247,6 +276,26 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
         }
     }
     
+    public void TriggerLocalRecalculate() => DebounceRecalculate();
+
+    public void RecalculateSingleItem(BatchCostItemDto item)
+    {
+        if (item == null || !CostItems.Contains(item))
+            return;
+
+        var totalQty = CostItems.Sum(ci => ci.Quantity > 0 ? ci.Quantity : 0);
+        if (totalQty <= 0)
+        {
+            totalQty = 1;
+        }
+
+        var customsPerUnit = totalQty > 0 ? CustomsTotalAbs / totalQty : 0m;
+        var loadingPerUnit = totalQty > 0 ? LoadingTotalAbs / totalQty : 0m;
+
+        RecalculateItemInternal(item, customsPerUnit, loadingPerUnit);
+        RecalculateTotalsOnly();
+    }
+
     public async Task RecalculateCost()
     {
         try
@@ -284,4 +333,145 @@ public partial class SupplyEditViewModel : ObservableObject, IQueryAttributable
             IsBusy = false;
         }
     }
+
+    private void DebounceRecalculate()
+    {
+        _recalcCts?.Cancel();
+        _recalcCts?.Dispose();
+        _recalcCts = new CancellationTokenSource();
+        var token = _recalcCts.Token;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(_recalcDelay, token).ConfigureAwait(false);
+                if (token.IsCancellationRequested)
+                    return;
+
+                MainThread.BeginInvokeOnMainThread(RecalculateAll);
+            }
+            catch (TaskCanceledException)
+            {
+                // ignored - debounced
+            }
+        }, token);
+    }
+
+    private void RecalculateAll()
+    {
+        if (!CostItems.Any())
+        {
+            TotalCost = 0;
+            return;
+        }
+
+        var totalQty = CostItems.Sum(ci => ci.Quantity > 0 ? ci.Quantity : 0);
+        if (totalQty <= 0)
+        {
+            totalQty = 1;
+        }
+
+        var customsPerUnit = totalQty > 0 ? CustomsTotalAbs / totalQty : 0m;
+        var loadingPerUnit = totalQty > 0 ? LoadingTotalAbs / totalQty : 0m;
+
+        foreach (var item in CostItems)
+        {
+            RecalculateItemInternal(item, customsPerUnit, loadingPerUnit);
+        }
+
+        RecalculateTotalsOnly();
+    }
+
+    private void RecalculateTotalsOnly()
+    {
+        TotalCost = CostItems.Sum(ci => ci.TotalCostUzs);
+    }
+
+    private void RecalculateItemInternal(BatchCostItemDto item, decimal customsPerUnit, decimal loadingPerUnit)
+    {
+        var priceUzs = item.PriceRub * ExchangeRate;
+        item.ExchangeRate = ExchangeRate;
+        item.PriceUzs = priceUzs;
+
+        item.VatUzs = priceUzs * VatPct;
+        item.LogisticsUzs = priceUzs * LogisticsPct;
+        item.StorageUzs = priceUzs * WarehousePct;
+        item.DeclarationUzs = priceUzs * DeclarationPct;
+        item.CertificationUzs = priceUzs * CertificationPct;
+        item.MChsUzs = priceUzs * MchsPct;
+        item.UnforeseenUzs = priceUzs * DeviationPct;
+
+        item.CustomsUzs = customsPerUnit * item.Quantity;
+        item.LoadingUzs = loadingPerUnit * item.Quantity;
+
+        var unitCost = priceUzs
+                       + item.VatUzs
+                       + item.LogisticsUzs
+                       + item.StorageUzs
+                       + item.DeclarationUzs
+                       + item.CertificationUzs
+                       + item.MChsUzs
+                       + item.UnforeseenUzs
+                       + customsPerUnit
+                       + loadingPerUnit;
+
+        item.UnitCostUzs = unitCost;
+        item.TotalCostUzs = unitCost * item.Quantity;
+    }
+
+    private void WireItemHandlers()
+    {
+        foreach (var costItem in CostItems)
+        {
+            costItem.PropertyChanged -= OnItemChanged;
+            costItem.PropertyChanged += OnItemChanged;
+        }
+    }
+
+    private void OnCostItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems != null)
+        {
+            foreach (BatchCostItemDto oldItem in e.OldItems)
+            {
+                oldItem.PropertyChanged -= OnItemChanged;
+            }
+        }
+
+        if (e.NewItems != null)
+        {
+            foreach (BatchCostItemDto newItem in e.NewItems)
+            {
+                newItem.PropertyChanged -= OnItemChanged;
+                newItem.PropertyChanged += OnItemChanged;
+            }
+        }
+
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            WireItemHandlers();
+        }
+
+        DebounceRecalculate();
+    }
+
+    private void OnItemChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(BatchCostItemDto.PriceRub) or nameof(BatchCostItemDto.Quantity))
+        {
+            DebounceRecalculate();
+        }
+    }
+
+    partial void OnExchangeRateChanged(decimal value) => DebounceRecalculate();
+    partial void OnVatPctChanged(decimal value) => DebounceRecalculate();
+    partial void OnLogisticsPctChanged(decimal value) => DebounceRecalculate();
+    partial void OnWarehousePctChanged(decimal value) => DebounceRecalculate();
+    partial void OnDeclarationPctChanged(decimal value) => DebounceRecalculate();
+    partial void OnCertificationPctChanged(decimal value) => DebounceRecalculate();
+    partial void OnMchsPctChanged(decimal value) => DebounceRecalculate();
+    partial void OnDeviationPctChanged(decimal value) => DebounceRecalculate();
+    partial void OnCustomsTotalAbsChanged(decimal value) => DebounceRecalculate();
+    partial void OnLoadingTotalAbsChanged(decimal value) => DebounceRecalculate();
 }

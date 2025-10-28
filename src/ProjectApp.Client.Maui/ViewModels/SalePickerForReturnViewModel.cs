@@ -33,7 +33,7 @@ public partial class SalePickerForReturnViewModel : ObservableObject
         try
         {
             IsLoading = true;
-            var client = _httpFactory.CreateClient("api");
+            var client = _httpFactory.CreateClient(HttpClientNames.Api);
 
             // Загружаем продажи за последние 30 дней
             var from = DateTime.UtcNow.AddDays(-30).ToString("yyyy-MM-ddTHH:mm:ss");

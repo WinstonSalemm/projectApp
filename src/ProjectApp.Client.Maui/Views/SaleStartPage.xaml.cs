@@ -90,24 +90,12 @@ public partial class SaleStartPage : ContentPage
             {
                 case PaymentType.Return:
                 {
-                    System.Diagnostics.Debug.WriteLine("[SaleStartPage] Getting SalesHistoryPage from DI...");
-                    var history = _services.GetRequiredService<SalesHistoryPage>();
-                    System.Diagnostics.Debug.WriteLine("[SaleStartPage] SalesHistoryPage created successfully");
+                    System.Diagnostics.Debug.WriteLine("[SaleStartPage] Getting ReturnSourceSelectorPage from DI...");
+                    var returnSourcePage = _services.GetRequiredService<ReturnSourceSelectorPage>();
+                    System.Diagnostics.Debug.WriteLine("[SaleStartPage] ReturnSourceSelectorPage created successfully");
                     
-                    if (history.BindingContext is SalesHistoryViewModel historyVm)
-                    {
-                        System.Diagnostics.Debug.WriteLine("[SaleStartPage] Setting ShowAll = true");
-                        historyVm.ShowAll = true;
-                        if (historyVm.LoadCommand is IAsyncRelayCommand loadCommand)
-                        {
-                            System.Diagnostics.Debug.WriteLine("[SaleStartPage] Executing LoadCommand...");
-                            await loadCommand.ExecuteAsync(null);
-                            System.Diagnostics.Debug.WriteLine("[SaleStartPage] LoadCommand completed");
-                        }
-                    }
-
                     System.Diagnostics.Debug.WriteLine("[SaleStartPage] Pushing to navigation...");
-                    await Navigation.PushAsync(history);
+                    await Navigation.PushAsync(returnSourcePage);
                     System.Diagnostics.Debug.WriteLine("[SaleStartPage] Navigation push completed");
                     break;
                 }

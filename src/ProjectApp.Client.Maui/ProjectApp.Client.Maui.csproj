@@ -53,8 +53,7 @@
     <WindowsPackageType>None</WindowsPackageType>
     <SkipValidateMauiImplicitPackageReferences>true</SkipValidateMauiImplicitPackageReferences>
     <NoWarn>$(NoWarn);XC0022;XC0025;XC0045;XFC0045;XFC0009;CS1998;CS8602</NoWarn>
-    <XamlCTask>false</XamlCTask>
-    <EnableXamlCTask>false</EnableXamlCTask>
+    <EnableXamlCTask>true</EnableXamlCTask>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.91" />

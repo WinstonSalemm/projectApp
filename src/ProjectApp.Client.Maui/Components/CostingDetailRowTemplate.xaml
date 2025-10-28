@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:services="clr-namespace:ProjectApp.Client.Maui.Services"
+             x:Class="ProjectApp.Client.Maui.Components.CostingDetailRowTemplate"
+             x:DataType="services:CostingItemDto"
+             Padding="0">
+    <Border Stroke="#f0f0f0"
+            StrokeThickness="1"
+            Background="White"
+            Padding="0"
+            Margin="0,0,0,4">
+        <Grid ColumnSpacing="12"
+              Padding="8"
+              ColumnDefinitions="260,110,90,140,140,140,140,140,140,140,140,140,140,160">
+            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                <Label Text="{Binding Name}"
+                       FontAttributes="Bold"
+                       FontSize="13"
+                       LineBreakMode="TailTruncation"/>
+                <Label FontSize="11"
+                       TextColor="Gray">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="Кол-во: "/>
+                            <Span Text="{Binding Quantity}"/>
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+            </VerticalStackLayout>
+
+            <Label Grid.Column="1"
+                   Text="{Binding PriceRub, StringFormat='{}{0:N2}'}"
+                   HorizontalTextAlignment="End"
+                   VerticalTextAlignment="Center"
+                   FontSize="12"/>
+
+            <Label Grid.Column="2"
+                   HorizontalTextAlignment="End"
+                   VerticalTextAlignment="Center"
+                   FontSize="12"
+                   Text="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ExchangeRate, StringFormat='{}{0:N4}'}"/>
+
+            <Label Grid.Column="3"
+                   HorizontalTextAlignment="End"
+                   VerticalTextAlignment="Center"
+                   FontSize="12"
+                   Text="{Binding PriceUzs, Converter={StaticResource CurrencyConverter}}"/>
+
+            <Label Grid.Column="4"
+                   HorizontalTextAlignment="End"
+                   VerticalTextAlignment="Center"
+                   FontSize="12"
+                   Text="{Binding CustomsUzs, Converter={StaticResource CurrencyConverter}}"/>
+
+            <Label Grid.Column="5"
+                   HorizontalTextAlignment="End"
+                   VerticalTextAlignment="Center"
+                   FontSize="12"
+                   Text="{Binding VatUzs, Converter={StaticResource CurrencyConverter}}"/>
+
+            <Label Grid.Column="6"
+                   HorizontalTextAlignment="End"
+                   VerticalTextAlignment="Center"
+                   FontSize="12"
+                   Text="{Binding LogisticsUzs, Converter={StaticResource CurrencyConverter}}"/>
+
+            <Label Grid.Column="7"
+                   HorizontalTextAlignment="End"
+                   VerticalTextAlignment="Center"
+                   FontSize="12"
+                   Text="{Binding StorageUzs, Converter={StaticResource CurrencyConverter}}"/>
+
+            <Label Grid.Column="8"
+                   HorizontalTextAlignment="End"
+                   VerticalTextAlignment="Center"
+                   FontSize="12"
+                   Text="{Binding DeclarationUzs, Converter={StaticResource CurrencyConverter}}"/>
+
+            <Label Grid.Column="9"
+                   HorizontalTextAlignment="End"
+                   VerticalTextAlignment="Center"
+                   FontSize="12"
+                   Text="{Binding CertificationUzs, Converter={StaticResource CurrencyConverter}}"/>
+
+            <Label Grid.Column="10"
+                   HorizontalTextAlignment="End"
+                   VerticalTextAlignment="Center"
+                   FontSize="12"
+                   Text="{Binding MChsUzs, Converter={StaticResource CurrencyConverter}}"/>
+
+            <Label Grid.Column="11"
+                   HorizontalTextAlignment="End"
+                   VerticalTextAlignment="Center"
+                   FontSize="12"
+                   Text="{Binding LoadingUzs, Converter={StaticResource CurrencyConverter}}"/>
+
+            <Label Grid.Column="12"
+                   HorizontalTextAlignment="End"
+                   VerticalTextAlignment="Center"
+                   FontSize="12"
+                   Text="{Binding UnforeseenUzs, Converter={StaticResource CurrencyConverter}}"/>
+
+            <Label Grid.Column="13"
+                   HorizontalTextAlignment="End"
+                   VerticalTextAlignment="Center"
+                   FontSize="12"
+                   FontAttributes="Bold"
+                   Text="{Binding TotalCostUzs, Converter={StaticResource CurrencyConverter}}"/>
+        </Grid>
+    </Border>
+</ContentView>

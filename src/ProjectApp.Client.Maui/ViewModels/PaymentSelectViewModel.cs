@@ -34,13 +34,8 @@ public partial class PaymentSelectViewModel : ObservableObject
 
         if (pt == PaymentType.Return)
         {
-            var history = _services.GetRequiredService<SalesHistoryPage>();
-            if (history.BindingContext is SalesHistoryViewModel hvm)
-            {
-                hvm.ShowAll = true;
-            }
-
-            await NavigationHelper.PushAsync(history);
+            var returnSourcePage = _services.GetRequiredService<ReturnSourceSelectorPage>();
+            await NavigationHelper.PushAsync(returnSourcePage);
             return;
         }
 
