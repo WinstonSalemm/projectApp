@@ -45,10 +45,14 @@ public class ContractItemDraft
 
 public class ContractCreateDraft
 {
+    public string Type { get; set; } = "Closed"; // Closed | Open
+    public string? ContractNumber { get; set; }
+    public int? ClientId { get; set; }
     public string OrgName { get; set; } = string.Empty;
     public string? Inn { get; set; }
     public string? Phone { get; set; }
-    public string Status { get; set; } = "Signed"; // Signed | Paid | Closed
+    public string? Description { get; set; }
+    public decimal? TotalAmount { get; set; }
     public string? Note { get; set; }
     public List<ContractItemDraft> Items { get; set; } = new();
 }

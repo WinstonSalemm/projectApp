@@ -93,8 +93,8 @@ public partial class ReturnSourceSelectorViewModel : ObservableObject
                 {
                     Id = contract.Id,
                     SourceType = ReturnSourceType.Contract,
-                    ClientName = contract.ClientName,
-                    Total = contract.Amount,
+                    ClientName = contract.OrgName, // Changed from ClientName to OrgName
+                    Total = contract.TotalAmount, // Changed from Amount to TotalAmount
                     CreatedAt = contract.CreatedAt,
                     CreatedBy = contract.CreatedBy,
                     ContractNumber = contract.ContractNumber

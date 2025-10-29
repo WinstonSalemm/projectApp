@@ -90,10 +90,10 @@ public partial class ContractEditViewModel : ObservableObject
             IsBusy = true; StatusMessage = string.Empty; EditorMessage = string.Empty;
             var draft = new ContractCreateDraft
             {
+                Type = "Closed", // Default for editing
                 OrgName = OrgName.Trim(),
                 Inn = string.IsNullOrWhiteSpace(Inn) ? null : Inn!.Trim(),
                 Phone = string.IsNullOrWhiteSpace(Phone) ? null : Phone!.Trim(),
-                Status = Status,
                 Note = string.IsNullOrWhiteSpace(Note) ? null : Note,
                 Items = Items.ToList()
             };

@@ -8,6 +8,8 @@ namespace ProjectApp.Client.Maui.ViewModels;
 public partial class ContractsViewModel : ObservableObject
 {
     private readonly IContractsService _contractsService;
+    private readonly IServiceProvider _services;
+    private List<ContractItemViewModel> _allContracts = new();
 
     [ObservableProperty]
     private ObservableCollection<ContractItemViewModel> _contracts = new();
@@ -18,9 +20,16 @@ public partial class ContractsViewModel : ObservableObject
     [ObservableProperty]
     private bool _isLoading;
 
-    public ContractsViewModel(IContractsService contractsService)
+    [ObservableProperty]
+    private string _selectedType = "Open"; // Open or Closed
+
+    [ObservableProperty]
+    private bool _hasContracts;
+
+    public ContractsViewModel(IContractsService contractsService, IServiceProvider services)
     {
         _contractsService = contractsService;
+        _services = services;
     }
 
     [RelayCommand]
@@ -31,15 +40,15 @@ public partial class ContractsViewModel : ObservableObject
             IsLoading = true;
             var contracts = await _contractsService.GetContractsAsync();
             
-            Contracts.Clear();
+            _allContracts.Clear();
             foreach (var c in contracts)
             {
-                Contracts.Add(new ContractItemViewModel
+                _allContracts.Add(new ContractItemViewModel
                 {
                     Id = c.Id,
                     Type = c.Type,
-                    ContractNumber = c.ContractNumber,
-                    ClientName = c.OrgName, // TODO: load from Clients
+                    ContractNumber = c.ContractNumber ?? $"CONTRACT-{c.Id}",
+                    ClientName = c.OrgName,
                     Status = c.Status,
                     TotalAmount = c.TotalAmount,
                     PaidAmount = c.PaidAmount,
@@ -50,6 +59,8 @@ public partial class ContractsViewModel : ObservableObject
                     CreatedAt = c.CreatedAt
                 });
             }
+            
+            ApplyFilter();
         }
         catch (Exception ex)
         {
@@ -62,26 +73,76 @@ public partial class ContractsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task CreateContract()
+    private void SelectType(string type)
     {
-        await Shell.Current.DisplayAlert("В разработке", "Создание договоров будет реализовано в следующей версии", "OK");
+        SelectedType = type;
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        Contracts.Clear();
+        var filtered = _allContracts.Where(c => c.Type == SelectedType).ToList();
+        foreach (var contract in filtered)
+        {
+            Contracts.Add(contract);
+        }
+        HasContracts = Contracts.Count > 0;
     }
 
     [RelayCommand]
-    private async Task ViewContract()
+    private async Task CreateContract()
     {
-        if (SelectedContract == null) return;
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("CreateContract: Starting...");
+            var page = _services.GetRequiredService<ProjectApp.Client.Maui.Views.ContractCreatePage>();
+            System.Diagnostics.Debug.WriteLine("CreateContract: Page created");
+            await Shell.Current.Navigation.PushAsync(page);
+            System.Diagnostics.Debug.WriteLine("CreateContract: Navigation complete");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"CreateContract ERROR: {ex.Message}\n{ex.StackTrace}");
+            await Shell.Current.DisplayAlert("Ошибка", $"Не удалось открыть форму создания:\n{ex.Message}", "OK");
+        }
+    }
 
-        await Shell.Current.DisplayAlert(
-            $"Договор {SelectedContract.ContractNumber}",
-            $"Тип: {SelectedContract.Type}\n" +
-            $"Статус: {SelectedContract.Status}\n" +
-            $"Сумма: {SelectedContract.TotalAmount:N0}\n" +
-            $"Оплачено: {SelectedContract.PaidPercent:F0}%\n" +
-            $"Отгружено: {SelectedContract.ShippedPercent:F0}%\n" +
-            $"Долг: {SelectedContract.BalanceDue:N0}",
-            "OK"
-        );
+    [RelayCommand]
+    private async Task ViewContract(ContractItemViewModel? contract)
+    {
+        try
+        {
+            var item = contract ?? SelectedContract;
+            if (item == null) 
+            {
+                System.Diagnostics.Debug.WriteLine("ViewContract: contract is null");
+                return;
+            }
+
+            await Shell.Current.DisplayAlert(
+                $"Договор {item.ContractNumber}",
+                $"Тип: {item.Type}\n" +
+                $"Статус: {item.Status}\n" +
+                $"Сумма: {item.TotalAmount:N0}\n" +
+                $"Оплачено: {item.PaidPercent:F0}%\n" +
+                $"Отгружено: {item.ShippedPercent:F0}%\n" +
+                $"Долг: {item.BalanceDue:N0}",
+                "OK"
+            );
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ViewContract error: {ex.Message}\n{ex.StackTrace}");
+            try
+            {
+                await Shell.Current.DisplayAlert("Ошибка", $"Не удалось открыть договор: {ex.Message}", "OK");
+            }
+            catch
+            {
+                // Даже диалог не открылся
+            }
+        }
     }
 }
 
@@ -94,7 +155,7 @@ public partial class ContractItemViewModel : ObservableObject
     private string _type = string.Empty;
 
     [ObservableProperty]
-    private string _contractNumber = string.Empty;
+    private string? _contractNumber;
 
     [ObservableProperty]
     private string _clientName = string.Empty;

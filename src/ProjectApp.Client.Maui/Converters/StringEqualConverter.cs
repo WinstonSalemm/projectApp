@@ -2,15 +2,12 @@ using System.Globalization;
 
 namespace ProjectApp.Client.Maui.Converters;
 
-public class RowColorConverter : IValueConverter
+public class StringEqualConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is int rowNumber)
-        {
-            return rowNumber % 2 == 0 ? Colors.White : Color.FromArgb("#f8f9fa");
-        }
-        return Colors.White;
+        if (value == null || parameter == null) return false;
+        return value.ToString() == parameter.ToString();
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

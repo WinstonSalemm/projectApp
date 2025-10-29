@@ -13,13 +13,17 @@ public partial class ContractCreateViewModel : ObservableObject
     private readonly IContractsService _contracts;
     public event EventHandler<bool>? Created; // true on success, false on failure
 
+    [ObservableProperty] private string type = "Closed"; // Closed | Open
+    [ObservableProperty] private string? contractNumber;
+    [ObservableProperty] private int? clientId;
     [ObservableProperty] private string orgName = string.Empty;
     [ObservableProperty] private string? inn;
     [ObservableProperty] private string? phone;
-    [ObservableProperty] private string status = "Signed"; // Signed | Paid | Closed
+    [ObservableProperty] private string? description;
+    [ObservableProperty] private decimal? totalAmount;
     [ObservableProperty] private string? note;
 
-    public List<string> Statuses { get; } = new() { "Signed", "Paid", "Closed" };
+    public List<string> ContractTypes { get; } = new() { "Closed", "Open" };
 
     // New item editor
     [ObservableProperty] private int? newProductId;
@@ -76,7 +80,13 @@ public partial class ContractCreateViewModel : ObservableObject
     public async Task CreateAsync()
     {
         if (string.IsNullOrWhiteSpace(OrgName)) { StatusMessage = "Укажите организацию"; return; }
-        if (Items.Count == 0) { StatusMessage = "Добавьте позиции"; return; }
+        
+        // Для закрытого договора обязательны позиции
+        if (Type == "Closed" && Items.Count == 0) { StatusMessage = "Добавьте позиции для закрытого договора"; return; }
+        
+        // Для открытого договора обязательна сумма
+        if (Type == "Open" && (!TotalAmount.HasValue || TotalAmount <= 0)) { StatusMessage = "Укажите сумму для открытого договора"; return; }
+        
         if (Items.Any(i => i.UnitPrice <= 0 || i.Qty <= 0 || string.IsNullOrWhiteSpace(i.Name)))
         {
             StatusMessage = "Исправьте позиции: название, кол-во > 0, цена > 0";
@@ -87,10 +97,14 @@ public partial class ContractCreateViewModel : ObservableObject
             IsBusy = true; StatusMessage = string.Empty; EditorMessage = string.Empty;
             var draft = new ContractCreateDraft
             {
+                Type = Type,
+                ContractNumber = string.IsNullOrWhiteSpace(ContractNumber) ? null : ContractNumber!.Trim(),
+                ClientId = ClientId,
                 OrgName = OrgName.Trim(),
                 Inn = string.IsNullOrWhiteSpace(Inn) ? null : Inn!.Trim(),
                 Phone = string.IsNullOrWhiteSpace(Phone) ? null : Phone!.Trim(),
-                Status = Status,
+                Description = string.IsNullOrWhiteSpace(Description) ? null : Description!.Trim(),
+                TotalAmount = TotalAmount,
                 Note = string.IsNullOrWhiteSpace(Note) ? null : Note,
                 Items = Items.ToList()
             };
@@ -98,7 +112,9 @@ public partial class ContractCreateViewModel : ObservableObject
             StatusMessage = ok ? "Договор создан" : "Ошибка создания";
             if (ok)
             {
-                OrgName = string.Empty; Inn = null; Phone = null; Note = null; Status = "Signed"; Items.Clear();
+                Type = "Closed"; ContractNumber = null; ClientId = null;
+                OrgName = string.Empty; Inn = null; Phone = null; 
+                Description = null; TotalAmount = null; Note = null; Items.Clear();
                 Created?.Invoke(this, true);
                 // Navigate to account selection
                 try

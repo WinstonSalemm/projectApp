@@ -25,6 +25,18 @@ public partial class PaymentSelectViewModel : ObservableObject
     [RelayCommand]
     private async Task SelectAsync(string paymentType)
     {
+        // Специальная обработка для договоров
+        if (paymentType == "Contract")
+        {
+            var contractsPage = _services.GetRequiredService<ContractsPage>();
+            if (contractsPage.BindingContext is ContractsViewModel vm)
+            {
+                await vm.LoadContractsCommand.ExecuteAsync(null);
+            }
+            await NavigationHelper.PushAsync(contractsPage);
+            return;
+        }
+
         if (!Enum.TryParse(paymentType, out PaymentType pt))
         {
             pt = PaymentType.CashWithReceipt;

@@ -99,10 +99,14 @@ public class ApiContractsService : IContractsService
 
         var dto = new ContractCreateDto
         {
+            Type = draft.Type,
+            ContractNumber = draft.ContractNumber,
+            ClientId = draft.ClientId,
             OrgName = draft.OrgName,
             Inn = draft.Inn,
             Phone = draft.Phone,
-            Status = draft.Status,
+            Description = draft.Description,
+            TotalAmount = draft.TotalAmount,
             Note = draft.Note,
             Items = draft.Items.Select(i => new ContractItemDto
             {
@@ -152,10 +156,14 @@ public class ApiContractsService : IContractsService
     }
     private class ContractCreateDto
     {
+        public string Type { get; set; } = "Closed"; // Closed | Open
+        public string? ContractNumber { get; set; }
+        public int? ClientId { get; set; }
         public string OrgName { get; set; } = string.Empty;
         public string? Inn { get; set; }
         public string? Phone { get; set; }
-        public string Status { get; set; } = "Signed";
+        public string? Description { get; set; }
+        public decimal? TotalAmount { get; set; }
         public string? Note { get; set; }
         public List<ContractItemDto> Items { get; set; } = new();
     }
@@ -208,10 +216,14 @@ public class ApiContractsService : IContractsService
 
         var dto = new ContractCreateDto
         {
+            Type = draft.Type,
+            ContractNumber = draft.ContractNumber,
+            ClientId = draft.ClientId,
             OrgName = draft.OrgName,
             Inn = draft.Inn,
             Phone = draft.Phone,
-            Status = draft.Status,
+            Description = draft.Description,
+            TotalAmount = draft.TotalAmount,
             Note = draft.Note,
             Items = draft.Items.Select(i => new ContractItemDto
             {

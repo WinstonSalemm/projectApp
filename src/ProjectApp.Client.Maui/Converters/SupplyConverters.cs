@@ -5,7 +5,7 @@ namespace ProjectApp.Client.Maui.Converters;
 // Конвертер для цвета таба
 public class TabToColorConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value == null || parameter == null)
             return Colors.Gray;
@@ -16,7 +16,7 @@ public class TabToColorConverter : IValueConverter
         return currentTab == tabName ? Color.FromArgb("#3498db") : Color.FromArgb("#95a5a6");
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }
@@ -25,7 +25,7 @@ public class TabToColorConverter : IValueConverter
 // Конвертер статуса поставки в текст
 public class SupplyStatusConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value == null) return "Неизвестно";
 
@@ -38,7 +38,7 @@ public class SupplyStatusConverter : IValueConverter
         };
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }
@@ -47,7 +47,7 @@ public class SupplyStatusConverter : IValueConverter
 // Конвертер статуса в цвет
 public class SupplyStatusColorConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value == null) return Colors.Gray;
 
@@ -60,7 +60,7 @@ public class SupplyStatusColorConverter : IValueConverter
         };
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }
@@ -69,14 +69,14 @@ public class SupplyStatusColorConverter : IValueConverter
 // Проверка что поставка в ND-40
 public class IsNd40Converter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is string registerType)
             return registerType == "ND40";
         return false;
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }
@@ -85,14 +85,14 @@ public class IsNd40Converter : IValueConverter
 // Конвертер для проверки IM-40
 public class IsIm40Converter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is string registerType)
             return registerType == "IM40";
         return false;
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }

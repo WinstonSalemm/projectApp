@@ -8,10 +8,17 @@ ALTER TABLE `Contracts` ADD COLUMN `ClientId` INT NULL;
 ALTER TABLE `Contracts` ADD COLUMN `Description` TEXT NULL;
 ALTER TABLE `Contracts` ADD COLUMN `ShippedAmount` DECIMAL(18,2) NOT NULL DEFAULT 0;
 ALTER TABLE `Contracts` ADD COLUMN `CreatedBy` VARCHAR(64) NULL;
+ALTER TABLE `Contracts` ADD COLUMN `TotalAmount` DECIMAL(18,2) NOT NULL DEFAULT 0;
+ALTER TABLE `Contracts` ADD COLUMN `TotalItemsCount` INT NOT NULL DEFAULT 0;
+ALTER TABLE `Contracts` ADD COLUMN `PaidAmount` DECIMAL(18,2) NOT NULL DEFAULT 0;
+ALTER TABLE `Contracts` ADD COLUMN `DeliveredItemsCount` INT NOT NULL DEFAULT 0;
 
 -- Add new fields to ContractItems table
+ALTER TABLE `ContractItems` ADD COLUMN `Sku` VARCHAR(64) NULL;
 ALTER TABLE `ContractItems` ADD COLUMN `Description` TEXT NULL;
 ALTER TABLE `ContractItems` ADD COLUMN `Status` INT NOT NULL DEFAULT 0;
+ALTER TABLE `ContractItems` ADD COLUMN `DeliveredQty` DECIMAL(18,3) NOT NULL DEFAULT 0;
+ALTER TABLE `ContractItems` ADD COLUMN `ShippedQty` DECIMAL(18,3) NOT NULL DEFAULT 0;
 
 -- Create ContractReservations table
 CREATE TABLE IF NOT EXISTS `ContractReservations` (

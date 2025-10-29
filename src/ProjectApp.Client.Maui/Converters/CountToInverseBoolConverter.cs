@@ -2,15 +2,18 @@ using System.Globalization;
 
 namespace ProjectApp.Client.Maui.Converters;
 
-public class RowColorConverter : IValueConverter
+/// <summary>
+/// Конвертер: Count == 0 → true (показать пустое состояние), иначе false
+/// </summary>
+public class CountToInverseBoolConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is int rowNumber)
+        if (value is int count)
         {
-            return rowNumber % 2 == 0 ? Colors.White : Color.FromArgb("#f8f9fa");
+            return count == 0;
         }
-        return Colors.White;
+        return true; // Показываем empty state если что-то не так
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

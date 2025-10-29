@@ -66,6 +66,11 @@
       </Style>
 
       <!-- Converters -->
+      <conv:StringEqualConverter x:Key="StringEqualConverter" />
+      <conv:StringEqualToColorConverter x:Key="StringEqualToColorConverter" />
+      <conv:CountToBoolConverter x:Key="CountToBoolConverter" />
+      <conv:CountToInverseBoolConverter x:Key="CountToInverseBoolConverter" />
+      <conv:InverseBoolConverter x:Key="InverseBoolConverter" />
       <conv:ContractStatusToColorConverter x:Key="ContractStatusToColorConverter" />
       <conv:QtyToAvailabilityColorConverter x:Key="QtyToAvailabilityColorConverter" />
       <conv:PaymentTypeToColorConverter x:Key="PaymentTypeToColorConverter" />
