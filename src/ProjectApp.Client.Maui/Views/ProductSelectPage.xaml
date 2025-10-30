@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ProjectApp.Client.Maui.Views.ProductSelectPage"
+             x:Name="Root"
              Title="POJ PRO - Оформление продажи"
              BackgroundColor="{DynamicResource Color.Background}">
   <Grid ColumnDefinitions="2*,*" ColumnSpacing="16" Padding="16">
@@ -52,7 +53,10 @@
                 <Label Grid.Row="0" Text="{Binding Name}" FontSize="17" FontAttributes="Bold" LineBreakMode="WordWrap" MaxLines="2" TextColor="{DynamicResource Color.Text.Primary}"/>
                 <Label Grid.Row="1" Text="{Binding Sku}" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}"/>
                 <Label Grid.Row="2" Text="{Binding TotalQty, StringFormat='📦 {0:N0} шт'}" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" Margin="0,4,0,0"/>
-                <Button Grid.Row="3" Text="Добавить" CommandParameter="{Binding .}" Clicked="OnAddToCart" HeightRequest="44" FontSize="15" Margin="0,8,0,0" Padding="0"/>
+                <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,8,0,0">
+                  <Button Grid.Column="0" Text="Выбрать" CommandParameter="{Binding .}" Clicked="OnPickClicked" HeightRequest="44" FontSize="15" Padding="0" IsVisible="{Binding Source={x:Reference Root}, Path=IsPicker}"/>
+                  <Button Grid.Column="1" Text="Добавить" CommandParameter="{Binding .}" Clicked="OnAddToCart" HeightRequest="44" FontSize="15" Padding="0" IsVisible="{Binding Source={x:Reference Root}, Path=IsPicker, Converter={StaticResource InverseBoolConverter}}"/>
+                </Grid>
               </Grid>
             </Border>
           </DataTemplate>
@@ -67,7 +71,7 @@
     </Grid>
     
     <!-- ПРАВАЯ ПАНЕЛЬ: Корзина -->
-    <Border Grid.Column="1" StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12">
+    <Border Grid.Column="1" StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12" IsVisible="{Binding Source={x:Reference Root}, Path=IsPicker, Converter={StaticResource InverseBoolConverter}}">
       <Grid RowDefinitions="Auto,*,Auto,Auto,Auto">
         <Label Grid.Row="0" Text="🛒 Корзина" FontSize="20" FontAttributes="Bold" Margin="0,0,0,16"/>
         

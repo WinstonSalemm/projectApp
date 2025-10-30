@@ -30,9 +30,10 @@ public class ApiContractsService : IContractsService
         }
         
         var list = await resp.Content.ReadFromJsonAsync<List<ContractDto>>(cancellationToken: ct);
+        try { System.Diagnostics.Debug.WriteLine($"[ApiContractsService] Loaded {list?.Count ?? 0} contracts from API"); } catch { }
         if (list == null) return Array.Empty<ContractListItem>();
         
-        return list.Select(dto => new ContractListItem
+        var mapped = list.Select(dto => new ContractListItem
         {
             Id = dto.Id,
             Type = dto.Type,
@@ -51,8 +52,16 @@ public class ApiContractsService : IContractsService
             ShippedAmount = dto.ShippedAmount,
             PaidPercent = dto.PaidPercent,
             ShippedPercent = dto.ShippedPercent,
-            BalanceDue = dto.BalanceDue
+            BalanceDue = dto.BalanceDue,
+            ItemsCount = dto.Items?.Count ?? 0
         }).ToList();
+        try
+        {
+            var typeStats = mapped.GroupBy(m => m.Type ?? "<null>").Select(g => $"{g.Key}:{g.Count()}");
+            System.Diagnostics.Debug.WriteLine($"[ApiContractsService] Types: {string.Join(", ", typeStats)}");
+        }
+        catch { }
+        return mapped;
     }
 
     public async Task<ContractDetail?> GetAsync(int id, CancellationToken ct = default)
@@ -117,6 +126,7 @@ public class ApiContractsService : IContractsService
                 UnitPrice = i.UnitPrice
             }).ToList()
         };
+        try { System.Diagnostics.Debug.WriteLine($"[ApiContractsService] Create: sending Type='{dto.Type}', Items={dto.Items.Count}, TotalAmount={(dto.TotalAmount?.ToString() ?? "null")}" ); } catch { }
 
         var resp = await client.PutAsJsonAsync($"/api/contracts/{id}", dto, ct);
         if (resp.IsSuccessStatusCode) return true;
@@ -128,14 +138,14 @@ public class ApiContractsService : IContractsService
     {
         public int? ProductId { get; set; }
         public string Name { get; set; } = string.Empty;
-        public string Unit { get; set; } = "С€С‚";
+        public string Unit { get; set; } = "шт";
         public decimal Qty { get; set; }
         public decimal UnitPrice { get; set; }
     }
     public class ContractDto
     {
         public int Id { get; set; }
-        public string Type { get; set; } = "Closed";
+        public string Type { get; set; } = string.Empty;
         public string ContractNumber { get; set; } = string.Empty;
         public int? ClientId { get; set; }
         public string OrgName { get; set; } = string.Empty;
@@ -235,7 +245,14 @@ public class ApiContractsService : IContractsService
             }).ToList()
         };
 
+        try 
+        { 
+            var json = System.Text.Json.JsonSerializer.Serialize(dto);
+            System.Diagnostics.Debug.WriteLine($"[ApiContractsService] Create(POST) payload: {json}");
+        } 
+        catch { }
         var resp = await client.PostAsJsonAsync("/api/contracts", dto, ct);
+        try { System.Diagnostics.Debug.WriteLine($"[ApiContractsService] Create(POST): status={(int)resp.StatusCode} {resp.StatusCode}"); } catch { }
         if ((int)resp.StatusCode == 201) return true;
         var pd = await TryReadProblem(resp, ct);
         throw new InvalidOperationException(pd ?? $"HTTP {(int)resp.StatusCode} {resp.StatusCode}");

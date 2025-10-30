@@ -22,6 +22,7 @@ public partial class ContractCreatePage : ContentPage
 
         var page = _services.GetService<ProductSelectPage>();
         if (page == null) return;
+        page.IsPicker = true;
 
         var tcs = new TaskCompletionSource<ProductSelectViewModel.ProductRow?>();
         void Handler(object? s, ProductSelectViewModel.ProductRow p)

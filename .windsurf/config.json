@@ -1,4 +1,0 @@
-﻿{
-  "projectRoot": ".",
-  "ignore": ["node_modules","bin","obj",".git",".vscode",".idea"]
-}

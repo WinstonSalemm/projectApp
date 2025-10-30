@@ -32,6 +32,7 @@ public class ContractListItem
     public decimal PaidPercent { get; set; }
     public decimal ShippedPercent { get; set; }
     public decimal BalanceDue { get; set; }
+    public int ItemsCount { get; set; }
 }
 
 public class ContractItemDraft

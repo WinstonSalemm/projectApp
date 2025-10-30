@@ -11,12 +11,36 @@ public partial class ProductSelectPage : ContentPage
     private readonly ProductSelectViewModel _vm;
     private readonly IServiceProvider _services;
 
+    public static readonly BindableProperty IsPickerProperty = BindableProperty.Create(
+        nameof(IsPicker), typeof(bool), typeof(ProductSelectPage), false, propertyChanged: OnIsPickerChanged);
+
+    public bool IsPicker
+    {
+        get => (bool)GetValue(IsPickerProperty);
+        set => SetValue(IsPickerProperty, value);
+    }
+
     public ProductSelectPage(ProductSelectViewModel vm, IServiceProvider services)
     {
         InitializeComponent();
         BindingContext = vm;
         _vm = vm;
         _services = services;
+    }
+
+    private static void OnIsPickerChanged(BindableObject bindable, object oldValue, object newValue)
+    {
+        if (bindable is ProductSelectPage page)
+        {
+            try
+            {
+                if (newValue is bool b)
+                {
+                    page.Title = b ? "Выбор товара" : "POJ PRO - Оформление продажи";
+                }
+            }
+            catch { }
+        }
     }
 
     protected override void OnAppearing()

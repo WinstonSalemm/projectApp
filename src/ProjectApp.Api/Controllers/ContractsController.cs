@@ -42,12 +42,24 @@ public class ContractsController : ControllerBase
                 // MySQL: create tables idempotently
                 await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS `Contracts` (
   `Id` INT NOT NULL AUTO_INCREMENT,
+  `Type` INT NOT NULL DEFAULT 0,
+  `ContractNumber` VARCHAR(128) NULL,
+  `ClientId` INT NULL,
   `OrgName` VARCHAR(256) NOT NULL,
   `Inn` VARCHAR(32) NULL,
   `Phone` VARCHAR(32) NULL,
   `Status` INT NOT NULL,
   `CreatedAt` DATETIME(6) NOT NULL,
+  `CreatedBy` VARCHAR(128) NULL,
   `Note` VARCHAR(1024) NULL,
+  `Description` VARCHAR(1024) NULL,
+  `TotalAmount` DECIMAL(18,2) NOT NULL DEFAULT 0,
+  `PaidAmount` DECIMAL(18,2) NOT NULL DEFAULT 0,
+  `ShippedAmount` DECIMAL(18,2) NOT NULL DEFAULT 0,
+  `TotalItemsCount` INT NOT NULL DEFAULT 0,
+  `DeliveredItemsCount` INT NOT NULL DEFAULT 0,
+  `CommissionAgentId` INT NULL,
+  `CommissionAmount` DECIMAL(18,2) NULL,
   PRIMARY KEY (`Id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", ct);
 
@@ -63,17 +75,79 @@ public class ContractsController : ControllerBase
   INDEX `IX_ContractItems_ContractId` (`ContractId` ASC),
   CONSTRAINT `FK_ContractItems_Contracts_ContractId` FOREIGN KEY (`ContractId`) REFERENCES `Contracts` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", ct);
+
+                // Migrate existing tables: add missing columns
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `Type` INT NOT NULL DEFAULT 0;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `ContractNumber` VARCHAR(128) NULL;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `ClientId` INT NULL;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `CreatedBy` VARCHAR(128) NULL;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `Description` VARCHAR(1024) NULL;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `TotalAmount` DECIMAL(18,2) NOT NULL DEFAULT 0;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `PaidAmount` DECIMAL(18,2) NOT NULL DEFAULT 0;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `ShippedAmount` DECIMAL(18,2) NOT NULL DEFAULT 0;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `TotalItemsCount` INT NOT NULL DEFAULT 0;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `DeliveredItemsCount` INT NOT NULL DEFAULT 0;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `CommissionAgentId` INT NULL;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `CommissionAmount` DECIMAL(18,2) NULL;", ct);
+                } catch { /* column exists */ }
             }
             else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
             {
                 await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS Contracts (
   Id INTEGER NOT NULL CONSTRAINT PK_Contracts PRIMARY KEY AUTOINCREMENT,
+  Type INTEGER NOT NULL DEFAULT 0,
+  ContractNumber TEXT NULL,
+  ClientId INTEGER NULL,
   OrgName TEXT NOT NULL,
   Inn TEXT NULL,
   Phone TEXT NULL,
   Status INTEGER NOT NULL,
   CreatedAt TEXT NOT NULL,
-  Note TEXT NULL
+  CreatedBy TEXT NULL,
+  Note TEXT NULL,
+  Description TEXT NULL,
+  TotalAmount REAL NOT NULL DEFAULT 0,
+  PaidAmount REAL NOT NULL DEFAULT 0,
+  ShippedAmount REAL NOT NULL DEFAULT 0,
+  TotalItemsCount INTEGER NOT NULL DEFAULT 0,
+  DeliveredItemsCount INTEGER NOT NULL DEFAULT 0,
+  CommissionAgentId INTEGER NULL,
+  CommissionAmount REAL NULL
 );", ct);
 
                 await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS ContractItems (
@@ -86,6 +160,56 @@ public class ContractsController : ControllerBase
   UnitPrice DECIMAL(18,2) NOT NULL,
   CONSTRAINT FK_ContractItems_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES Contracts (Id) ON DELETE CASCADE
 );", ct);
+
+                // Migrate existing tables: add missing columns
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN Type INTEGER NOT NULL DEFAULT 0;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN ContractNumber TEXT NULL;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN ClientId INTEGER NULL;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN CreatedBy TEXT NULL;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN Description TEXT NULL;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN TotalAmount REAL NOT NULL DEFAULT 0;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN PaidAmount REAL NOT NULL DEFAULT 0;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN ShippedAmount REAL NOT NULL DEFAULT 0;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN TotalItemsCount INTEGER NOT NULL DEFAULT 0;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN DeliveredItemsCount INTEGER NOT NULL DEFAULT 0;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN CommissionAgentId INTEGER NULL;", ct);
+                } catch { /* column exists */ }
+                try
+                {
+                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN CommissionAmount REAL NULL;", ct);
+                } catch { /* column exists */ }
             }
         }
         catch
@@ -108,12 +232,23 @@ public class ContractsController : ControllerBase
             .Select(c => new ContractDto
             {
                 Id = c.Id,
+                Type = c.Type.ToString(),
+                ContractNumber = c.ContractNumber,
+                ClientId = c.ClientId,
                 OrgName = c.OrgName,
                 Inn = c.Inn,
                 Phone = c.Phone,
                 Status = c.Status.ToString(),
                 CreatedAt = c.CreatedAt,
+                CreatedBy = c.CreatedBy,
                 Note = c.Note,
+                Description = c.Description,
+                TotalAmount = c.TotalAmount,
+                PaidAmount = c.PaidAmount,
+                ShippedAmount = c.ShippedAmount,
+                PaidPercent = c.TotalAmount > 0 ? (c.PaidAmount / c.TotalAmount * 100) : 0,
+                ShippedPercent = c.TotalAmount > 0 ? (c.ShippedAmount / c.TotalAmount * 100) : 0,
+                BalanceDue = c.TotalAmount - c.PaidAmount,
                 Items = c.Items.Select(i => new ContractItemDto
                 {
                     ProductId = i.ProductId,

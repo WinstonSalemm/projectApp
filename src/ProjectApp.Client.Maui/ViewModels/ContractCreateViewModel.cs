@@ -79,14 +79,15 @@ public partial class ContractCreateViewModel : ObservableObject
     [RelayCommand]
     public async Task CreateAsync()
     {
+        System.Diagnostics.Debug.WriteLine($"[ContractCreate] CreateAsync started. Type={Type}, OrgName='{OrgName}', TotalAmount={(TotalAmount?.ToString() ?? "null")}, Items={Items.Count}");
         if (string.IsNullOrWhiteSpace(OrgName)) { StatusMessage = "Укажите организацию"; return; }
-        
+
         // Для закрытого договора обязательны позиции
-        if (Type == "Closed" && Items.Count == 0) { StatusMessage = "Добавьте позиции для закрытого договора"; return; }
-        
+        if (Type == "Closed" && Items.Count == 0) { StatusMessage = "Добавьте позиции для закрытого договора"; System.Diagnostics.Debug.WriteLine("[ContractCreate] Validation failed: Closed without items"); return; }
+
         // Для открытого договора обязательна сумма
-        if (Type == "Open" && (!TotalAmount.HasValue || TotalAmount <= 0)) { StatusMessage = "Укажите сумму для открытого договора"; return; }
-        
+        if (Type == "Open" && (!TotalAmount.HasValue || TotalAmount <= 0)) { StatusMessage = "Укажите сумму для открытого договора"; System.Diagnostics.Debug.WriteLine("[ContractCreate] Validation failed: Open without amount"); return; }
+
         if (Items.Any(i => i.UnitPrice <= 0 || i.Qty <= 0 || string.IsNullOrWhiteSpace(i.Name)))
         {
             StatusMessage = "Исправьте позиции: название, кол-во > 0, цена > 0";
@@ -108,26 +109,22 @@ public partial class ContractCreateViewModel : ObservableObject
                 Note = string.IsNullOrWhiteSpace(Note) ? null : Note,
                 Items = Items.ToList()
             };
+            System.Diagnostics.Debug.WriteLine($"[ContractCreate] Sending draft.Type='{draft.Type}', Items={draft.Items.Count}, TotalAmount={(draft.TotalAmount?.ToString() ?? "null")}");
             var ok = await _contracts.CreateAsync(draft);
             StatusMessage = ok ? "Договор создан" : "Ошибка создания";
             if (ok)
             {
                 Type = "Closed"; ContractNumber = null; ClientId = null;
-                OrgName = string.Empty; Inn = null; Phone = null; 
+                OrgName = string.Empty; Inn = null; Phone = null;
                 Description = null; TotalAmount = null; Note = null; Items.Clear();
                 Created?.Invoke(this, true);
-                // Navigate to account selection
-                try
-                {
-                    var select = App.Services.GetRequiredService<ProjectApp.Client.Maui.Views.UserSelectPage>();
-                    NavigationHelper.SetRoot(new NavigationPage(select));
-                }
-                catch { }
+                System.Diagnostics.Debug.WriteLine("[ContractCreate] Created successfully");
             }
         }
         catch (Exception ex)
         {
             StatusMessage = ex.Message;
+            System.Diagnostics.Debug.WriteLine($"[ContractCreate] ERROR: {ex}");
             Created?.Invoke(this, false);
         }
         finally { IsBusy = false; }

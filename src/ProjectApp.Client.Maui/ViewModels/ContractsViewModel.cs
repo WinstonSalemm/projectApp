@@ -64,7 +64,7 @@ public partial class ContractsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Ошибка", $"Не удалось загрузить договора: {ex.Message}", "OK");
+            await NavigationHelper.DisplayAlert("Ошибка", $"Не удалось загрузить договора: {ex.Message}", "OK");
         }
         finally
         {
@@ -82,7 +82,7 @@ public partial class ContractsViewModel : ObservableObject
     private void ApplyFilter()
     {
         Contracts.Clear();
-        var filtered = _allContracts.Where(c => c.Type == SelectedType).ToList();
+        var filtered = _allContracts.Where(c => string.Equals(c.Type?.Trim(), SelectedType?.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
         foreach (var contract in filtered)
         {
             Contracts.Add(contract);
@@ -98,13 +98,13 @@ public partial class ContractsViewModel : ObservableObject
             System.Diagnostics.Debug.WriteLine("CreateContract: Starting...");
             var page = _services.GetRequiredService<ProjectApp.Client.Maui.Views.ContractCreatePage>();
             System.Diagnostics.Debug.WriteLine("CreateContract: Page created");
-            await Shell.Current.Navigation.PushAsync(page);
+            await NavigationHelper.PushAsync(page);
             System.Diagnostics.Debug.WriteLine("CreateContract: Navigation complete");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"CreateContract ERROR: {ex.Message}\n{ex.StackTrace}");
-            await Shell.Current.DisplayAlert("Ошибка", $"Не удалось открыть форму создания:\n{ex.Message}", "OK");
+            await NavigationHelper.DisplayAlert("Ошибка", $"Не удалось открыть форму создания:\n{ex.Message}", "OK");
         }
     }
 
@@ -120,7 +120,7 @@ public partial class ContractsViewModel : ObservableObject
                 return;
             }
 
-            await Shell.Current.DisplayAlert(
+            await NavigationHelper.DisplayAlert(
                 $"Договор {item.ContractNumber}",
                 $"Тип: {item.Type}\n" +
                 $"Статус: {item.Status}\n" +
@@ -136,7 +136,7 @@ public partial class ContractsViewModel : ObservableObject
             System.Diagnostics.Debug.WriteLine($"ViewContract error: {ex.Message}\n{ex.StackTrace}");
             try
             {
-                await Shell.Current.DisplayAlert("Ошибка", $"Не удалось открыть договор: {ex.Message}", "OK");
+                await NavigationHelper.DisplayAlert("Ошибка", $"Не удалось открыть договор: {ex.Message}", "OK");
             }
             catch
             {
