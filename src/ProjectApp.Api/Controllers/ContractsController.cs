@@ -246,9 +246,6 @@ public class ContractsController : ControllerBase
                 TotalAmount = c.TotalAmount,
                 PaidAmount = c.PaidAmount,
                 ShippedAmount = c.ShippedAmount,
-                PaidPercent = c.TotalAmount > 0 ? (c.PaidAmount / c.TotalAmount * 100) : 0,
-                ShippedPercent = c.TotalAmount > 0 ? (c.ShippedAmount / c.TotalAmount * 100) : 0,
-                BalanceDue = c.TotalAmount - c.PaidAmount,
                 Items = c.Items.Select(i => new ContractItemDto
                 {
                     ProductId = i.ProductId,
