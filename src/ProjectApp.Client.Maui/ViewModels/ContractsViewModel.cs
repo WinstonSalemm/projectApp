@@ -120,16 +120,12 @@ public partial class ContractsViewModel : ObservableObject
                 return;
             }
 
-            await NavigationHelper.DisplayAlert(
-                $"Договор {item.ContractNumber}",
-                $"Тип: {item.Type}\n" +
-                $"Статус: {item.Status}\n" +
-                $"Сумма: {item.TotalAmount:N0}\n" +
-                $"Оплачено: {item.PaidPercent:F0}%\n" +
-                $"Отгружено: {item.ShippedPercent:F0}%\n" +
-                $"Долг: {item.BalanceDue:N0}",
-                "OK"
-            );
+            var detailsPage = _services.GetRequiredService<Views.ContractDetailsPage>();
+            if (detailsPage.BindingContext is ContractDetailsViewModel vm)
+            {
+                vm.ContractId = item.Id;
+            }
+            await NavigationHelper.PushAsync(detailsPage);
         }
         catch (Exception ex)
         {

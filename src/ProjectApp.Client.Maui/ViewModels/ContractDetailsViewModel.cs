@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using ProjectApp.Client.Maui.Services;
 using System.Collections.ObjectModel;
 using System.Net.Http.Json;
@@ -19,6 +20,7 @@ public partial class ContractDetailsViewModel : ObservableObject
     [ObservableProperty] private string phone = string.Empty;
     [ObservableProperty] private string status = string.Empty;
     [ObservableProperty] private string statusColor = "#6B7280";
+    [ObservableProperty] private string contractType = string.Empty; // Open | Closed
     [ObservableProperty] private decimal totalAmount;
     [ObservableProperty] private decimal paidAmount;
     [ObservableProperty] private int totalItemsCount;
@@ -31,6 +33,9 @@ public partial class ContractDetailsViewModel : ObservableObject
 
     // UI свойства
     public decimal RemainingAmount => TotalAmount - PaidAmount;
+    public decimal ItemsTotal => Items.Sum(i => i.UnitPrice * i.Qty);
+    public decimal LimitRemaining => TotalAmount - ItemsTotal; // для Open
+    public bool IsOpen => string.Equals(ContractType?.Trim(), "Open", StringComparison.OrdinalIgnoreCase);
     public bool IsPaid => PaidAmount >= TotalAmount;
     public bool IsFullyDelivered => DeliveredItemsCount >= TotalItemsCount;
     public bool CanClose => IsPaid && IsFullyDelivered && Status != "Closed";
@@ -42,6 +47,44 @@ public partial class ContractDetailsViewModel : ObservableObject
         _logger = logger;
     }
 
+    private HttpClient GetApiClient()
+    {
+        var client = _httpFactory.CreateClient(HttpClientNames.Api);
+        if (client.BaseAddress == null)
+        {
+            try
+            {
+                var settings = App.Services.GetRequiredService<AppSettings>();
+                var baseUrl = string.IsNullOrWhiteSpace(settings.ApiBaseUrl)
+                    ? "https://tranquil-upliftment-production.up.railway.app"
+                    : settings.ApiBaseUrl;
+                client.BaseAddress = new Uri(baseUrl);
+            }
+            catch
+            {
+                client.BaseAddress = new Uri("https://tranquil-upliftment-production.up.railway.app");
+            }
+        }
+        _logger.LogInformation("[ContractDetailsViewModel] Using BaseAddress: {Base}", client.BaseAddress);
+        return client;
+    }
+
+    private string BuildUrl(string path)
+    {
+        var baseUrl = string.Empty;
+        try
+        {
+            var settings = App.Services.GetRequiredService<AppSettings>();
+            baseUrl = string.IsNullOrWhiteSpace(settings.ApiBaseUrl)
+                ? "https://tranquil-upliftment-production.up.railway.app"
+                : settings.ApiBaseUrl;
+        }
+        catch { }
+        if (string.IsNullOrWhiteSpace(baseUrl))
+            baseUrl = "https://tranquil-upliftment-production.up.railway.app";
+        return $"{baseUrl.TrimEnd('/')}/{path.TrimStart('/')}";
+    }
+
     [RelayCommand]
     public async Task LoadContract(int id)
     {
@@ -50,8 +93,8 @@ public partial class ContractDetailsViewModel : ObservableObject
             IsLoading = true;
             ContractId = id;
 
-            var client = _httpFactory.CreateClient("api");
-            var response = await client.GetAsync($"/api/contracts/{id}");
+            var client = GetApiClient();
+            var response = await client.GetAsync(BuildUrl($"/api/contracts/{id}"));
 
             if (!response.IsSuccessStatusCode)
             {
@@ -69,6 +112,7 @@ public partial class ContractDetailsViewModel : ObservableObject
                 Phone = contract.Phone ?? "";
                 Status = contract.Status;
                 StatusColor = GetStatusColor(contract.Status);
+                ContractType = contract.Type ?? string.Empty;
                 TotalAmount = contract.TotalAmount;
                 PaidAmount = contract.PaidAmount;
                 TotalItemsCount = contract.TotalItemsCount;
@@ -115,6 +159,9 @@ public partial class ContractDetailsViewModel : ObservableObject
                 }
 
                 OnPropertyChanged(nameof(RemainingAmount));
+                OnPropertyChanged(nameof(ItemsTotal));
+                OnPropertyChanged(nameof(LimitRemaining));
+                OnPropertyChanged(nameof(IsOpen));
                 OnPropertyChanged(nameof(IsPaid));
                 OnPropertyChanged(nameof(IsFullyDelivered));
                 OnPropertyChanged(nameof(CanClose));
@@ -152,9 +199,9 @@ public partial class ContractDetailsViewModel : ObservableObject
 
         try
         {
-            var client = _httpFactory.CreateClient("api");
+            var client = GetApiClient();
             var dto = new { Amount = amount, Method = "BankTransfer", Note = (string?)null };
-            var response = await client.PostAsJsonAsync($"/api/contracts/{ContractId}/payments", dto);
+            var response = await client.PostAsJsonAsync(BuildUrl($"/api/contracts/{ContractId}/payments"), dto);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -194,9 +241,9 @@ public partial class ContractDetailsViewModel : ObservableObject
 
         try
         {
-            var client = _httpFactory.CreateClient("api");
+            var client = GetApiClient();
             var dto = new { ContractItemId = item.Id, Qty = qty, Note = (string?)null };
-            var response = await client.PostAsJsonAsync($"/api/contracts/{ContractId}/deliveries", dto);
+            var response = await client.PostAsJsonAsync(BuildUrl($"/api/contracts/{ContractId}/deliveries"), dto);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -218,12 +265,96 @@ public partial class ContractDetailsViewModel : ObservableObject
     [RelayCommand]
     private async Task AddItem()
     {
-        // Открываем диалог выбора товара
-        var productPage = App.Services.GetRequiredService<Views.ProductSelectPage>();
-        await Shell.Current.Navigation.PushAsync(productPage);
-        
-        // После выбора товара добавляем в договор
-        // TODO: реализовать выбор товара и добавление
+        try
+        {
+            // Открываем страницу выбора товара в режиме picker
+            var productPage = App.Services.GetRequiredService<Views.ProductSelectPage>();
+            productPage.IsPicker = true;
+
+            var tcs = new TaskCompletionSource<ProductSelectViewModel.ProductRow?>();
+            void Handler(object? s, ProductSelectViewModel.ProductRow p) => tcs.TrySetResult(p);
+            productPage.ProductPicked += Handler;
+            await NavigationHelper.PushAsync(productPage);
+            var picked = await tcs.Task;
+            productPage.ProductPicked -= Handler;
+            await NavigationHelper.PopAsync();
+            if (picked == null) return;
+
+            // Ввод количества и цены
+            var qtyStr = await Application.Current!.MainPage!.DisplayPromptAsync(
+                "Количество",
+                picked.Name,
+                "OK",
+                "Отмена",
+                keyboard: Keyboard.Numeric);
+            if (string.IsNullOrWhiteSpace(qtyStr)) return;
+            if (!decimal.TryParse(qtyStr, out var qty) || qty <= 0)
+            {
+                await Application.Current.MainPage.DisplayAlert("Ошибка", "Неверное количество", "OK");
+                return;
+            }
+
+            var priceStr = await Application.Current!.MainPage!.DisplayPromptAsync(
+                "Цена",
+                picked.Name,
+                "OK",
+                "Отмена",
+                keyboard: Keyboard.Numeric);
+            if (string.IsNullOrWhiteSpace(priceStr)) return;
+            if (!decimal.TryParse(priceStr, out var price) || price < 0)
+            {
+                await Application.Current.MainPage.DisplayAlert("Ошибка", "Неверная цена", "OK");
+                return;
+            }
+
+            // Предупреждения для Open: проверим лимит
+            if (IsOpen)
+            {
+                var predicted = ItemsTotal + qty * price;
+                if (TotalAmount > 0 && predicted > TotalAmount)
+                {
+                    var ok = await Application.Current.MainPage.DisplayAlert(
+                        "Превышение лимита",
+                        $"Добавление превысит лимит договора на {(predicted - TotalAmount):N0}. Продолжить?",
+                        "Да", "Нет");
+                    if (!ok) return;
+                }
+                else if (TotalAmount > 0 && (TotalAmount - predicted) / TotalAmount <= 0.10m)
+                {
+                    var ok = await Application.Current.MainPage.DisplayAlert(
+                        "Внимание",
+                        $"Остаток по лимиту будет {TotalAmount - predicted:N0}. Продолжить?",
+                        "Да", "Нет");
+                    if (!ok) return;
+                }
+            }
+
+            // Вызов API добавления позиции
+            var client = GetApiClient();
+            var dto = new
+            {
+                ProductId = (int?)picked.Id,
+                Sku = (string?)null,
+                Name = picked.Name,
+                Unit = "шт",
+                Qty = qty,
+                UnitPrice = price
+            };
+            var response = await client.PostAsJsonAsync(BuildUrl($"/api/contracts/{ContractId}/items"), dto);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                await Application.Current.MainPage.DisplayAlert("Ошибка", err, "OK");
+                return;
+            }
+
+            await LoadContract(ContractId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ContractDetailsViewModel] Failed to add item");
+            await Application.Current.MainPage.DisplayAlert("Ошибка", ex.Message, "OK");
+        }
     }
 
     [RelayCommand]
@@ -239,8 +370,8 @@ public partial class ContractDetailsViewModel : ObservableObject
 
         try
         {
-            var client = _httpFactory.CreateClient("api");
-            var response = await client.DeleteAsync($"/api/contracts/{ContractId}/items/{item.Id}");
+            var client = GetApiClient();
+            var response = await client.DeleteAsync(BuildUrl($"/api/contracts/{ContractId}/items/{item.Id}"));
 
             if (!response.IsSuccessStatusCode)
             {
@@ -272,8 +403,8 @@ public partial class ContractDetailsViewModel : ObservableObject
 
         try
         {
-            var client = _httpFactory.CreateClient("api");
-            var response = await client.PostAsync($"/api/contracts/{ContractId}/close", null);
+            var client = GetApiClient();
+            var response = await client.PostAsync(BuildUrl($"/api/contracts/{ContractId}/close"), null);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -354,6 +485,7 @@ public partial class ContractDetailsViewModel : ObservableObject
     private class ContractDto
     {
         public int Id { get; set; }
+        public string? Type { get; set; }
         public string OrgName { get; set; } = string.Empty;
         public string? Inn { get; set; }
         public string? Phone { get; set; }

@@ -58,6 +58,13 @@
       <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12">
         <VerticalStackLayout Spacing="12">
           <Label Text="📦 Позиции" FontSize="18" FontAttributes="Bold"/>
+          <Button Text="➕ Добавить позицию"
+                  Command="{Binding AddItemCommand}"
+                  IsVisible="{Binding IsOpen}"
+                  BackgroundColor="{DynamicResource Color.Primary}"
+                  TextColor="White"
+                  HeightRequest="44"
+                  FontAttributes="Bold"/>
           
           <VerticalStackLayout BindableLayout.ItemsSource="{Binding Items}" Spacing="12">
             <BindableLayout.ItemTemplate>

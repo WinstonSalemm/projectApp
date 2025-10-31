@@ -76,6 +76,50 @@ public class ContractsController : ControllerBase
   CONSTRAINT `FK_ContractItems_Contracts_ContractId` FOREIGN KEY (`ContractId`) REFERENCES `Contracts` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", ct);
 
+                // Payments
+                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS `ContractPayments` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `ContractId` INT NOT NULL,
+  `Amount` DECIMAL(18,2) NOT NULL,
+  `PaidAt` DATETIME(6) NOT NULL,
+  `CreatedBy` VARCHAR(128) NULL,
+  `Note` VARCHAR(1024) NULL,
+  `Method` INT NOT NULL,
+  PRIMARY KEY (`Id`),
+  INDEX `IX_ContractPayments_ContractId` (`ContractId` ASC),
+  CONSTRAINT `FK_ContractPayments_Contracts_ContractId` FOREIGN KEY (`ContractId`) REFERENCES `Contracts` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", ct);
+
+                // Deliveries
+                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS `ContractDeliveries` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `ContractId` INT NOT NULL,
+  `ContractItemId` INT NOT NULL,
+  `ProductId` INT NOT NULL,
+  `Qty` DECIMAL(18,3) NOT NULL,
+  `DeliveredAt` DATETIME(6) NOT NULL,
+  `CreatedBy` VARCHAR(128) NULL,
+  `Note` VARCHAR(1024) NULL,
+  PRIMARY KEY (`Id`),
+  INDEX `IX_ContractDeliveries_ContractId` (`ContractId` ASC),
+  INDEX `IX_ContractDeliveries_ContractItemId` (`ContractItemId` ASC),
+  CONSTRAINT `FK_ContractDeliveries_Contracts_ContractId` FOREIGN KEY (`ContractId`) REFERENCES `Contracts` (`Id`) ON DELETE CASCADE,
+  CONSTRAINT `FK_ContractDeliveries_ContractItems_ContractItemId` FOREIGN KEY (`ContractItemId`) REFERENCES `ContractItems` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", ct);
+
+                // Delivery batches
+                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS `ContractDeliveryBatches` (
+  `Id` INT NOT NULL AUTO_INCREMENT,
+  `ContractDeliveryId` INT NOT NULL,
+  `BatchId` INT NOT NULL,
+  `RegisterAtDelivery` INT NOT NULL,
+  `Qty` DECIMAL(18,3) NOT NULL,
+  `UnitCost` DECIMAL(18,2) NOT NULL,
+  PRIMARY KEY (`Id`),
+  INDEX `IX_ContractDeliveryBatches_ContractDeliveryId` (`ContractDeliveryId` ASC),
+  CONSTRAINT `FK_ContractDeliveryBatches_ContractDeliveries_ContractDeliveryId` FOREIGN KEY (`ContractDeliveryId`) REFERENCES `ContractDeliveries` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", ct);
+
                 // Migrate existing tables: add missing columns
                 try
                 {
@@ -159,6 +203,43 @@ public class ContractsController : ControllerBase
   Qty DECIMAL(18,3) NOT NULL,
   UnitPrice DECIMAL(18,2) NOT NULL,
   CONSTRAINT FK_ContractItems_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES Contracts (Id) ON DELETE CASCADE
+);", ct);
+
+                // Payments
+                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS ContractPayments (
+  Id INTEGER NOT NULL CONSTRAINT PK_ContractPayments PRIMARY KEY AUTOINCREMENT,
+  ContractId INTEGER NOT NULL,
+  Amount REAL NOT NULL,
+  PaidAt TEXT NOT NULL,
+  CreatedBy TEXT NULL,
+  Note TEXT NULL,
+  Method INTEGER NOT NULL,
+  CONSTRAINT FK_ContractPayments_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES Contracts (Id) ON DELETE CASCADE
+);", ct);
+
+                // Deliveries
+                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS ContractDeliveries (
+  Id INTEGER NOT NULL CONSTRAINT PK_ContractDeliveries PRIMARY KEY AUTOINCREMENT,
+  ContractId INTEGER NOT NULL,
+  ContractItemId INTEGER NOT NULL,
+  ProductId INTEGER NOT NULL,
+  Qty DECIMAL(18,3) NOT NULL,
+  DeliveredAt TEXT NOT NULL,
+  CreatedBy TEXT NULL,
+  Note TEXT NULL,
+  CONSTRAINT FK_ContractDeliveries_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES Contracts (Id) ON DELETE CASCADE,
+  CONSTRAINT FK_ContractDeliveries_ContractItems_ContractItemId FOREIGN KEY (ContractItemId) REFERENCES ContractItems (Id) ON DELETE CASCADE
+);", ct);
+
+                // Delivery batches
+                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS ContractDeliveryBatches (
+  Id INTEGER NOT NULL CONSTRAINT PK_ContractDeliveryBatches PRIMARY KEY AUTOINCREMENT,
+  ContractDeliveryId INTEGER NOT NULL,
+  BatchId INTEGER NOT NULL,
+  RegisterAtDelivery INTEGER NOT NULL,
+  Qty DECIMAL(18,3) NOT NULL,
+  UnitCost DECIMAL(18,2) NOT NULL,
+  CONSTRAINT FK_ContractDeliveryBatches_ContractDeliveries_ContractDeliveryId FOREIGN KEY (ContractDeliveryId) REFERENCES ContractDeliveries (Id) ON DELETE CASCADE
 );", ct);
 
                 // Migrate existing tables: add missing columns
