@@ -3,6 +3,8 @@ namespace ProjectApp.Api.Dtos;
 public class DebtPayDto
 {
     public decimal Amount { get; set; }
+    public string? PaymentMethod { get; set; }
+    public string? Notes { get; set; }
 }
 
 public class DebtItemDto

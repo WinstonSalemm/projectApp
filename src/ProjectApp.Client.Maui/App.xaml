@@ -71,6 +71,8 @@
       <conv:CountToBoolConverter x:Key="CountToBoolConverter" />
       <conv:CountToInverseBoolConverter x:Key="CountToInverseBoolConverter" />
       <conv:InverseBoolConverter x:Key="InverseBoolConverter" />
+      <conv:IsNotNullOrEmptyConverter x:Key="IsNotNullOrEmptyConverter" />
+      <conv:IsZeroConverter x:Key="IsZeroConverter" />
       <conv:NullableIntConverter x:Key="NullableIntConverter" />
       <conv:ContractStatusToColorConverter x:Key="ContractStatusToColorConverter" />
       <conv:QtyToAvailabilityColorConverter x:Key="QtyToAvailabilityColorConverter" />
@@ -94,6 +96,7 @@
       <conv:InvertedBoolConverter x:Key="InvertedBoolConverter" />
       <conv:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter" />
       <conv:RowColorConverter x:Key="RowColorConverter" />
+      <conv:BoolToColorConverter x:Key="BoolToColorConverter" />
 
       <!-- Safe ASCII icon resources -->
       <FontImageSource x:Key="IconAdd" Glyph="+" Color="{DynamicResource Color.Primary}" Size="18" />

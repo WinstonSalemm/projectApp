@@ -30,6 +30,58 @@ public class ContractsController : ControllerBase
         _logger = logger;
     }
 
+    [HttpPost("{id:int}/shipments/{shipId:int}/retry-conversion")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(typeof(ContractDeliveryDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RetryConversion([FromRoute] int id, [FromRoute] int shipId, CancellationToken ct)
+    {
+        try
+        {
+            var userName = User?.Identity?.Name ?? "system";
+            var d = await _contractsService.RetryPendingDeliveryAsync(id, shipId, userName, ct);
+            return Ok(new ContractDeliveryDto
+            {
+                Id = d.Id,
+                ContractItemId = d.ContractItemId,
+                Qty = d.Qty,
+                DeliveredAt = d.DeliveredAt,
+                Note = d.Note,
+                Status = d.Status.ToString()
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ValidationProblem(detail: ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return Problem(detail: ex.Message);
+        }
+    }
+
+    [HttpPost("{id:int}/deliveries/{deliveryId:int}/cancel")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CancelDelivery([FromRoute] int id, [FromRoute] int deliveryId, CancellationToken ct)
+    {
+        try
+        {
+            var userName = User?.Identity?.Name ?? "unknown";
+            await _contractsService.CancelDeliveryAsync(id, deliveryId, userName, ct);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ValidationProblem(detail: ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return Problem(detail: ex.Message);
+        }
+    }
+
     // Self-healing: ensure Contracts schema exists in prod if migrations/patchers didn't run
     private async Task EnsureSchemaAsync(CancellationToken ct)
     {
@@ -100,6 +152,11 @@ public class ContractsController : ControllerBase
   `DeliveredAt` DATETIME(6) NOT NULL,
   `CreatedBy` VARCHAR(128) NULL,
   `Note` VARCHAR(1024) NULL,
+  `Status` INT NOT NULL DEFAULT 1,
+  `MissingQtyForConversion` DECIMAL(18,3) NULL,
+  `RetryCount` INT NOT NULL DEFAULT 0,
+  `LastRetryAt` DATETIME(6) NULL,
+  `UnitPrice` DECIMAL(18,2) NOT NULL DEFAULT 0,
   PRIMARY KEY (`Id`),
   INDEX `IX_ContractDeliveries_ContractId` (`ContractId` ASC),
   INDEX `IX_ContractDeliveries_ContractItemId` (`ContractItemId` ASC),
@@ -169,6 +226,15 @@ public class ContractsController : ControllerBase
                 {
                     await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `CommissionAmount` DECIMAL(18,2) NULL;", ct);
                 } catch { /* column exists */ }
+                try { await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `StoreId` INT NULL;", ct); } catch { }
+                try { await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `ManagerId` INT NULL;", ct); } catch { }
+                try { await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `Contracts` ADD COLUMN `LimitTotalUzs` DECIMAL(18,2) NULL;", ct); } catch { }
+                // New columns for ContractDeliveries
+                try { await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `ContractDeliveries` ADD COLUMN `Status` INT NOT NULL DEFAULT 1;", ct); } catch { }
+                try { await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `ContractDeliveries` ADD COLUMN `MissingQtyForConversion` DECIMAL(18,3) NULL;", ct); } catch { }
+                try { await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `ContractDeliveries` ADD COLUMN `RetryCount` INT NOT NULL DEFAULT 0;", ct); } catch { }
+                try { await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `ContractDeliveries` ADD COLUMN `LastRetryAt` DATETIME(6) NULL;", ct); } catch { }
+                try { await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE `ContractDeliveries` ADD COLUMN `UnitPrice` DECIMAL(18,2) NOT NULL DEFAULT 0;", ct); } catch { }
             }
             else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
             {
@@ -194,7 +260,7 @@ public class ContractsController : ControllerBase
   CommissionAmount REAL NULL
 );", ct);
 
-                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS ContractItems (
+                    await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS ContractItems (
   Id INTEGER NOT NULL CONSTRAINT PK_ContractItems PRIMARY KEY AUTOINCREMENT,
   ContractId INTEGER NOT NULL,
   ProductId INTEGER NULL,
@@ -205,8 +271,8 @@ public class ContractsController : ControllerBase
   CONSTRAINT FK_ContractItems_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES Contracts (Id) ON DELETE CASCADE
 );", ct);
 
-                // Payments
-                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS ContractPayments (
+                    // Payments
+                    await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS ContractPayments (
   Id INTEGER NOT NULL CONSTRAINT PK_ContractPayments PRIMARY KEY AUTOINCREMENT,
   ContractId INTEGER NOT NULL,
   Amount REAL NOT NULL,
@@ -217,8 +283,8 @@ public class ContractsController : ControllerBase
   CONSTRAINT FK_ContractPayments_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES Contracts (Id) ON DELETE CASCADE
 );", ct);
 
-                // Deliveries
-                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS ContractDeliveries (
+                    // Deliveries
+                    await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS ContractDeliveries (
   Id INTEGER NOT NULL CONSTRAINT PK_ContractDeliveries PRIMARY KEY AUTOINCREMENT,
   ContractId INTEGER NOT NULL,
   ContractItemId INTEGER NOT NULL,
@@ -227,12 +293,17 @@ public class ContractsController : ControllerBase
   DeliveredAt TEXT NOT NULL,
   CreatedBy TEXT NULL,
   Note TEXT NULL,
+  Status INTEGER NOT NULL DEFAULT 1,
+  MissingQtyForConversion DECIMAL(18,3) NULL,
+  RetryCount INTEGER NOT NULL DEFAULT 0,
+  LastRetryAt TEXT NULL,
+  UnitPrice REAL NOT NULL DEFAULT 0,
   CONSTRAINT FK_ContractDeliveries_Contracts_ContractId FOREIGN KEY (ContractId) REFERENCES Contracts (Id) ON DELETE CASCADE,
   CONSTRAINT FK_ContractDeliveries_ContractItems_ContractItemId FOREIGN KEY (ContractItemId) REFERENCES ContractItems (Id) ON DELETE CASCADE
 );", ct);
 
-                // Delivery batches
-                await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS ContractDeliveryBatches (
+                    // Delivery batches
+                    await _db.Database.ExecuteSqlRawAsync(@"CREATE TABLE IF NOT EXISTS ContractDeliveryBatches (
   Id INTEGER NOT NULL CONSTRAINT PK_ContractDeliveryBatches PRIMARY KEY AUTOINCREMENT,
   ContractDeliveryId INTEGER NOT NULL,
   BatchId INTEGER NOT NULL,
@@ -242,72 +313,71 @@ public class ContractsController : ControllerBase
   CONSTRAINT FK_ContractDeliveryBatches_ContractDeliveries_ContractDeliveryId FOREIGN KEY (ContractDeliveryId) REFERENCES ContractDeliveries (Id) ON DELETE CASCADE
 );", ct);
 
-                // Migrate existing tables: add missing columns
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN Type INTEGER NOT NULL DEFAULT 0;", ct);
-                } catch { /* column exists */ }
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN ContractNumber TEXT NULL;", ct);
-                } catch { /* column exists */ }
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN ClientId INTEGER NULL;", ct);
-                } catch { /* column exists */ }
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN CreatedBy TEXT NULL;", ct);
-                } catch { /* column exists */ }
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN Description TEXT NULL;", ct);
-                } catch { /* column exists */ }
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN TotalAmount REAL NOT NULL DEFAULT 0;", ct);
-                } catch { /* column exists */ }
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN PaidAmount REAL NOT NULL DEFAULT 0;", ct);
-                } catch { /* column exists */ }
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN ShippedAmount REAL NOT NULL DEFAULT 0;", ct);
-                } catch { /* column exists */ }
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN TotalItemsCount INTEGER NOT NULL DEFAULT 0;", ct);
-                } catch { /* column exists */ }
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN DeliveredItemsCount INTEGER NOT NULL DEFAULT 0;", ct);
-                } catch { /* column exists */ }
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN CommissionAgentId INTEGER NULL;", ct);
-                } catch { /* column exists */ }
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN CommissionAmount REAL NULL;", ct);
-                } catch { /* column exists */ }
-            }
-        }
-        catch
-        {
-            // swallow: controller actions will still try/catch as needed
-        }
+                    // Migrate existing tables: add missing columns
+                    try
+                    {
+                        await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN Type INTEGER NOT NULL DEFAULT 0;", ct);
+                    } catch { /* column exists */ }
+                    try
+                    {
+                        await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN ContractNumber TEXT NULL;", ct);
+                    } catch { /* column exists */ }
+                    try
+                    {
+                        await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN ClientId INTEGER NULL;", ct);
+                    } catch { /* column exists */ }
+                    try
+                    {
+                        await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN CreatedBy TEXT NULL;", ct);
+                    } catch { /* column exists */ }
+                    try
+                    {
+                        await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN Description TEXT NULL;", ct);
+                    } catch { /* column exists */ }
+                    try
+                    {
+                        await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN TotalAmount REAL NOT NULL DEFAULT 0;", ct);
+                    } catch { /* column exists */ }
+                    try
+                    {
+                        await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN PaidAmount REAL NOT NULL DEFAULT 0;", ct);
+                    } catch { /* column exists */ }
+                    try
+                    {
+                        await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN ShippedAmount REAL NOT NULL DEFAULT 0;", ct);
+                    } catch { /* column exists */ }
+                    try
+                    {
+                        await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN TotalItemsCount INTEGER NOT NULL DEFAULT 0;", ct);
+                    } catch { /* column exists */ }
+                    try
+                    {
+                        await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN DeliveredItemsCount INTEGER NOT NULL DEFAULT 0;", ct);
+                    } catch { /* column exists */ }
+                    try
+                    {
+                        await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN CommissionAgentId INTEGER NULL;", ct);
+                    } catch { /* column exists */ }
+                    try
+                    {
+                        await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN CommissionAmount REAL NULL;", ct);
+                    } catch { /* column exists */ }
     }
 
     [HttpGet]
     [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(IEnumerable<ContractDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> List([FromQuery] string? status, CancellationToken ct)
+    public async Task<IActionResult> List([FromQuery] string? status, [FromQuery] string? kind, CancellationToken ct)
     {
         await EnsureSchemaAsync(ct);
         var q = _db.Contracts.AsNoTracking().Include(c => c.Items).AsQueryable();
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ContractStatus>(status, true, out var st))
             q = q.Where(c => c.Status == st);
+        if (!string.IsNullOrWhiteSpace(kind))
+        {
+            if (string.Equals(kind, "open", StringComparison.OrdinalIgnoreCase)) q = q.Where(c => c.Type == ContractType.Open);
+            else if (string.Equals(kind, "closed", StringComparison.OrdinalIgnoreCase)) q = q.Where(c => c.Type == ContractType.Closed);
+        }
 
         var list = await q.OrderByDescending(c => c.CreatedAt)
             .Select(c => new ContractDto
@@ -395,10 +465,12 @@ public class ContractsController : ControllerBase
             }).OrderByDescending(p => p.PaidAt).ToList(),
             Deliveries = c.Deliveries.Select(d => new ContractDeliveryDto
             {
+                Id = d.Id,
                 ContractItemId = d.ContractItemId,
                 Qty = d.Qty,
                 DeliveredAt = d.DeliveredAt,
-                Note = d.Note
+                Note = d.Note,
+                Status = d.Status.ToString()
             }).OrderByDescending(d => d.DeliveredAt).ToList()
         };
         return Ok(dto);
@@ -433,6 +505,7 @@ public class ContractsController : ControllerBase
             .ToDictionaryAsync(p => p.Id, ct);
 
         var totalAmount = dto.TotalAmount ?? (dto.Items?.Sum(i => i.Qty * i.UnitPrice) ?? 0);
+        var limit = dto.LimitTotalUzs;
         
         var c = new Contract
         {
@@ -447,7 +520,10 @@ public class ContractsController : ControllerBase
             CreatedBy = User?.Identity?.Name,
             Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim(),
             Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
-            TotalAmount = totalAmount,
+            TotalAmount = (contractType == ContractType.Open) ? (limit ?? totalAmount) : totalAmount,
+            LimitTotalUzs = limit,
+            StoreId = dto.StoreId,
+            ManagerId = dto.ManagerId,
             TotalItemsCount = dto.Items?.Count ?? 0,
             CommissionAgentId = dto.CommissionAgentId,
             CommissionAmount = dto.CommissionAmount,
@@ -532,6 +608,14 @@ public class ContractsController : ControllerBase
         c.Inn = string.IsNullOrWhiteSpace(dto.Inn) ? null : dto.Inn.Trim();
         c.Phone = string.IsNullOrWhiteSpace(dto.Phone) ? null : dto.Phone.Trim();
         c.Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim();
+        c.StoreId = dto.StoreId ?? c.StoreId;
+        c.ManagerId = dto.ManagerId ?? c.ManagerId;
+        c.LimitTotalUzs = dto.LimitTotalUzs ?? c.LimitTotalUzs;
+        if (c.Type == ContractType.Open && (dto.LimitTotalUzs.HasValue || dto.TotalAmount.HasValue))
+        {
+            var newLimit = dto.LimitTotalUzs ?? dto.TotalAmount ?? c.TotalAmount;
+            c.TotalAmount = newLimit;
+        }
         if (Enum.TryParse<ContractStatus>(dto.Status, true, out var newStatus))
             c.Status = newStatus;
 
@@ -685,9 +769,12 @@ public class ContractsController : ControllerBase
             };
 
             _db.ContractItems.Add(item);
-            
-            // Обновляем суммы
-            contract.TotalAmount += item.Qty * item.UnitPrice;
+
+            // Обновляем суммы: для Closed TotalAmount = сумма позиций, для Open TotalAmount — это лимит (не меняем)
+            if (contract.Type == ContractType.Closed)
+            {
+                contract.TotalAmount += item.Qty * item.UnitPrice;
+            }
             contract.TotalItemsCount++;
             
             await _db.SaveChangesAsync(ct);
@@ -720,8 +807,11 @@ public class ContractsController : ControllerBase
             if (contract.Status == ContractStatus.Closed || contract.Status == ContractStatus.Cancelled)
                 return ValidationProblem(detail: "Cannot delete items from closed or cancelled contract");
 
-            // Обновляем суммы
-            contract.TotalAmount -= item.Qty * item.UnitPrice;
+            // Обновляем суммы: для Closed уменьшаем TotalAmount, для Open — не трогаем лимит
+            if (contract.Type == ContractType.Closed)
+            {
+                contract.TotalAmount -= item.Qty * item.UnitPrice;
+            }
             contract.TotalItemsCount--;
 
             _db.ContractItems.Remove(item);
@@ -755,10 +845,13 @@ public class ContractsController : ControllerBase
             if (contract.Status == ContractStatus.Closed || contract.Status == ContractStatus.Cancelled)
                 return ValidationProblem(detail: "Cannot update items in closed or cancelled contract");
 
-            // Обновляем сумму договора
-            var oldItemTotal = item.Qty * item.UnitPrice;
-            var newItemTotal = dto.Qty * dto.UnitPrice;
-            contract.TotalAmount = contract.TotalAmount - oldItemTotal + newItemTotal;
+            // Обновляем сумму договора: только для Closed
+            if (contract.Type == ContractType.Closed)
+            {
+                var oldItemTotal = item.Qty * item.UnitPrice;
+                var newItemTotal = dto.Qty * dto.UnitPrice;
+                contract.TotalAmount = contract.TotalAmount - oldItemTotal + newItemTotal;
+            }
 
             // Обновляем позицию
             item.Qty = dto.Qty;

@@ -38,12 +38,11 @@ public partial class ContractsViewModel : ObservableObject
         try
         {
             IsLoading = true;
-            var contracts = await _contractsService.GetContractsAsync();
-            
-            _allContracts.Clear();
+            Contracts.Clear();
+            var contracts = await _contractsService.GetByKindAsync(SelectedType);
             foreach (var c in contracts)
             {
-                _allContracts.Add(new ContractItemViewModel
+                Contracts.Add(new ContractItemViewModel
                 {
                     Id = c.Id,
                     Type = c.Type,
@@ -59,8 +58,7 @@ public partial class ContractsViewModel : ObservableObject
                     CreatedAt = c.CreatedAt
                 });
             }
-            
-            ApplyFilter();
+            HasContracts = Contracts.Count > 0;
         }
         catch (Exception ex)
         {
@@ -76,19 +74,10 @@ public partial class ContractsViewModel : ObservableObject
     private void SelectType(string type)
     {
         SelectedType = type;
-        ApplyFilter();
+        _ = LoadContracts();
     }
 
-    private void ApplyFilter()
-    {
-        Contracts.Clear();
-        var filtered = _allContracts.Where(c => string.Equals(c.Type?.Trim(), SelectedType?.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
-        foreach (var contract in filtered)
-        {
-            Contracts.Add(contract);
-        }
-        HasContracts = Contracts.Count > 0;
-    }
+    private void ApplyFilter() { }
 
     [RelayCommand]
     private async Task CreateContract()
@@ -183,6 +172,26 @@ public partial class ContractItemViewModel : ObservableObject
     public double PaidProgress => (double)PaidPercent / 100.0;
     public double ShippedProgress => (double)ShippedPercent / 100.0;
     public bool HasDebt => BalanceDue > 0;
+
+    public bool IsOpen => string.Equals(Type?.Trim(), "Open", StringComparison.OrdinalIgnoreCase);
+    public decimal ItemsTotalForCard => IsOpen ? ShippedAmount : TotalAmount;
+    public decimal RemainingForCard => IsOpen ? (TotalAmount - ShippedAmount) : BalanceDue;
+    public string RemainingColor
+    {
+        get
+        {
+            if (IsOpen)
+            {
+                if (TotalAmount <= 0) return "#16A34A"; // green
+                var ratio = RemainingForCard / TotalAmount; // доля остатка лимита
+                if (ratio <= 0.10m) return "#EF4444"; // red
+                if (ratio <= 0.25m) return "#F59E0B"; // orange
+                return "#16A34A"; // green
+            }
+            // Closed: остаток = долг
+            return RemainingForCard > 0 ? "#EF4444" : "#16A34A";
+        }
+    }
 
     public string StatusColor => Status switch
     {

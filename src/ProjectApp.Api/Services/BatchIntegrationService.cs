@@ -20,6 +20,86 @@ public class BatchIntegrationService
     }
 
     /// <summary>
+    /// Конвертировать указанное количество товара из ND-40 в IM-40 (FIFO по партиям).
+    /// Возвращает фактически перемещённое количество.
+    /// </summary>
+    public async Task<decimal> ConvertProductNdToImQuantity(int productId, decimal requiredQty, CancellationToken ct = default)
+    {
+        if (requiredQty <= 0) return 0m;
+
+        var ndBatches = await _db.Batches
+            .Where(b => b.ProductId == productId && b.Register == StockRegister.ND40 && b.Qty > 0)
+            .OrderBy(b => b.CreatedAt).ThenBy(b => b.Id)
+            .ToListAsync(ct);
+
+        decimal moved = 0m;
+        foreach (var nd in ndBatches)
+        {
+            if (moved >= requiredQty) break;
+            var toMove = Math.Min(nd.Qty, requiredQty - moved);
+            if (toMove <= 0) continue;
+
+            nd.Qty -= toMove;
+
+            var im = new Batch
+            {
+                ProductId = productId,
+                Register = StockRegister.IM40,
+                Qty = toMove,
+                UnitCost = nd.UnitCost,
+                CreatedAt = DateTime.UtcNow,
+                Code = nd.Code,
+                Note = $"Transfer ND→IM, batch #{nd.Id}",
+                SupplierName = nd.SupplierName,
+                InvoiceNumber = nd.InvoiceNumber,
+                PurchaseDate = nd.PurchaseDate,
+                VatRate = nd.VatRate,
+                PurchaseSource = "transfer_nd_to_im:conversion_service",
+                GtdCode = nd.GtdCode
+            };
+            _db.Batches.Add(im);
+
+            var ndStock = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == productId && s.Register == StockRegister.ND40, ct);
+            if (ndStock != null) ndStock.Qty -= toMove;
+            var imStock = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == productId && s.Register == StockRegister.IM40, ct);
+            if (imStock == null)
+            {
+                imStock = new Stock { ProductId = productId, Register = StockRegister.IM40, Qty = 0 };
+                _db.Stocks.Add(imStock);
+            }
+            imStock.Qty += toMove;
+
+            _db.InventoryTransactions.Add(new InventoryTransaction
+            {
+                ProductId = productId,
+                Register = StockRegister.ND40,
+                Type = InventoryTransactionType.MoveNdToIm,
+                Qty = -toMove,
+                UnitCost = nd.UnitCost,
+                BatchId = nd.Id,
+                CreatedAt = DateTime.UtcNow,
+                Note = "Transfer ND→IM (conversion service)"
+            });
+            _db.InventoryTransactions.Add(new InventoryTransaction
+            {
+                ProductId = productId,
+                Register = StockRegister.IM40,
+                Type = InventoryTransactionType.MoveNdToIm,
+                Qty = toMove,
+                UnitCost = nd.UnitCost,
+                BatchId = null,
+                CreatedAt = DateTime.UtcNow,
+                Note = "Transfer ND→IM (conversion service)"
+            });
+
+            moved += toMove;
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return moved;
+    }
+
+    /// <summary>
     /// Создать партии товара из финализированной сессии расчета
     /// </summary>
     public async Task CreateBatchesFromCostingSession(

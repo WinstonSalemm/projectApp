@@ -1,6 +1,7 @@
 using Microsoft.Maui.Controls;
 using ProjectApp.Client.Maui.ViewModels;
 using System;
+using ProjectApp.Client.Maui.Services;
 
 namespace ProjectApp.Client.Maui.Views;
 
@@ -25,10 +26,27 @@ public partial class DebtorsListPage : ContentPage
     {
         if (e.CurrentSelection.Count > 0)
         {
-            var debtor = e.CurrentSelection[0];
-            // Navigate to debtor detail
-            // TODO: Implement navigation to ClientDetailPage with debtorId
+            var debtor = e.CurrentSelection[0] as DebtorItemViewModel;
+            if (debtor != null)
+            {
+                var page = App.Services.GetService<ProjectApp.Client.Maui.Views.ClientDetailPage>();
+                if (page != null && page.BindingContext is ClientDetailViewModel vm)
+                {
+                    await vm.LoadAsync(debtor.ClientId);
+                    await NavigationHelper.PushAsync(page);
+                }
+            }
             ((CollectionView)sender).SelectedItem = null;
+        }
+    }
+
+    private async void OnCreateDebtClicked(object sender, EventArgs e)
+    {
+        // На первом шаге направим пользователя к выбору клиента
+        var page = App.Services.GetService<ProjectApp.Client.Maui.Views.ClientsListPage>();
+        if (page != null)
+        {
+            await NavigationHelper.PushAsync(page);
         }
     }
 }

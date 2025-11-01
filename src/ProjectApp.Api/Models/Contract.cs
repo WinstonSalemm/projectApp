@@ -43,7 +43,8 @@ public class Contract
     public string? Description { get; set; }
 
     // Финансовые данные
-    public decimal TotalAmount { get; set; }  // Общая сумма договора (для открытых - лимит)
+    public decimal TotalAmount { get; set; }  // Общая сумма договора (для закрытых - сумма позиций)
+    public decimal? LimitTotalUzs { get; set; } // Для открытых - отдельный лимит (если не задан, используется TotalAmount)
     public decimal PaidAmount { get; set; }   // Оплачено
     public decimal ShippedAmount { get; set; } // Отгружено (сумма)
 
@@ -63,6 +64,10 @@ public class Contract
     /// Сумма комиссии партнеру по этому договору (вводится вручную)
     /// </summary>
     public decimal? CommissionAmount { get; set; }
+
+    // Локация и менеджер
+    public int? StoreId { get; set; }
+    public int? ManagerId { get; set; }
 
     public List<ContractItem> Items { get; set; } = new();
     public List<ContractPayment> Payments { get; set; } = new();

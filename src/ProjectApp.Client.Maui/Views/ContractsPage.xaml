@@ -112,12 +112,14 @@
         <!-- Контейнер для списка и пустого состояния -->
         <Grid Grid.Row="2">
             
-            <!-- Список договоров -->
-            <ScrollView IsVisible="{Binding HasContracts}">
+            <!-- Список договоров с Pull-to-Refresh -->
+            <RefreshView IsVisible="{Binding HasContracts}"
+                         IsRefreshing="{Binding IsLoading}"
+                         Command="{Binding LoadContractsCommand}">
                 <CollectionView ItemsSource="{Binding Contracts}"
-                               SelectionMode="Single"
-                               SelectedItem="{Binding SelectedContract}"
-                               Margin="0,4,0,0">
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedContract}"
+                                Margin="0,4,0,0">
                     
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="vm:ContractItemViewModel">
@@ -218,16 +220,17 @@
                                     <!-- Footer Info -->
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,4,0,0">
                                         <VerticalStackLayout Grid.Column="0" Spacing="4">
-                                            <Label Text="{Binding TotalAmount, StringFormat='Сумма: {0:N0} сум'}" 
+                                            <!-- Для Open: Сумма = израсходовано (ShippedAmount); Для Closed: Сумма = TotalAmount -->
+                                            <Label Text="{Binding ItemsTotalForCard, StringFormat='Сумма: {0:N0} сум'}" 
                                                    FontSize="13"
                                                    FontAttributes="Bold"
                                                    TextColor="#1F2937"/>
                                             
-                                            <Label Text="{Binding BalanceDue, StringFormat='Долг: {0:N0} сум'}" 
+                                            <!-- Остаток: для Open — остаток лимита; для Closed — долг -->
+                                            <Label Text="{Binding RemainingForCard, StringFormat='Остаток: {0:N0} сум'}" 
                                                    FontSize="13"
                                                    FontAttributes="Bold"
-                                                   TextColor="#EF4444"
-                                                   IsVisible="{Binding HasDebt}"/>
+                                                   TextColor="{Binding RemainingColor}"/>
                                         </VerticalStackLayout>
                                         
                                         <Label Grid.Column="1" 
@@ -242,7 +245,7 @@
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
-            </ScrollView>
+            </RefreshView>
 
             <!-- Пустое состояние (Empty State) -->
             <VerticalStackLayout IsVisible="{Binding HasContracts, Converter={StaticResource InverseBoolConverter}}"
@@ -285,6 +288,12 @@
                 
             </VerticalStackLayout>
             
+            <!-- Индикатор загрузки поверх -->
+            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                               IsVisible="{Binding IsLoading}"
+                               Color="#660000"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"/>
         </Grid>
     </Grid>
 </ContentPage>

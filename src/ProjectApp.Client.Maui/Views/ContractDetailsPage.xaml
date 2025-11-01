@@ -35,15 +35,24 @@
         <VerticalStackLayout Spacing="12">
           <Label Text="💰 Финансы" FontSize="18" FontAttributes="Bold"/>
           
-          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
             <Label Grid.Row="0" Grid.Column="0" Text="Сумма договора:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
             <Label Grid.Row="0" Grid.Column="1" Text="{Binding TotalAmount, StringFormat='{0:N0} сум'}" FontSize="14" FontAttributes="Bold"/>
-            
-            <Label Grid.Row="1" Grid.Column="0" Text="Оплачено:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
-            <Label Grid.Row="1" Grid.Column="1" Text="{Binding PaidAmount, StringFormat='{0:N0} сум'}" FontSize="14" FontAttributes="Bold" TextColor="{DynamicResource Color.Success}"/>
-            
-            <Label Grid.Row="2" Grid.Column="0" Text="Остаток:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
-            <Label Grid.Row="2" Grid.Column="1" Text="{Binding RemainingAmount, StringFormat='{0:N0} сум'}" FontSize="14" FontAttributes="Bold" TextColor="{DynamicResource Color.Warning}"/>
+
+            <Label Grid.Row="1" Grid.Column="0" Text="Израсходовано:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+            <Label Grid.Row="1" Grid.Column="1" Text="{Binding ItemsTotal, StringFormat='{0:N0} сум'}" FontSize="14" FontAttributes="Bold"/>
+
+            <Label Grid.Row="2" Grid.Column="0" Text="Оплачено:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+            <Label Grid.Row="2" Grid.Column="1" Text="{Binding PaidAmount, StringFormat='{0:N0} сум'}" FontSize="14" FontAttributes="Bold" TextColor="{DynamicResource Color.Success}"/>
+
+            <Label Grid.Row="3" Grid.Column="0" Text="Остаток:" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+            <Label Grid.Row="3" Grid.Column="1" Text="{Binding LimitRemaining, StringFormat='{0:N0} сум'}" FontSize="14" FontAttributes="Bold" TextColor="{Binding RemainingTextColor}"/>
+          </Grid>
+
+          <!-- Прогресс расхода лимита -->
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+            <Label Text="0%" FontSize="12" TextColor="{DynamicResource Color.Text.Tertiary}"/>
+            <ProgressBar Grid.Column="1" Progress="{Binding SpentProgress}" HeightRequest="6" BackgroundColor="{DynamicResource Color.Surface.Muted}" ProgressColor="{DynamicResource Color.Primary}"/>
           </Grid>
 
           <Button Text="💵 Добавить оплату" 
@@ -148,12 +157,26 @@
           <VerticalStackLayout BindableLayout.ItemsSource="{Binding Deliveries}" Spacing="8">
             <BindableLayout.ItemTemplate>
               <DataTemplate x:DataType="vm:ContractDetailsViewModel+DeliveryRow">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="8">
-                  <VerticalStackLayout Grid.Column="0">
+                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="8">
+                  <VerticalStackLayout Grid.Row="0" Grid.Column="0">
                     <Label Text="{Binding ItemName}" FontSize="14" FontAttributes="Bold"/>
-                    <Label Text="{Binding DeliveredAt, StringFormat='{0:dd.MM.yyyy HH:mm}'}" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                    <Grid ColumnDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
+                      <Label Text="{Binding DeliveredAt, StringFormat='{0:dd.MM.yyyy HH:mm}'}" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                      <Label Text="·" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                      <Label Text="{Binding Status}" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+                    </Grid>
                   </VerticalStackLayout>
-                  <Label Grid.Column="1" Text="{Binding Qty, StringFormat='{0:N2}'}" FontSize="15" FontAttributes="Bold" VerticalTextAlignment="Center"/>
+                  <Label Grid.Row="0" Grid.Column="1" Text="{Binding Qty, StringFormat='{0:N2}'}" FontSize="15" FontAttributes="Bold" VerticalTextAlignment="Center"/>
+
+                  <Button Grid.Row="1" Grid.ColumnSpan="2"
+                          Text="Повторить конверсию"
+                          Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ContractDetailsViewModel}}, Path=RetryConversionCommand}"
+                          CommandParameter="{Binding .}"
+                          IsVisible="{Binding IsPending}"
+                          BackgroundColor="{DynamicResource Color.Primary}"
+                          TextColor="White"
+                          HeightRequest="36"
+                          FontSize="13"/>
                 </Grid>
               </DataTemplate>
             </BindableLayout.ItemTemplate>

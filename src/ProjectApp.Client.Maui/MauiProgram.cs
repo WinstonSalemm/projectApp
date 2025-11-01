@@ -237,6 +237,7 @@ public static class MauiProgram
         // New pages and ViewModels
         builder.Services.AddTransient<DebtorsListViewModel>();
         builder.Services.AddTransient<DebtorsListPage>();
+        builder.Services.AddTransient<DebtDetailViewModel>();
         builder.Services.AddTransient<DebtDetailPage>();
         builder.Services.AddTransient<FinancesMenuPage>();
         

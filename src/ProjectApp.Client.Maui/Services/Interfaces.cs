@@ -74,6 +74,7 @@ public interface IContractsService
 {
     Task<IEnumerable<ContractListItem>> GetContractsAsync(CancellationToken ct = default);
     Task<IEnumerable<ContractListItem>> ListAsync(string? status = null, CancellationToken ct = default);
+    Task<IEnumerable<ContractListItem>> GetByKindAsync(string kind, CancellationToken ct = default);
     Task<bool> CreateAsync(ContractCreateDraft draft, CancellationToken ct = default);
     Task<bool> UpdateStatusAsync(int id, string status, CancellationToken ct = default);
     Task<ContractDetail?> GetAsync(int id, CancellationToken ct = default);

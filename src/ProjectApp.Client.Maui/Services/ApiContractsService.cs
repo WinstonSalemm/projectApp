@@ -15,6 +15,45 @@ public class ApiContractsService : IContractsService
         _auth = auth;
     }
 
+    public async Task<IEnumerable<ContractListItem>> GetByKindAsync(string kind, CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+
+        var url = $"/api/contracts?kind={Uri.EscapeDataString(kind)}";
+        var resp = await client.GetAsync(url, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var pd = await TryReadProblem(resp, ct);
+            throw new InvalidOperationException(pd ?? $"HTTP {(int)resp.StatusCode} {resp.StatusCode}");
+        }
+        var list = await resp.Content.ReadFromJsonAsync<List<ContractDto>>(cancellationToken: ct) ?? new();
+        return list.Select(dto => new ContractListItem
+        {
+            Id = dto.Id,
+            Type = dto.Type,
+            ContractNumber = dto.ContractNumber,
+            ClientId = dto.ClientId,
+            OrgName = dto.OrgName,
+            Inn = dto.Inn,
+            Phone = dto.Phone,
+            Status = dto.Status,
+            CreatedAt = dto.CreatedAt,
+            CreatedBy = dto.CreatedBy,
+            Note = dto.Note,
+            Description = dto.Description,
+            TotalAmount = dto.TotalAmount,
+            PaidAmount = dto.PaidAmount,
+            ShippedAmount = dto.ShippedAmount,
+            PaidPercent = dto.PaidPercent,
+            ShippedPercent = dto.ShippedPercent,
+            BalanceDue = dto.BalanceDue,
+            ItemsCount = dto.Items?.Count ?? 0
+        });
+    }
+
     public async Task<IEnumerable<ContractListItem>> GetContractsAsync(CancellationToken ct = default)
     {
         var client = _httpClientFactory.CreateClient(HttpClientNames.Api);

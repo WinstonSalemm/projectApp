@@ -24,8 +24,8 @@ public class DebtorsApiService
     {
         try
         {
-            var debtors = await _apiService.GetAsync<List<DebtorDto>>("/api/clients/debtors");
-            return debtors ?? new List<DebtorDto>();
+            var paged = await _apiService.GetAsync<PagedResponse<DebtorDto>>("/api/clients/debtors");
+            return paged?.items ?? new List<DebtorDto>();
         }
         catch (Exception ex)
         {
@@ -57,7 +57,7 @@ public class DebtorsApiService
     {
         try
         {
-            var debts = await _apiService.GetAsync<List<DebtDetailsDto>>($"/api/debts/by-client/{clientId}");
+            var debts = await _apiService.GetAsync<List<DebtDetailsDto>>($"/api/clients/{clientId}/debts");
             return debts ?? new List<DebtDetailsDto>();
         }
         catch (Exception ex)
@@ -101,12 +101,20 @@ public class DebtorsApiService
     }
 }
 
+public class PagedResponse<T>
+{
+    public List<T> items { get; set; } = new();
+    public int total { get; set; }
+    public int page { get; set; }
+    public int size { get; set; }
+}
+
 public class DebtPaymentDto
 {
     public int Id { get; set; }
     public decimal Amount { get; set; }
-    public string PaymentMethod { get; set; } = string.Empty;
-    public DateTime PaymentDate { get; set; }
-    public string? Notes { get; set; }
+    public string? Method { get; set; }
+    public DateTime PaidAt { get; set; }
+    public string? Comment { get; set; }
     public string? CreatedBy { get; set; }
 }

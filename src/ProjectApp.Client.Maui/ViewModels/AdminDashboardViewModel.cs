@@ -67,6 +67,13 @@ public partial class AdminDashboardViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task OpenDebtorsAsync()
+    {
+        var page = _services.GetService<ProjectApp.Client.Maui.Views.DebtorsListPage>();
+        if (page != null) await NavigationHelper.PushAsync(page);
+    }
+
+    [RelayCommand]
     private async Task OpenFinanceAsync()
     {
         var page = _services.GetService<ProjectApp.Client.Maui.Views.FinanceDashboardPage>();

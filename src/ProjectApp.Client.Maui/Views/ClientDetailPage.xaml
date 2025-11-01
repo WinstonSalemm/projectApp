@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <TabbedPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
@@ -92,7 +92,7 @@
   <ContentPage Title="Р”РѕР»РіРё">
     <ScrollView>
       <VerticalStackLayout Padding="24" Spacing="16">
-        <CollectionView ItemsSource="{Binding Debts}" Margin="0,4,0,0">
+        <CollectionView ItemsSource="{Binding Debts}" Margin="0,4,0,0" SelectionMode="Single" SelectionChanged="OnDebtSelected">
           <CollectionView.ItemTemplate>
             <DataTemplate>
               <Frame Style="{StaticResource CardFrame}">

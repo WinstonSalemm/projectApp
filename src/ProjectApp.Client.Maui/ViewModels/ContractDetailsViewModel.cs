@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ProjectApp.Client.Maui.Services;
 using System.Collections.ObjectModel;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace ProjectApp.Client.Maui.ViewModels;
 
@@ -33,13 +34,26 @@ public partial class ContractDetailsViewModel : ObservableObject
 
     // UI свойства
     public decimal RemainingAmount => TotalAmount - PaidAmount;
-    public decimal ItemsTotal => Items.Sum(i => i.UnitPrice * i.Qty);
-    public decimal LimitRemaining => TotalAmount - ItemsTotal; // для Open
+    public decimal ItemsTotal => Items.Sum(i => i.UnitPrice * i.DeliveredQty); // израсходовано
+    public decimal LimitRemaining => TotalAmount - ItemsTotal; // остаток лимита для Open
     public bool IsOpen => string.Equals(ContractType?.Trim(), "Open", StringComparison.OrdinalIgnoreCase);
     public bool IsPaid => PaidAmount >= TotalAmount;
     public bool IsFullyDelivered => DeliveredItemsCount >= TotalItemsCount;
     public bool CanClose => IsPaid && IsFullyDelivered && Status != "Closed";
     public string StatusLabel => GetStatusLabel(Status);
+
+    public double SpentProgress => TotalAmount > 0 ? (double)(ItemsTotal / TotalAmount) : 0.0;
+    public string RemainingTextColor
+    {
+        get
+        {
+            if (TotalAmount <= 0) return "#16A34A"; // green
+            var ratio = LimitRemaining / TotalAmount; // доля остатка
+            if (ratio <= 0.10m) return "#EF4444"; // red
+            if (ratio <= 0.25m) return "#F59E0B"; // orange
+            return "#16A34A"; // green
+        }
+    }
 
     public ContractDetailsViewModel(IHttpClientFactory httpFactory, ILogger<ContractDetailsViewModel> logger)
     {
@@ -151,10 +165,12 @@ public partial class ContractDetailsViewModel : ObservableObject
                 {
                     Deliveries.Add(new DeliveryRow
                     {
+                        Id = delivery.Id,
                         ItemName = Items.FirstOrDefault(i => i.Id == delivery.ContractItemId)?.Name ?? "",
                         Qty = delivery.Qty,
                         DeliveredAt = delivery.DeliveredAt,
-                        Note = delivery.Note ?? ""
+                        Note = delivery.Note ?? "",
+                        Status = delivery.Status ?? "Completed"
                     });
                 }
 
@@ -162,6 +178,8 @@ public partial class ContractDetailsViewModel : ObservableObject
                 OnPropertyChanged(nameof(ItemsTotal));
                 OnPropertyChanged(nameof(LimitRemaining));
                 OnPropertyChanged(nameof(IsOpen));
+                OnPropertyChanged(nameof(SpentProgress));
+                OnPropertyChanged(nameof(RemainingTextColor));
                 OnPropertyChanged(nameof(IsPaid));
                 OnPropertyChanged(nameof(IsFullyDelivered));
                 OnPropertyChanged(nameof(CanClose));
@@ -252,12 +270,45 @@ public partial class ContractDetailsViewModel : ObservableObject
                 return;
             }
 
-            await Application.Current.MainPage.DisplayAlert("Успешно", "Товар отгружен", "OK");
+            // Определяем статус созданной отгрузки
+            ContractDeliveryDto? created = null;
+            try { created = await response.Content.ReadFromJsonAsync<ContractDeliveryDto>(); } catch { }
+            if (created != null && string.Equals(created.Status, "PendingConversion", StringComparison.OrdinalIgnoreCase))
+            {
+                await Application.Current.MainPage.DisplayAlert("Ожидает конверсии", "Недостаточно на IM-40. Конвертируем из ND-40… Отгрузка помечена как ‘Ожидает конверсии’.", "OK");
+            }
+            else
+            {
+                await Application.Current.MainPage.DisplayAlert("Успешно", "Товар отгружен", "OK");
+            }
             await LoadContract(ContractId);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[ContractDetailsViewModel] Failed to deliver item");
+            await Application.Current.MainPage.DisplayAlert("Ошибка", ex.Message, "OK");
+        }
+    }
+
+    [RelayCommand]
+    private async Task RetryConversion(DeliveryRow row)
+    {
+        try
+        {
+            var client = GetApiClient();
+            var response = await client.PostAsync(BuildUrl($"/api/contracts/{ContractId}/shipments/{row.Id}/retry-conversion"), null);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                await Application.Current.MainPage.DisplayAlert("Ошибка", err, "OK");
+                return;
+            }
+            await Application.Current.MainPage.DisplayAlert("Готово", "Попытка конверсии выполнена", "OK");
+            await LoadContract(ContractId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ContractDetailsViewModel] Retry conversion failed");
             await Application.Current.MainPage.DisplayAlert("Ошибка", ex.Message, "OK");
         }
     }
@@ -307,34 +358,12 @@ public partial class ContractDetailsViewModel : ObservableObject
                 return;
             }
 
-            // Предупреждения для Open: проверим лимит
-            if (IsOpen)
-            {
-                var predicted = ItemsTotal + qty * price;
-                if (TotalAmount > 0 && predicted > TotalAmount)
-                {
-                    var ok = await Application.Current.MainPage.DisplayAlert(
-                        "Превышение лимита",
-                        $"Добавление превысит лимит договора на {(predicted - TotalAmount):N0}. Продолжить?",
-                        "Да", "Нет");
-                    if (!ok) return;
-                }
-                else if (TotalAmount > 0 && (TotalAmount - predicted) / TotalAmount <= 0.10m)
-                {
-                    var ok = await Application.Current.MainPage.DisplayAlert(
-                        "Внимание",
-                        $"Остаток по лимиту будет {TotalAmount - predicted:N0}. Продолжить?",
-                        "Да", "Нет");
-                    if (!ok) return;
-                }
-            }
-
             // Вызов API добавления позиции
             var client = GetApiClient();
             var dto = new
             {
                 ProductId = (int?)picked.Id,
-                Sku = (string?)null,
+                Sku = picked.Sku,
                 Name = picked.Name,
                 Unit = "шт",
                 Qty = qty,
@@ -346,6 +375,39 @@ public partial class ContractDetailsViewModel : ObservableObject
                 var err = await response.Content.ReadAsStringAsync();
                 await Application.Current.MainPage.DisplayAlert("Ошибка", err, "OK");
                 return;
+            }
+
+            // Для открытого договора: сразу создаем отгрузку на всю добавленную позицию
+            if (IsOpen)
+            {
+                try
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    int newItemId = 0;
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(content);
+                        if (doc.RootElement.TryGetProperty("id", out var idEl) && idEl.TryGetInt32(out var i)) newItemId = i;
+                        else if (doc.RootElement.TryGetProperty("Id", out var idEl2) && idEl2.TryGetInt32(out var j)) newItemId = j;
+                    }
+                    catch { }
+
+                    if (newItemId > 0)
+                    {
+                        var deliveryDto = new { ContractItemId = newItemId, Qty = qty, Note = (string?)null };
+                        var resp2 = await client.PostAsJsonAsync(BuildUrl($"/api/contracts/{ContractId}/deliveries"), deliveryDto);
+                        // Игнорируем валидации, просто покажем ошибку если есть
+                        if (!resp2.IsSuccessStatusCode)
+                        {
+                            var err2 = await resp2.Content.ReadAsStringAsync();
+                            _logger.LogWarning("Auto-delivery failed: {Err}", err2);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Auto-delivery after add failed");
+                }
             }
 
             await LoadContract(ContractId);
@@ -476,10 +538,13 @@ public partial class ContractDetailsViewModel : ObservableObject
 
     public class DeliveryRow
     {
+        public int Id { get; set; }
         public string ItemName { get; set; } = string.Empty;
         public decimal Qty { get; set; }
         public DateTime DeliveredAt { get; set; }
         public string Note { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty; // Completed | PendingConversion | Cancelled
+        public bool IsPending => string.Equals(Status, "PendingConversion", StringComparison.OrdinalIgnoreCase);
     }
 
     private class ContractDto
@@ -521,9 +586,11 @@ public partial class ContractDetailsViewModel : ObservableObject
 
     private class ContractDeliveryDto
     {
+        public int Id { get; set; }
         public int ContractItemId { get; set; }
         public decimal Qty { get; set; }
         public DateTime DeliveredAt { get; set; }
         public string? Note { get; set; }
+        public string? Status { get; set; }
     }
 }

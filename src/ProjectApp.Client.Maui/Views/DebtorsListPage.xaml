@@ -4,6 +4,9 @@
              xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.DebtorsListPage"
              Title="Должники">
+  <ContentPage.ToolbarItems>
+    <ToolbarItem Text="Создать долг" Clicked="OnCreateDebtClicked" Priority="0" />
+  </ContentPage.ToolbarItems>
   
   <Grid RowDefinitions="Auto,*" Padding="16">
     
@@ -11,14 +14,15 @@
     <VerticalStackLayout Spacing="8">
       <Label Text="Список должников" 
              FontSize="24" 
-             FontAttributes="Bold" />
+             FontAttributes="Bold"
+             TextColor="{DynamicResource Color.Text.Primary}" />
       <Label Text="{Binding TotalDebtorsCount, StringFormat='Всего должников: {0}'}" 
              FontSize="14" 
-             TextColor="Gray" />
+             TextColor="{DynamicResource Color.Text.Secondary}" />
       <Label Text="{Binding TotalDebtAmount, StringFormat='Общий долг: {0:N0} сум'}" 
              FontSize="16" 
              FontAttributes="Bold"
-             TextColor="#F44336" />
+             TextColor="{DynamicResource Color.Primary}" />
     </VerticalStackLayout>
 
     <!-- Debtors List -->
@@ -28,11 +32,9 @@
                       SelectionChanged="OnDebtorSelected">
         <CollectionView.ItemTemplate>
           <DataTemplate>
-            <Frame Padding="16" 
-                   Margin="0,8,0,0" 
-                   CornerRadius="8"
-                   BackgroundColor="White"
-                   HasShadow="True">
+            <Frame Style="{StaticResource CardFrame}"
+                   Padding="16"
+                   Margin="0,8,0,0">
               <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
                 
                 <!-- Client Name -->
@@ -45,13 +47,12 @@
                 <Frame Grid.Column="1"
                        Grid.RowSpan="2"
                        Padding="12,6"
-                       CornerRadius="16"
-                       BackgroundColor="#FFEBEE"
-                       HasShadow="False">
+                       Style="{StaticResource BadgeFrame}"
+                       BackgroundColor="{DynamicResource Color.Primary.Muted}">
                   <Label Text="{Binding TotalDebt, StringFormat='{0:N0} сум'}"
                          FontSize="14"
                          FontAttributes="Bold"
-                         TextColor="#F44336" />
+                         TextColor="{DynamicResource Color.Primary}" />
                 </Frame>
                 
                 <!-- Phone -->
@@ -59,7 +60,7 @@
                   <Label Text="📞" FontSize="16" />
                   <Label Text="{Binding Phone}" 
                          FontSize="14" 
-                         TextColor="Gray" />
+                         TextColor="{DynamicResource Color.Text.Secondary}" />
                 </HorizontalStackLayout>
                 
                 <!-- Debts Count -->
@@ -67,7 +68,7 @@
                   <Label Text="📋" FontSize="16" />
                   <Label Text="{Binding DebtsCount, StringFormat='Долгов: {0}'}" 
                          FontSize="14" 
-                         TextColor="Gray" />
+                         TextColor="{DynamicResource Color.Text.Secondary}" />
                 </HorizontalStackLayout>
                 
                 <!-- Due Date -->

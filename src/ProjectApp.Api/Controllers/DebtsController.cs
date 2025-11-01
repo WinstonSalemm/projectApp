@@ -167,7 +167,15 @@ public class DebtsController(AppDbContext db, IDebtsNotifier debtsNotifier) : Co
         if (debt.Status == DebtStatus.Paid) return ValidationProblem("Debt already paid");
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        var pay = new DebtPayment { DebtId = id, Amount = dto.Amount, PaidAt = DateTime.UtcNow };
+        var pay = new DebtPayment 
+        { 
+            DebtId = id, 
+            Amount = dto.Amount, 
+            PaidAt = DateTime.UtcNow,
+            Method = dto.PaymentMethod,
+            Comment = dto.Notes,
+            CreatedBy = User?.Identity?.Name
+        };
         db.DebtPayments.Add(pay);
         debt.Amount -= dto.Amount;
         if (debt.Amount <= 0)
@@ -179,6 +187,6 @@ public class DebtsController(AppDbContext db, IDebtsNotifier debtsNotifier) : Co
         await tx.CommitAsync(ct);
         // notify
         try { await debtsNotifier.NotifyDebtPaymentAsync(debt, pay, ct); } catch { /* ignore */ }
-        return Ok(new { debt.Id, debt.Amount, debt.Status });
+        return Ok(new { debt.Id, debt.Amount, debt.Status, payment = pay });
     }
 }

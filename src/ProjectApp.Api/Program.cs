@@ -234,6 +234,7 @@ builder.Services.AddHostedService<DailySummaryHostedService>();
 builder.Services.AddScoped<ProjectApp.Api.Integrations.Telegram.IReturnsNotifier, ProjectApp.Api.Integrations.Telegram.ReturnsNotifier>();
 builder.Services.AddSingleton<ProjectApp.Api.Integrations.Telegram.IDebtsNotifier, ProjectApp.Api.Integrations.Telegram.DebtsNotifier>();
 builder.Services.AddHostedService<ProjectApp.Api.Services.StockSnapshotHostedService>();
+builder.Services.AddHostedService<ProjectApp.Api.Services.PendingConversionRetryHostedService>();
 
 // Reservations
 builder.Services.Configure<ProjectApp.Api.Services.ReservationsOptions>(builder.Configuration.GetSection("Reservations"));

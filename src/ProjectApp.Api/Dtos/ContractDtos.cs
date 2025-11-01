@@ -33,6 +33,7 @@ public class ContractDto
     public decimal ShippedAmount { get; set; }  // Сумма отгруженного
     public int TotalItemsCount { get; set; }
     public int DeliveredItemsCount { get; set; }
+    public decimal Balance => PaidAmount - ShippedAmount; // Баланс: Оплачено - Забрано
     
     // Computed fields для UI
     public decimal BalanceDue => TotalAmount - PaidAmount;  // Долг
@@ -54,10 +55,12 @@ public class ContractPaymentDto
 
 public class ContractDeliveryDto
 {
+    public int Id { get; set; }
     public int ContractItemId { get; set; }
     public decimal Qty { get; set; }
     public DateTime DeliveredAt { get; set; }
     public string? Note { get; set; }
+    public string Status { get; set; } = "Completed";
 }
 
 public class ContractCreateDto
@@ -72,6 +75,9 @@ public class ContractCreateDto
     public string? Note { get; set; }
     public string? Description { get; set; }  // Для закрытых договоров
     public decimal? TotalAmount { get; set; }  // Для открытых - указывается лимит
+    public decimal? LimitTotalUzs { get; set; }
+    public int? StoreId { get; set; }
+    public int? ManagerId { get; set; }
     public List<ContractItemDto> Items { get; set; } = new();
     
     // ПАРТНЕРСКАЯ ПРОГРАММА
