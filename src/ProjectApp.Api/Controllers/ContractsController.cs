@@ -363,6 +363,7 @@ public class ContractsController : ControllerBase
                         await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN CommissionAmount REAL NULL;", ct);
                     } catch { /* column exists */ }
     }
+    }
 
     [HttpGet]
     [Authorize(Policy = "ManagerOnly")]
@@ -897,6 +898,3 @@ public class ContractsController : ControllerBase
         }
     }
 }
-}
-
-public class ContractDto
