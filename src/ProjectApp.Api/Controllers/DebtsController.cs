@@ -190,6 +190,7 @@ public class DebtsController(AppDbContext db, IDebtsNotifier debtsNotifier) : Co
         return Ok(new { debt.Id, debt.Amount, debt.Status, payment = pay });
     }
 
+
     // POST /api/debts
     /// <summary>
     /// Создать долг с позициями

@@ -897,3 +897,5 @@ public class ContractsController : ControllerBase
         }
     }
 }
+
+public class ContractDto
