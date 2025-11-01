@@ -189,4 +189,52 @@ public class DebtsController(AppDbContext db, IDebtsNotifier debtsNotifier) : Co
         try { await debtsNotifier.NotifyDebtPaymentAsync(debt, pay, ct); } catch { /* ignore */ }
         return Ok(new { debt.Id, debt.Amount, debt.Status, payment = pay });
     }
+
+    // POST /api/debts
+    /// <summary>
+    /// Создать долг с позициями
+    /// </summary>
+    [HttpPost]
+    [Authorize(Policy = "ManagerOnly")]
+    public async Task<IActionResult> Create([FromBody] DebtCreateDto dto, CancellationToken ct)
+    {
+        if (dto == null) return ValidationProblem("Payload is required");
+        if (dto.ClientId <= 0) return ValidationProblem("ClientId is required");
+        if (dto.SaleId <= 0) return ValidationProblem("SaleId is required");
+        if (dto.Items == null || dto.Items.Count == 0) return ValidationProblem("Items are required");
+
+        var original = dto.Items.Sum(i => i.Qty * i.Price);
+
+        var debt = new Debt
+        {
+            ClientId = dto.ClientId,
+            SaleId = dto.SaleId,
+            Amount = original,
+            OriginalAmount = original,
+            DueDate = dto.DueDate == default ? DateTime.UtcNow.AddDays(14) : dto.DueDate,
+            Status = DebtStatus.Open,
+            Notes = dto.Notes,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = User?.Identity?.Name
+        };
+
+        foreach (var it in dto.Items)
+        {
+            debt.Items.Add(new DebtItem
+            {
+                ProductId = it.ProductId,
+                ProductName = it.ProductName,
+                Sku = it.Sku,
+                Qty = it.Qty,
+                Price = it.Price,
+                Total = it.Qty * it.Price,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        db.Debts.Add(debt);
+        await db.SaveChangesAsync(ct);
+
+        return Created($"/api/debts/{debt.Id}", new { debt.Id });
+    }
 }

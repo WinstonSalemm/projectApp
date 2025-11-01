@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.DebtCreatePage"
+             Title="Создание долга">
+  <ScrollView>
+    <VerticalStackLayout Padding="24" Spacing="16">
+      <Label Text="Создание долга" FontSize="24" FontAttributes="Bold" />
+
+      <!-- Основные поля -->
+      <Frame Style="{StaticResource CardFrame}">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+          <Label Text="ID клиента"/>
+          <Entry Grid.Column="1" Keyboard="Numeric" Text="{Binding ClientId}" Placeholder="например, 1"/>
+
+          <Label Grid.Row="1" Text="Срок оплаты"/>
+          <DatePicker Grid.Column="1" Grid.Row="1" Date="{Binding DueDate}"/>
+
+          <Label Grid.Row="2" Text="Примечание"/>
+          <Entry Grid.Column="1" Grid.Row="2" Text="{Binding Notes}" Placeholder="необязательно"/>
+        </Grid>
+      </Frame>
+
+      <!-- Позиции -->
+      <VerticalStackLayout Spacing="8">
+        <HorizontalStackLayout Spacing="12">
+          <Label Text="Позиции" FontAttributes="Bold" />
+          <Button Text="Добавить" Style="{StaticResource Button.Secondary}" Command="{Binding AddItemCommand}"/>
+        </HorizontalStackLayout>
+        <CollectionView ItemsSource="{Binding Items}">
+          <CollectionView.ItemTemplate>
+            <DataTemplate>
+              <Frame Style="{StaticResource CardFrame}" Padding="16" Margin="0,8,0,0">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="8">
+                  <Grid Grid.ColumnSpan="2" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="12">
+                    <Entry Placeholder="Товар (название)" Text="{Binding ProductName}" />
+                    <Entry Grid.Column="1" WidthRequest="80" Placeholder="ID" Keyboard="Numeric" Text="{Binding ProductId}" />
+                    <Entry Grid.Column="2" WidthRequest="100" Placeholder="SKU" Text="{Binding Sku}" />
+                    <Button Grid.Column="3" Text="Удалить" Style="{StaticResource Button.Tertiary}" Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.RemoveItemCommand}" CommandParameter="{Binding .}" />
+                  </Grid>
+                  <HorizontalStackLayout Grid.Row="1" Spacing="12">
+                    <Entry WidthRequest="90" Placeholder="Кол-во" Keyboard="Numeric" Text="{Binding Qty}" />
+                    <Entry WidthRequest="120" Placeholder="Цена" Keyboard="Numeric" Text="{Binding Price}" />
+                  </HorizontalStackLayout>
+                </Grid>
+              </Frame>
+            </DataTemplate>
+          </CollectionView.ItemTemplate>
+        </CollectionView>
+      </VerticalStackLayout>
+
+      <!-- Управление -->
+      <Button Text="Создать долг" Style="{StaticResource Button.Primary}" Command="{Binding CreateCommand}" />
+
+      <Label IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"
+             TextColor="{DynamicResource Color.Error}"
+             Text="{Binding ErrorMessage}" />
+
+      <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

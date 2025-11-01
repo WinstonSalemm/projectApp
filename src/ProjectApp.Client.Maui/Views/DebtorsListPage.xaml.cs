@@ -42,8 +42,7 @@ public partial class DebtorsListPage : ContentPage
 
     private async void OnCreateDebtClicked(object sender, EventArgs e)
     {
-        // На первом шаге направим пользователя к выбору клиента
-        var page = App.Services.GetService<ProjectApp.Client.Maui.Views.ClientsListPage>();
+        var page = App.Services.GetService<ProjectApp.Client.Maui.Views.DebtCreatePage>();
         if (page != null)
         {
             await NavigationHelper.PushAsync(page);

@@ -99,6 +99,22 @@ public class DebtorsApiService
             throw;
         }
     }
+
+    /// <summary>
+    /// Create a new debt with items
+    /// </summary>
+    public async Task<DebtCreateResponse?> CreateDebtAsync(DebtCreateRequest request)
+    {
+        try
+        {
+            return await _apiService.PostAsync<DebtCreateRequest, DebtCreateResponse>("/api/debts", request);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[DebtorsApiService] CreateDebtAsync error: {ex}");
+            throw;
+        }
+    }
 }
 
 public class PagedResponse<T>
@@ -117,4 +133,27 @@ public class DebtPaymentDto
     public DateTime PaidAt { get; set; }
     public string? Comment { get; set; }
     public string? CreatedBy { get; set; }
+}
+
+public class DebtCreateItemRequest
+{
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string? Sku { get; set; }
+    public decimal Qty { get; set; }
+    public decimal Price { get; set; }
+}
+
+public class DebtCreateRequest
+{
+    public int ClientId { get; set; }
+    public int SaleId { get; set; }
+    public DateTime DueDate { get; set; }
+    public string? Notes { get; set; }
+    public List<DebtCreateItemRequest> Items { get; set; } = new();
+}
+
+public class DebtCreateResponse
+{
+    public int Id { get; set; }
 }
