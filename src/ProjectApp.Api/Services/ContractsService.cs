@@ -101,14 +101,31 @@ public class ContractsService
             Note = note
         };
 
-        // 1) Проверяем доступный остаток в IM-40
+        // 1) Проверяем остатки IM-40 и ND-40
         var stockIm = await _db.Stocks.FirstOrDefaultAsync(
             s => s.ProductId == contractItem.ProductId && s.Register == StockRegister.IM40, ct);
         var imAvailable = stockIm?.Qty ?? 0m;
 
-        // 2) Если IM-40 недостаточно — пробуем сконвертировать недостающее из ND-40 в IM-40 через интеграционный сервис
-        if (imAvailable < qty)
+        var stockNd = await _db.Stocks.FirstOrDefaultAsync(
+            s => s.ProductId == contractItem.ProductId && s.Register == StockRegister.ND40, ct);
+        var ndAvailable = stockNd?.Qty ?? 0m;
+
+        // 2) Для ОТКРЫТЫХ договоров допускаем списание остатка из ND-40, если IM-40 не хватает
+        decimal imToDeduct = 0m;
+        decimal ndToDeduct = 0m;
+
+        if (imAvailable >= qty)
         {
+            imToDeduct = qty;
+        }
+        else if (contract.Type == ContractType.Open && (imAvailable + ndAvailable) >= qty)
+        {
+            imToDeduct = imAvailable > 0 ? imAvailable : 0m;
+            ndToDeduct = qty - imToDeduct;
+        }
+        else
+        {
+            // Старое поведение: пытаемся сконвертировать недостающее из ND→IM; при неуспехе — PendingConversion
             var missing = qty - imAvailable;
             try
             {
@@ -124,7 +141,6 @@ public class ContractsService
 
                 if (imAvailable < qty)
                 {
-                    // Недостаточно даже после успешной частичной конверсии — переводим в ожидание конверсии
                     delivery.Status = ShipmentStatus.PendingConversion;
                     delivery.MissingQtyForConversion = qty - imAvailable;
                     delivery.UnitPrice = contractItem.UnitPrice;
@@ -134,10 +150,11 @@ public class ContractsService
                     _logger.LogWarning("[ContractsService] Недостаточно IM-40 после конверсии (moved={Moved}). Отгрузка помечена как PendingConversion", moved);
                     return delivery;
                 }
+
+                imToDeduct = qty; // после успешной конверсии списываем всё из IM-40
             }
             catch (Exception ex)
             {
-                // Сервис конверсии недоступен — создаем Pending запись без списаний
                 delivery.Status = ShipmentStatus.PendingConversion;
                 delivery.MissingQtyForConversion = missing;
                 delivery.UnitPrice = contractItem.UnitPrice;
@@ -149,20 +166,40 @@ public class ContractsService
             }
         }
 
-        // 3) Списываем требуемое количество ТОЛЬКО из IM-40 (после возможной конверсии)
-        var (imBatches, _) = await DeductFromBatchesAsync(contractItem.ProductId.Value, StockRegister.IM40, qty, ct);
-        foreach (var b in imBatches)
+        // 3) Списываем из IM-40 и, при необходимости, из ND-40
+        if (imToDeduct > 0)
         {
-            delivery.Batches.Add(new ContractDeliveryBatch
+            var (imBatches, _) = await DeductFromBatchesAsync(contractItem.ProductId.Value, StockRegister.IM40, imToDeduct, ct);
+            foreach (var b in imBatches)
             {
-                BatchId = b.batchId,
-                RegisterAtDelivery = StockRegister.IM40,
-                Qty = b.qty,
-                UnitCost = b.unitCost
-            });
+                delivery.Batches.Add(new ContractDeliveryBatch
+                {
+                    BatchId = b.batchId,
+                    RegisterAtDelivery = StockRegister.IM40,
+                    Qty = b.qty,
+                    UnitCost = b.unitCost
+                });
+            }
+            if (stockIm != null)
+                stockIm.Qty -= imToDeduct;
         }
-        if (stockIm != null)
-            stockIm.Qty -= qty;
+
+        if (ndToDeduct > 0)
+        {
+            var (ndBatches, _) = await DeductFromBatchesAsync(contractItem.ProductId.Value, StockRegister.ND40, ndToDeduct, ct);
+            foreach (var b in ndBatches)
+            {
+                delivery.Batches.Add(new ContractDeliveryBatch
+                {
+                    BatchId = b.batchId,
+                    RegisterAtDelivery = StockRegister.ND40,
+                    Qty = b.qty,
+                    UnitCost = b.unitCost
+                });
+            }
+            if (stockNd != null)
+                stockNd.Qty -= ndToDeduct;
+        }
 
         _db.ContractDeliveries.Add(delivery);
         delivery.Status = ShipmentStatus.Completed;
