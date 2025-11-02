@@ -546,30 +546,45 @@ public class ContractsController : ControllerBase
         };
         _db.Contracts.Add(c);
         await _db.SaveChangesAsync(ct);
-        
-        // РЕЗЕРВИРОВАНИЕ ТОВАРА: списываем из партий
-        var reservationService = HttpContext.RequestServices.GetRequiredService<ContractReservationService>();
-        var reservationErrors = new List<string>();
-        
-        foreach (var item in c.Items.Where(i => i.ProductId.HasValue))
+
+        // ОТКРЫТЫЙ договор: добавление позиции = немедленная отгрузка всей позиции
+        if (c.Type == ContractType.Open)
         {
-            try
+            var userName = c.CreatedBy ?? (User?.Identity?.Name ?? "unknown");
+            foreach (var item in c.Items.Where(i => i.ProductId.HasValue))
             {
-                await reservationService.ReserveItemAsync(item, ct);
-                _logger.LogInformation("Reserved {Qty} of product {ProductId} for contract {ContractId}",
-                    item.Qty, item.ProductId, c.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to reserve product {ProductId} for contract {ContractId}", item.ProductId, c.Id);
-                reservationErrors.Add($"Product {item.Name}: {ex.Message}");
+                try
+                {
+                    await _contractsService.DeliverItemAsync(c.Id, item.Id, item.Qty, userName, "Auto-delivery (open contract)", ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Auto-delivery failed for product {ProductId} in open contract {ContractId}", item.ProductId, c.Id);
+                }
             }
         }
-        
-        if (reservationErrors.Any())
+        else
         {
-            _logger.LogWarning("Contract {ContractId} created with reservation errors: {Errors}",
-                c.Id, string.Join("; ", reservationErrors));
+            // ЗАКРЫТЫЙ договор: резервируем товар
+            var reservationService = HttpContext.RequestServices.GetRequiredService<ContractReservationService>();
+            var reservationErrors = new List<string>();
+            foreach (var item in c.Items.Where(i => i.ProductId.HasValue))
+            {
+                try
+                {
+                    await reservationService.ReserveItemAsync(item, ct);
+                    _logger.LogInformation("Reserved {Qty} of product {ProductId} for contract {ContractId}", item.Qty, item.ProductId, c.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to reserve product {ProductId} for contract {ContractId}", item.ProductId, c.Id);
+                    reservationErrors.Add($"Product {item.Name}: {ex.Message}");
+                }
+            }
+            if (reservationErrors.Any())
+            {
+                _logger.LogWarning("Contract {ContractId} created with reservation errors: {Errors}", c.Id, string.Join("; ", reservationErrors));
+            }
         }
 
         // КОМИССИЯ ПАРТНЕРУ: Если указан партнер и сумма комиссии - начисляем
