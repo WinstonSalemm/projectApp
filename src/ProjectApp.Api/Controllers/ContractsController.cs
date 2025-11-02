@@ -358,11 +358,13 @@ public class ContractsController : ControllerBase
                     {
                         await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN CommissionAgentId INTEGER NULL;", ct);
                     } catch { /* column exists */ }
-                    try
-                    {
-                        await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN CommissionAmount REAL NULL;", ct);
-                    } catch { /* column exists */ }
-    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "EnsureSchema failed");
+        }
     }
 
     [HttpGet]
