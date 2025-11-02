@@ -6,7 +6,7 @@ namespace ProjectApp.Client.Maui.Converters
 {
     public class BoolToColorConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo? culture)
         {
             var isTrue = value is bool b && b;
             // True -> Error color (overdue), False -> Secondary text color
@@ -24,6 +24,6 @@ namespace ProjectApp.Client.Maui.Converters
             return isTrue ? Colors.Red : Colors.Gray;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo? culture) => throw new NotImplementedException();
     }
 }

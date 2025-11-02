@@ -19,13 +19,13 @@
       <Frame Style="{StaticResource CardFrame}">
         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
           <Label Text="Сумма остатка:" />
-          <Label Grid.Column="1" Text="{Binding Debt.Amount, StringFormat={}{0:N0} сум}" FontAttributes="Bold" />
+          <Label Grid.Column="1" Text="{Binding Debt.Amount, StringFormat='{}{0:N0} сум'}" FontAttributes="Bold" />
 
           <Label Grid.Row="1" Text="Изначально:" />
-          <Label Grid.Row="1" Grid.Column="1" Text="{Binding Debt.OriginalAmount, StringFormat={}{0:N0} сум}" />
+          <Label Grid.Row="1" Grid.Column="1" Text="{Binding Debt.OriginalAmount, StringFormat='{}{0:N0} сум'}" />
 
           <Label Grid.Row="2" Text="Срок оплаты:" />
-          <Label Grid.Row="2" Grid.Column="1" Text="{Binding Debt.DueDate, StringFormat={}{0:dd.MM.yyyy}}" />
+          <Label Grid.Row="2" Grid.Column="1" Text="{Binding Debt.DueDate, StringFormat='{}{0:dd.MM.yyyy}'}" />
 
           <Label Grid.Row="3" Text="Статус:" />
           <Label Grid.Row="3" Grid.Column="1" Text="{Binding Debt.Status}" />
@@ -41,9 +41,17 @@
               <Frame Style="{StaticResource CardFrame}" Padding="16" Margin="0,8,0,0">
                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12">
                   <Label Text="{Binding ProductName}" FontAttributes="Bold" />
-                  <Label Grid.Column="1" Text="{Binding Total, StringFormat={}{0:N0} сум}" />
+                  <Label Grid.Column="1" Text="{Binding Total, StringFormat='{}{0:N0} сум'}" />
                   <Label Grid.Row="1" Text="{Binding Sku}" TextColor="{DynamicResource Color.Text.Secondary}" />
-                  <Label Grid.Row="1" Grid.Column="1" Text="{Binding Qty, StringFormat={}{0:N3}} x {Binding Price, StringFormat={}{0:N0}}" />
+                  <Label Grid.Row="1" Grid.Column="1">
+                    <Label.FormattedText>
+                      <FormattedString>
+                        <Span Text="{Binding Qty, StringFormat='{}{0:N3}'}" />
+                        <Span Text=" x " />
+                        <Span Text="{Binding Price, StringFormat='{}{0:N0}'}" />
+                      </FormattedString>
+                    </Label.FormattedText>
+                  </Label>
                 </Grid>
               </Frame>
             </DataTemplate>
@@ -62,8 +70,8 @@
             <DataTemplate>
               <Frame Style="{StaticResource CardFrame}" Padding="16" Margin="0,8,0,0">
                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12">
-                  <Label Text="{Binding PaidAt, StringFormat={}{0:dd.MM.yyyy HH:mm}}" />
-                  <Label Grid.Column="1" Text="{Binding Amount, StringFormat={}{0:N0} сум}" FontAttributes="Bold" />
+                  <Label Text="{Binding PaidAt, StringFormat='{}{0:dd.MM.yyyy HH:mm}'}" />
+                  <Label Grid.Column="1" Text="{Binding Amount, StringFormat='{}{0:N0} сум'}" FontAttributes="Bold" />
                   <Label Grid.Row="1" Text="{Binding Method}" TextColor="{DynamicResource Color.Text.Secondary}" />
                   <Label Grid.Row="1" Grid.Column="1" Text="{Binding Comment}" TextColor="{DynamicResource Color.Text.Secondary}" />
                 </Grid>

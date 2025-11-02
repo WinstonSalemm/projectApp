@@ -92,6 +92,13 @@
                 FontSize="18"
                 Command="{Binding SelectCommand}"
                 CommandParameter="Contract"/>
+        <Button Text="Долг"
+                Grid.Row="3"
+                Grid.Column="1"
+                HeightRequest="80"
+                FontSize="18"
+                Command="{Binding SelectCommand}"
+                CommandParameter="Debt"/>
       </Grid>
     </VerticalStackLayout>
   </ScrollView>

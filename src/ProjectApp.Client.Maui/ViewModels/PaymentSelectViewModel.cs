@@ -37,6 +37,14 @@ public partial class PaymentSelectViewModel : ObservableObject
             return;
         }
 
+        // Специальная обработка для долгов
+        if (paymentType == "Debt")
+        {
+            var debtorsPage = _services.GetRequiredService<DebtorsListPage>();
+            await NavigationHelper.PushAsync(debtorsPage);
+            return;
+        }
+
         if (!Enum.TryParse(paymentType, out PaymentType pt))
         {
             pt = PaymentType.CashWithReceipt;

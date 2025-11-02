@@ -87,7 +87,7 @@ public class ContractsController : ControllerBase
     {
         try
         {
-            #if false
+            #if true
             var provider = _db.Database.ProviderName ?? string.Empty;
 
             if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))

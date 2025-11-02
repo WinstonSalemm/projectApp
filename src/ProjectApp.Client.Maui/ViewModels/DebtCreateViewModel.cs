@@ -107,7 +107,7 @@ public partial class DebtCreateViewModel : ObservableObject
     }
 }
 
-public class DebtCreateItem : ObservableObject
+public partial class DebtCreateItem : ObservableObject
 {
     [ObservableProperty]
     private int productId;

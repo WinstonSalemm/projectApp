@@ -169,7 +169,7 @@ public partial class AnalyticsViewModel : ObservableObject
             
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("[AnalyticsViewModel] Failed to load manager stats: {StatusCode}", response.StatusCode);
+                _logger?.LogWarning("[AnalyticsViewModel] Failed to load manager stats: {StatusCode}", response.StatusCode);
                 return;
             }
 
@@ -211,7 +211,7 @@ public partial class AnalyticsViewModel : ObservableObject
                 });
             }
 
-            _logger.LogInformation("[AnalyticsViewModel] Loaded {Count} manager stats, HasNoStats={HasNoStats}", ManagerStats.Count, HasNoStats);
+            _logger?.LogInformation("[AnalyticsViewModel] Loaded {Count} manager stats, HasNoStats={HasNoStats}", ManagerStats.Count, HasNoStats);
         }
         catch (Exception ex)
         {
@@ -254,18 +254,18 @@ public partial class AnalyticsViewModel : ObservableObject
             
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("[AnalyticsViewModel] Failed to load products: {StatusCode}", response.StatusCode);
+                _logger?.LogWarning("[AnalyticsViewModel] Failed to load products: {StatusCode}", response.StatusCode);
                 return;
             }
 
             var responseText = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation("[AnalyticsViewModel] API Response: {Response}", responseText.Length > 500 ? responseText.Substring(0, 500) + "..." : responseText);
+            _logger?.LogInformation("[AnalyticsViewModel] API Response: {Response}", responseText.Length > 500 ? responseText.Substring(0, 500) + "..." : responseText);
             
             var pagedResult = await response.Content.ReadFromJsonAsync<PagedResultDto>();
             
             if (pagedResult?.Items != null)
             {
-                _logger.LogInformation("[AnalyticsViewModel] Got {Count} products from API", pagedResult.Items.Count);
+                _logger?.LogInformation("[AnalyticsViewModel] Got {Count} products from API", pagedResult.Items.Count);
                 
                 await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
                 {
@@ -277,7 +277,7 @@ public partial class AnalyticsViewModel : ObservableObject
                     
                     foreach (var product in pagedResult.Items.OrderBy(p => p.Sku))
                     {
-                        _logger.LogInformation("[AnalyticsViewModel] Adding product: {Sku} - {Name}", product.Sku, product.Name);
+                        _logger?.LogInformation("[AnalyticsViewModel] Adding product: {Sku} - {Name}", product.Sku, product.Name);
                         var row = new ProductCostRow
                         {
                             ProductId = product.Id,
@@ -305,14 +305,14 @@ public partial class AnalyticsViewModel : ObservableObject
             }
             else
             {
-                _logger.LogWarning("[AnalyticsViewModel] pagedResult or Items is null");
+                _logger?.LogWarning("[AnalyticsViewModel] pagedResult or Items is null");
             }
 
-            _logger.LogInformation("[AnalyticsViewModel] Loaded {Count} products to UI", ProductCosts.Count);
+            _logger?.LogInformation("[AnalyticsViewModel] Loaded {Count} products to UI", ProductCosts.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[AnalyticsViewModel] Failed to load products");
+            _logger?.LogError(ex, "[AnalyticsViewModel] Failed to load products");
         }
         finally
         {
@@ -333,7 +333,7 @@ public partial class AnalyticsViewModel : ObservableObject
             
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("[AnalyticsViewModel] Updated cost for product {ProductId}", product.ProductId);
+                _logger?.LogInformation("[AnalyticsViewModel] Updated cost for product {ProductId}", product.ProductId);
                 await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
                 {
                     await Microsoft.Maui.Controls.Application.Current!.MainPage!.DisplayAlert("Успех", "Себестоимость обновлена", "OK");
@@ -341,12 +341,12 @@ public partial class AnalyticsViewModel : ObservableObject
             }
             else
             {
-                _logger.LogWarning("[AnalyticsViewModel] Failed to update cost: {StatusCode}", response.StatusCode);
+                _logger?.LogWarning("[AnalyticsViewModel] Failed to update cost: {StatusCode}", response.StatusCode);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[AnalyticsViewModel] Failed to save product cost");
+            _logger?.LogError(ex, "[AnalyticsViewModel] Failed to save product cost");
         }
     }
     
