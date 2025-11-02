@@ -87,6 +87,7 @@ public class ContractsController : ControllerBase
     {
         try
         {
+            #if false
             var provider = _db.Database.ProviderName ?? string.Empty;
 
             if (provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
@@ -360,7 +361,7 @@ public class ContractsController : ControllerBase
                     } catch { /* column exists */ }
                 }
             }
-        }
+        #endif
         catch (Exception ex)
         {
             _logger.LogError(ex, "EnsureSchema failed");
