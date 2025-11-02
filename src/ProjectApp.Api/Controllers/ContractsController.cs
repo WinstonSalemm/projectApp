@@ -360,7 +360,6 @@ public class ContractsController : ControllerBase
                         await _db.Database.ExecuteSqlRawAsync(@"ALTER TABLE Contracts ADD COLUMN CommissionAgentId INTEGER NULL;", ct);
                     } catch { /* column exists */ }
                 }
-            }
         #endif
         }
         catch (Exception ex)
