@@ -362,6 +362,7 @@ public class ContractsController : ControllerBase
                 }
             }
         #endif
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "EnsureSchema failed");
