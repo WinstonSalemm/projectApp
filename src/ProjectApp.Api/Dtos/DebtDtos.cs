@@ -57,21 +57,3 @@ public class DebtDetailsDto
     public DateTime CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
 }
-
-public class DebtCreateItemDto
-{
-    public int ProductId { get; set; }
-    public string ProductName { get; set; } = string.Empty;
-    public string? Sku { get; set; }
-    public decimal Qty { get; set; }
-    public decimal Price { get; set; }
-}
-
-public class DebtCreateDto
-{
-    public int ClientId { get; set; }
-    public int SaleId { get; set; }
-    public DateTime DueDate { get; set; }
-    public string? Notes { get; set; }
-    public List<DebtCreateItemDto> Items { get; set; } = new();
-}
