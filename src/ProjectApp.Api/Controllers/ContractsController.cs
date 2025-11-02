@@ -47,7 +47,8 @@ public class ContractsController : ControllerBase
                 Qty = d.Qty,
                 DeliveredAt = d.DeliveredAt,
                 Note = d.Note,
-                Status = d.Status.ToString()
+                Status = d.Status.ToString(),
+                UsedNd40 = d.Batches.Any(b => b.RegisterAtDelivery == StockRegister.ND40)
             });
         }
         catch (InvalidOperationException ex)
@@ -425,9 +426,22 @@ public class ContractsController : ControllerBase
             .Include(x => x.Items)
             .Include(x => x.Payments)
             .Include(x => x.Deliveries)
+                .ThenInclude(d => d.Batches)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (c is null) return NotFound();
         
+        // Признак предупреждения ND-40: есть ли отгрузки с ND-40 и при этом по этим товарам ещё есть остатки на ND-40
+        var ndProducts = c.Deliveries
+            .Where(d => d.Batches.Any(b => b.RegisterAtDelivery == StockRegister.ND40))
+            .Select(d => d.ProductId)
+            .Distinct()
+            .ToList();
+        var ndWarning = false;
+        if (ndProducts.Count > 0)
+        {
+            ndWarning = await _db.Stocks.AnyAsync(s => ndProducts.Contains(s.ProductId) && s.Register == StockRegister.ND40 && s.Qty > 0, ct);
+        }
+
         var dto = new ContractDto
         {
             Id = c.Id,
@@ -474,8 +488,10 @@ public class ContractsController : ControllerBase
                 Qty = d.Qty,
                 DeliveredAt = d.DeliveredAt,
                 Note = d.Note,
-                Status = d.Status.ToString()
-            }).OrderByDescending(d => d.DeliveredAt).ToList()
+                Status = d.Status.ToString(),
+                UsedNd40 = d.Batches.Any(b => b.RegisterAtDelivery == StockRegister.ND40)
+            }).OrderByDescending(d => d.DeliveredAt).ToList(),
+            NdWarning = ndWarning
         };
         return Ok(dto);
     }
@@ -720,7 +736,17 @@ public class ContractsController : ControllerBase
         {
             var userName = User?.Identity?.Name ?? "unknown";
             var delivery = await _contractsService.DeliverItemAsync(id, dto.ContractItemId, dto.Qty, userName, dto.Note, ct);
-            return Created($"/api/contracts/{id}/deliveries/{delivery.Id}", delivery);
+            var dtoOut = new ContractDeliveryDto
+            {
+                Id = delivery.Id,
+                ContractItemId = delivery.ContractItemId,
+                Qty = delivery.Qty,
+                DeliveredAt = delivery.DeliveredAt,
+                Note = delivery.Note,
+                Status = delivery.Status.ToString(),
+                UsedNd40 = delivery.Batches.Any(b => b.RegisterAtDelivery == StockRegister.ND40)
+            };
+            return Created($"/api/contracts/{id}/deliveries/{delivery.Id}", dtoOut);
         }
         catch (InvalidOperationException ex)
         {
@@ -797,6 +823,20 @@ public class ContractsController : ControllerBase
             contract.TotalItemsCount++;
             
             await _db.SaveChangesAsync(ct);
+
+            // Для ОТКРЫТОГО договора: сразу отгружаем добавленную позицию целиком
+            if (contract.Type == ContractType.Open)
+            {
+                try
+                {
+                    var userName = User?.Identity?.Name ?? "unknown";
+                    await _contractsService.DeliverItemAsync(id, item.Id, item.Qty, userName, "Auto-delivery (open contract)", ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Auto-delivery after AddItem failed for contract {ContractId}, item {ItemId}", id, item.Id);
+                }
+            }
 
             return Created($"/api/contracts/{id}/items/{item.Id}", new { id = item.Id });
         }

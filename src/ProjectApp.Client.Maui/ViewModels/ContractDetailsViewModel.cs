@@ -27,6 +27,7 @@ public partial class ContractDetailsViewModel : ObservableObject
     [ObservableProperty] private int totalItemsCount;
     [ObservableProperty] private int deliveredItemsCount;
     [ObservableProperty] private string note = string.Empty;
+    [ObservableProperty] private bool ndWarning;
 
     public ObservableCollection<ContractItemRow> Items { get; } = new();
     public ObservableCollection<PaymentRow> Payments { get; } = new();
@@ -132,6 +133,7 @@ public partial class ContractDetailsViewModel : ObservableObject
                 TotalItemsCount = contract.TotalItemsCount;
                 DeliveredItemsCount = contract.DeliveredItemsCount;
                 Note = contract.Note ?? "";
+                NdWarning = contract.NdWarning;
 
                 Items.Clear();
                 foreach (var item in contract.Items)
@@ -170,7 +172,8 @@ public partial class ContractDetailsViewModel : ObservableObject
                         Qty = delivery.Qty,
                         DeliveredAt = delivery.DeliveredAt,
                         Note = delivery.Note ?? "",
-                        Status = delivery.Status ?? "Completed"
+                        Status = delivery.Status ?? "Completed",
+                        UsedNd40 = delivery.UsedNd40
                     });
                 }
 
@@ -276,6 +279,10 @@ public partial class ContractDetailsViewModel : ObservableObject
             if (created != null && string.Equals(created.Status, "PendingConversion", StringComparison.OrdinalIgnoreCase))
             {
                 await Application.Current.MainPage.DisplayAlert("Ожидает конверсии", "Недостаточно на IM-40. Конвертируем из ND-40… Отгрузка помечена как ‘Ожидает конверсии’.", "OK");
+            }
+            else if (created != null && created.UsedNd40)
+            {
+                await Application.Current.MainPage.DisplayAlert("Отгрузка из ND-40", "Товар отгружен за счёт ND-40. После перевода поставки в IM-40 предупреждение исчезнет.", "OK");
             }
             else
             {
@@ -401,6 +408,18 @@ public partial class ContractDetailsViewModel : ObservableObject
                         {
                             var err2 = await resp2.Content.ReadAsStringAsync();
                             _logger.LogWarning("Auto-delivery failed: {Err}", err2);
+                        }
+                        else
+                        {
+                            try
+                            {
+                                var created2 = await resp2.Content.ReadFromJsonAsync<ContractDeliveryDto>();
+                                if (created2 != null && created2.UsedNd40)
+                                {
+                                    await Application.Current.MainPage.DisplayAlert("Отгрузка из ND-40", "Товар отгружен за счёт ND-40. После перевода поставки в IM-40 предупреждение исчезнет.", "OK");
+                                }
+                            }
+                            catch { }
                         }
                     }
                 }
@@ -544,6 +563,7 @@ public partial class ContractDetailsViewModel : ObservableObject
         public DateTime DeliveredAt { get; set; }
         public string Note { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty; // Completed | PendingConversion | Cancelled
+        public bool UsedNd40 { get; set; }
         public bool IsPending => string.Equals(Status, "PendingConversion", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -563,6 +583,7 @@ public partial class ContractDetailsViewModel : ObservableObject
         public List<ContractItemDto> Items { get; set; } = new();
         public List<ContractPaymentDto> Payments { get; set; } = new();
         public List<ContractDeliveryDto> Deliveries { get; set; } = new();
+        public bool NdWarning { get; set; }
     }
 
     private class ContractItemDto
@@ -592,5 +613,6 @@ public partial class ContractDetailsViewModel : ObservableObject
         public DateTime DeliveredAt { get; set; }
         public string? Note { get; set; }
         public string? Status { get; set; }
+        public bool UsedNd40 { get; set; }
     }
 }

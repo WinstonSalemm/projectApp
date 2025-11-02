@@ -44,6 +44,21 @@
         </Border>
       </Grid>
 
+      <!-- ND-40 Warning Banner -->
+      <Border StrokeThickness="1"
+              Stroke="{DynamicResource Color.Warning}"
+              BackgroundColor="{DynamicResource Color.Surface}"
+              Padding="12"
+              StrokeShape="RoundRectangle 8"
+              IsVisible="{Binding NdWarning}">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+          <Label Text="⚠️" VerticalTextAlignment="Center"/>
+          <Label Grid.Column="1"
+                 Text="Часть товара отгружена из ND-40. После перевода поставки в IM-40 предупреждение исчезнет."
+                 TextColor="{DynamicResource Color.Text.Secondary}"/>
+        </Grid>
+      </Border>
+
       <!-- Финансы -->
       <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12">
         <VerticalStackLayout Spacing="12">

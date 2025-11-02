@@ -43,6 +43,7 @@ public class ContractDto
     public List<ContractItemDto> Items { get; set; } = new();
     public List<ContractPaymentDto> Payments { get; set; } = new();
     public List<ContractDeliveryDto> Deliveries { get; set; } = new();
+    public bool NdWarning { get; set; } // true, если есть отгрузки с использованием ND-40 и остатки ND-40 еще есть
 }
 
 public class ContractPaymentDto
@@ -61,6 +62,7 @@ public class ContractDeliveryDto
     public DateTime DeliveredAt { get; set; }
     public string? Note { get; set; }
     public string Status { get; set; } = "Completed";
+    public bool UsedNd40 { get; set; }  // true, если при отгрузке брали из ND-40
 }
 
 public class ContractCreateDto
