@@ -3,7 +3,7 @@
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "src/ProjectApp.Api/Dockerfile",
-    "buildContext": "src/ProjectApp.Api"
+    "buildContext": "."
   },
   "deploy": {
     "startCommand": "dotnet ProjectApp.Api.dll",

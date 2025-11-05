@@ -1,19 +1,24 @@
 # Railway Setup Instructions
 
-## Проблема
-API возвращает ошибки 500 при попытке получить данные из БД.
+## Обязательные настройки для деплоя API
 
-## Причина
-Скорее всего, не настроена переменная окружения `ConnectionStrings__DefaultConnection` на Railway.
+### 1. Переменные окружения на Railway
 
-## Решение
+В настройках проекта API на Railway добавьте следующие переменные:
 
-### 1. Проверьте переменные окружения на Railway
-
-Зайдите в проект на Railway и проверьте, что установлены следующие переменные:
-
+**Подключение к БД:**
 ```
-ConnectionStrings__DefaultConnection=Server=<MYSQL_HOST>;Port=<MYSQL_PORT>;Database=<MYSQL_DATABASE>;User=<MYSQL_USER>;Password=<MYSQL_PASSWORD>;
+ConnectionStrings__DefaultConnection=Server=<MYSQL_HOST>;Port=<MYSQL_PORT>;Database=<MYSQL_DATABASE>;User=<MYSQL_USER>;Password=<MYSQL_PASSWORD>;SslMode=Required;
+```
+
+**Порт (опционально, Railway подставит автоматически):**
+```
+ASPNETCORE_URLS=http://0.0.0.0:$PORT
+```
+
+**Окружение:**
+```
+ASPNETCORE_ENVIRONMENT=Production
 ```
 
 ### 2. Формат строки подключения MySQL
