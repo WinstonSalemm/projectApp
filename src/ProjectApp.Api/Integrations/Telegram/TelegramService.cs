@@ -9,6 +9,7 @@ public interface ITelegramService
     Task<bool> SendMessageAsync(long chatId, string text, object? replyMarkup, CancellationToken ct = default);
     Task<bool> SendMessageAsync(long chatId, string text, string? parseMode, object? replyMarkup, CancellationToken ct = default);
     Task<bool> SendPhotoAsync(long chatId, Stream fileStream, string fileName, string? caption = null, string? parseMode = null, CancellationToken ct = default);
+    Task<bool> SendDocumentAsync(long chatId, Stream fileStream, string fileName, string? caption = null, CancellationToken ct = default);
     Task<bool> SetWebhookAsync(string url, string? secretToken, CancellationToken ct = default);
     Task<bool> DeleteWebhookAsync(CancellationToken ct = default);
     Task<string> GetWebhookInfoAsync(CancellationToken ct = default);
@@ -63,6 +64,20 @@ public class TelegramService(IHttpClientFactory httpClientFactory, IOptions<Tele
         if (!string.IsNullOrWhiteSpace(caption)) content.Add(new StringContent(caption), "caption");
         if (!string.IsNullOrWhiteSpace(parseMode)) content.Add(new StringContent(parseMode), "parse_mode");
         var resp = await client.PostAsync("sendPhoto", content, ct);
+        return resp.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> SendDocumentAsync(long chatId, Stream fileStream, string fileName, string? caption = null, CancellationToken ct = default)
+    {
+        var client = CreateClient();
+        using var content = new MultipartFormDataContent();
+        var fileContent = new StreamContent(fileStream);
+        // Content-Type определяется Telegram автоматически по расширению, оставим generic octet-stream
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+        content.Add(fileContent, "document", fileName);
+        content.Add(new StringContent(chatId.ToString()), "chat_id");
+        if (!string.IsNullOrWhiteSpace(caption)) content.Add(new StringContent(caption), "caption");
+        var resp = await client.PostAsync("sendDocument", content, ct);
         return resp.IsSuccessStatusCode;
     }
 

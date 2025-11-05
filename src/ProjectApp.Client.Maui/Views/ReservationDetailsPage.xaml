@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             xmlns:svc="clr-namespace:ProjectApp.Client.Maui.Services"
+             x:Class="ProjectApp.Client.Maui.Views.ReservationDetailsPage"
+             x:DataType="viewModels:ReservationDetailsViewModel"
+             Title="Детали брони">
+  <ScrollView>
+    <VerticalStackLayout Padding="16" Spacing="12">
+      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+        <Label Grid.Row="0" Grid.ColumnSpan="2" Text="Детали брони" FontSize="20" FontAttributes="Bold" />
+        <Label Grid.Row="1" Grid.Column="0" Text="Клиент" TextColor="Gray" />
+        <Label Grid.Row="1" Grid.Column="1" Text="{Binding ClientName}" />
+        <Label Grid.Row="2" Grid.Column="0" Text="Телефон" TextColor="Gray" />
+        <Label Grid.Row="2" Grid.Column="1" Text="{Binding ClientPhone}" />
+        <Label Grid.Row="3" Grid.Column="0" Text="Менеджер" TextColor="Gray" />
+        <Label Grid.Row="3" Grid.Column="1" Text="{Binding CreatedBy}" />
+        <Label Grid.Row="4" Grid.Column="0" Text="Срок" TextColor="Gray" />
+        <Label Grid.Row="4" Grid.Column="1" Text="{Binding ReservedUntil, StringFormat='{0:dd.MM.yyyy HH:mm}'}" />
+      </Grid>
+
+      <Border StrokeThickness="1" Padding="12">
+        <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto">
+          <Label Grid.Column="0" Text="Итого" />
+          <Label Grid.Column="1" Text="Оплачено" />
+          <Label Grid.Column="2" Text="Осталось" />
+          <Label Grid.Row="1" Grid.Column="0" Text="{Binding Total, StringFormat='{0:N0} UZS'}" FontAttributes="Bold" />
+          <Label Grid.Row="1" Grid.Column="1" Text="{Binding PaidAmount, StringFormat='{0:N0} UZS'}" FontAttributes="Bold" />
+          <Label Grid.Row="1" Grid.Column="2" Text="{Binding DueAmount, StringFormat='{0:N0} UZS'}" FontAttributes="Bold" />
+        </Grid>
+      </Border>
+
+      <Label Text="Позиции" FontAttributes="Bold" />
+      <CollectionView ItemsSource="{Binding Items}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Grid Padding="8" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto"
+                  xmlns:svc="clr-namespace:ProjectApp.Client.Maui.Services"
+                  x:DataType="svc:ReservationItemRow">
+              <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontAttributes="Bold" />
+              <Label Grid.Row="0" Grid.Column="1" Text="{Binding UnitPrice, StringFormat='{0:N0} UZS'}" />
+              <Label Grid.Row="1" Grid.Column="0" Text="{Binding Sku}" TextColor="Gray" />
+              <Label Grid.Row="1" Grid.Column="1" Text="{Binding Qty, StringFormat='x {0:0.###}'}" />
+            </Grid>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+
+      <Label Text="Платежи" FontAttributes="Bold" />
+      <CollectionView ItemsSource="{Binding Payments}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Grid Padding="8" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto"
+                  xmlns:svc="clr-namespace:ProjectApp.Client.Maui.Services"
+                  x:DataType="svc:ReservationPaymentRow">
+              <Label Grid.Row="0" Grid.Column="0" Text="{Binding Method}" />
+              <Label Grid.Row="0" Grid.Column="1" Text="{Binding Amount, StringFormat='{0:N0} UZS'}" />
+              <Label Grid.Row="1" Grid.Column="0" Text="{Binding PaidAt, StringFormat='{0:dd.MM.yyyy HH:mm}'}" TextColor="Gray" />
+              <Label Grid.Row="1" Grid.Column="1" Text="{Binding ReceivedBy}" TextColor="Gray" />
+            </Grid>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+
+      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="8">
+        <Label Grid.Row="0" Grid.Column="0" Text="Частичная оплата" />
+        <Entry Grid.Row="0" Grid.Column="1" Keyboard="Numeric" Text="{Binding PartialAmount}" WidthRequest="140" />
+        <Picker Grid.Row="1" Grid.Column="0" Title="Метод" SelectedItem="{Binding SelectedMethod}">
+          <Picker.ItemsSource>
+            <x:Array Type="{x:Type svc:ReservationPaymentMethod}">
+              <svc:ReservationPaymentMethod>Cash</svc:ReservationPaymentMethod>
+              <svc:ReservationPaymentMethod>Card</svc:ReservationPaymentMethod>
+              <svc:ReservationPaymentMethod>Click</svc:ReservationPaymentMethod>
+              <svc:ReservationPaymentMethod>Other</svc:ReservationPaymentMethod>
+            </x:Array>
+          </Picker.ItemsSource>
+        </Picker>
+        <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="8">
+          <Button Text="Внести" Command="{Binding PayPartialCommand}" />
+          <Button Text="Оплатить 100%" Command="{Binding PayFullCommand}" />
+        </HorizontalStackLayout>
+      </Grid>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

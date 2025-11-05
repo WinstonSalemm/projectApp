@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             x:Class="ProjectApp.Client.Maui.Views.ReservationCreatePage"
+             x:DataType="viewModels:ReservationCreateViewModel"
+             Title="Новая бронь">
+  <ContentPage.ToolbarItems>
+    <ToolbarItem Text="Оформить" Priority="0" Order="Primary" Command="{Binding SubmitCommand}" />
+  </ContentPage.ToolbarItems>
+  <ScrollView>
+    <VerticalStackLayout Padding="16" Spacing="12">
+      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto">
+        <Label Text="{Binding ClientName}" FontAttributes="Bold" />
+        <Button Grid.Column="1" Text="Выбрать клиента" Clicked="OnSelectClientClicked" />
+      </Grid>
+
+      <Button Text="Добавить товар" Clicked="OnAddProductClicked" />
+
+      <CollectionView ItemsSource="{Binding Items}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Grid Padding="8" ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto"
+                  xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+                  x:DataType="viewModels:ReservationCreateViewModel+ItemRow">
+              <Label Grid.Row="0" Grid.ColumnSpan="3" Text="{Binding Name}" FontAttributes="Bold" />
+              <Label Grid.Row="1" Grid.Column="0" Text="{Binding Sku}" TextColor="Gray" />
+              <Entry Grid.Row="1" Grid.Column="1" WidthRequest="80" Keyboard="Numeric" Text="{Binding Qty}" />
+              <Button Grid.Row="1" Grid.Column="2" Text="Удалить" CommandParameter="{Binding .}" Clicked="OnRemoveClicked" />
+            </Grid>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+
+      <Editor Placeholder="Заметка (необязательно)" Text="{Binding Note}" AutoSize="TextChanges" />
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

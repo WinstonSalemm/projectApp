@@ -107,6 +107,7 @@ public partial class ProductSelectViewModel : ObservableObject
     {
         try
         {
+            if (IsBusy) return;
             IsBusy = true;
             HasError = false;
             ErrorMessage = null;
@@ -132,10 +133,21 @@ public partial class ProductSelectViewModel : ObservableObject
             }
             
             var stockMap = stockList?.ToDictionary(s => (int)s.ProductId, s => s) ?? new Dictionary<int, dynamic>();
+            bool onlyIm40Visible = _session.PaymentType == PaymentType.CashWithReceipt
+                                    || _session.PaymentType == PaymentType.CardWithReceipt
+                                    || _session.PaymentType == PaymentType.ClickWithReceipt;
+            bool onlyNd40Visible = _session.PaymentType == PaymentType.CashNoReceipt
+                                   || _session.PaymentType == PaymentType.ClickNoReceipt
+                                   || _session.PaymentType == PaymentType.Click // legacy
+                                   || _session.PaymentType == PaymentType.Debt;
             foreach (var p in list ?? Enumerable.Empty<dynamic>())
             {
                 dynamic? stock = null;
                 stockMap.TryGetValue(p.Id, out stock);
+                var nd = stock != null ? (decimal)stock.Nd40Qty : 0m;
+                var im = stock != null ? (decimal)stock.Im40Qty : 0m;
+                var total = stock != null ? (decimal)stock.TotalQty : (im + nd);
+                var visible = onlyIm40Visible ? im : (onlyNd40Visible ? nd : total);
                 Results.Add(new ProductRow
                 {
                     Id = p.Id,
@@ -143,9 +155,9 @@ public partial class ProductSelectViewModel : ObservableObject
                     Name = p.Name,
                     Unit = p.Unit,
                     Price = p.Price,
-                    Nd40Qty = stock != null ? (decimal)stock.Nd40Qty : 0,
-                    Im40Qty = stock != null ? (decimal)stock.Im40Qty : 0,
-                    TotalQty = stock != null ? (decimal)stock.TotalQty : 0
+                    Nd40Qty = nd,
+                    Im40Qty = im,
+                    TotalQty = visible
                 });
             }
             _logger.LogInformation("[ProductSelectViewModel] SearchAsync completed: {Count} results", Results.Count);

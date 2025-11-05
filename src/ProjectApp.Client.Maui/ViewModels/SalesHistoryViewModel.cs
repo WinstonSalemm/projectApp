@@ -26,6 +26,9 @@ public partial class SalesHistoryViewModel : ObservableObject
     [ObservableProperty]
     private bool showAll;
 
+    [ObservableProperty]
+    private bool ndImOnly; // Показывать только продажи с ND→IM позициями
+
     public SalesHistoryViewModel(ApiSalesService sales, AuthService auth, IServiceProvider services)
     {
         _sales = sales;
@@ -45,8 +48,8 @@ public partial class SalesHistoryViewModel : ObservableObject
             System.Diagnostics.Debug.WriteLine("[SalesHistoryViewModel] Checking auth...");
             var isAdmin = string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
             var createdBy = (ShowAll || isAdmin) ? null : _auth.UserName;
-            System.Diagnostics.Debug.WriteLine($"[SalesHistoryViewModel] Calling API GetSalesAsync (ShowAll={ShowAll}, createdBy={createdBy ?? "null"})...");
-            var list = await _sales.GetSalesAsync(DateFrom, DateTo, createdBy: createdBy, all: ShowAll);
+            System.Diagnostics.Debug.WriteLine($"[SalesHistoryViewModel] Calling API GetSalesAsync (ShowAll={ShowAll}, createdBy={createdBy ?? "null"}, nd40Transferred={(NdImOnly ? "true" : "null")})...");
+            var list = await _sales.GetSalesAsync(DateFrom, DateTo, createdBy: createdBy, all: ShowAll, nd40Transferred: (NdImOnly ? true : (bool?)null));
             int count = list == null ? 0 : list.Count();
             System.Diagnostics.Debug.WriteLine($"[SalesHistoryViewModel] API returned {count} sales");
             await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
@@ -63,7 +66,8 @@ public partial class SalesHistoryViewModel : ObservableObject
                         PaymentType = pt,
                         Total = s.Total,
                         CreatedAt = s.CreatedAt,
-                        CreatedBy = s.CreatedBy
+                        CreatedBy = s.CreatedBy,
+                        Nd40Transferred = s.Nd40Transferred
                     });
                 }
             });
@@ -88,6 +92,19 @@ public partial class SalesHistoryViewModel : ObservableObject
         var page = _services.GetService<ProjectApp.Client.Maui.Views.ReturnForSalePage>();
         if (page is null) return;
         if (page.BindingContext is ProjectApp.Client.Maui.ViewModels.ReturnForSaleViewModel vm)
+        {
+            await vm.LoadAsync(sale.Id);
+        }
+        await NavigationHelper.PushAsync(page);
+    }
+
+    [RelayCommand]
+    private async Task OpenEditAsync(SaleModel? sale)
+    {
+        if (sale is null) return;
+        var page = _services.GetService<ProjectApp.Client.Maui.Views.SaleEditPage>();
+        if (page is null) return;
+        if (page.BindingContext is ProjectApp.Client.Maui.ViewModels.SaleEditViewModel vm)
         {
             await vm.LoadAsync(sale.Id);
         }

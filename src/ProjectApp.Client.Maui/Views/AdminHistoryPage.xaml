@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjectApp.Client.Maui.Views.AdminHistoryPage"
+             Title="История">
+
+  <ScrollView>
+    <VerticalStackLayout Padding="24" Spacing="24" HorizontalOptions="Center" VerticalOptions="Center">
+      <Border StrokeThickness="0"
+              BackgroundColor="{DynamicResource Color.Surface}"
+              StrokeShape="RoundRectangle 80"
+              WidthRequest="160"
+              HeightRequest="160"
+              HorizontalOptions="Center"
+              VerticalOptions="Center">
+        <VerticalStackLayout HorizontalOptions="Center"
+                              VerticalOptions="Center"
+                              Spacing="0">
+          <Label Text="🕘"
+                 FontSize="64"
+                 HorizontalTextAlignment="Center" />
+          <Label Text="История"
+                 FontSize="14"
+                 HorizontalTextAlignment="Center"
+                 TextColor="{DynamicResource Color.Text.Secondary}" />
+        </VerticalStackLayout>
+      </Border>
+
+      <Label Text="{Binding PageTitle}"
+             FontSize="28"
+             FontAttributes="Bold"
+             HorizontalTextAlignment="Center"
+             TextColor="{DynamicResource Color.Text.Primary}" />
+
+      <Label Text="{Binding PlaceholderDescription}"
+             FontSize="16"
+             HorizontalTextAlignment="Center"
+             TextColor="{DynamicResource Color.Text.Secondary}" />
+
+      <Border Stroke="{DynamicResource Color.Border}"
+              StrokeThickness="1"
+              StrokeShape="RoundRectangle 12"
+              Padding="16">
+        <VerticalStackLayout Spacing="8">
+          <Label Text="Что планируем добавить"
+                 FontAttributes="Bold"
+                 TextColor="{DynamicResource Color.Text.Primary}" />
+          <Label Text="• История действий администраторов"
+                 TextColor="{DynamicResource Color.Text.Secondary}" />
+          <Label Text="• Отдельные вкладки по операциям"
+                 TextColor="{DynamicResource Color.Text.Secondary}" />
+          <Label Text="• Фильтры и поиск по ключевым событиям"
+                 TextColor="{DynamicResource Color.Text.Secondary}" />
+        </VerticalStackLayout>
+      </Border>
+
+      <Label Text="Скоро добавим детали и API"
+             FontSize="14"
+             FontAttributes="Italic"
+             HorizontalTextAlignment="Center"
+             TextColor="{DynamicResource Color.Text.Tertiary}" />
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

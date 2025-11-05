@@ -6,89 +6,105 @@
              x:DataType="vm:AnalyticsViewModel"
              Title="Финансовая аналитика"
              BackgroundColor="{DynamicResource Color.Background}">
-  
-  <ScrollView Padding="16">
-    <VerticalStackLayout Spacing="16">
-      <Label Text="📊 Финансовая аналитика" FontSize="24" FontAttributes="Bold" Margin="0,0,0,8"/>
-      
-      <!-- Переключатель периода -->
-      <HorizontalStackLayout Spacing="12" Margin="0,0,0,16">
-        <Border x:Name="PeriodMonth" Padding="16,8" BackgroundColor="{DynamicResource Color.Primary}" StrokeThickness="0" StrokeShape="RoundRectangle 20">
-          <Border.GestureRecognizers>
-            <TapGestureRecognizer Tapped="OnMonthTapped"/>
-          </Border.GestureRecognizers>
-          <Label Text="Месяц" TextColor="White" FontSize="14" FontAttributes="Bold"/>
-        </Border>
-        
-        <Border x:Name="PeriodYear" Padding="16,8" BackgroundColor="Transparent" StrokeThickness="1" Stroke="{DynamicResource Color.Border}" StrokeShape="RoundRectangle 20">
-          <Border.GestureRecognizers>
-            <TapGestureRecognizer Tapped="OnYearTapped"/>
-          </Border.GestureRecognizers>
-          <Label Text="Год" TextColor="{DynamicResource Color.Text.Primary}" FontSize="14"/>
-        </Border>
-        
-        <Border Padding="16,8" BackgroundColor="Transparent" StrokeThickness="1" Stroke="{DynamicResource Color.Border}" StrokeShape="RoundRectangle 20">
-          <Border.GestureRecognizers>
-            <TapGestureRecognizer Tapped="OnRefreshTapped"/>
-          </Border.GestureRecognizers>
-          <Label Text="🔄 Обновить" TextColor="{DynamicResource Color.Text.Primary}" FontSize="14"/>
-        </Border>
-      </HorizontalStackLayout>
-      
-      <!-- KPI карточки -->
-      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
-        <!-- Выручка -->
-        <Border Grid.Row="0" Grid.Column="0" StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12">
-          <VerticalStackLayout Spacing="8">
-            <Label Text="💰 Выручка" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
-            <Label Text="{Binding FinanceRevenue, StringFormat='{0:N0} сум'}" FontSize="20" FontAttributes="Bold"/>
-          </VerticalStackLayout>
-        </Border>
-        
-        <!-- Валовая прибыль -->
-        <Border Grid.Row="0" Grid.Column="1" StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12">
-          <VerticalStackLayout Spacing="8">
-            <Label Text="📈 Вал. прибыль" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
-            <Label Text="{Binding FinanceGrossProfit, StringFormat='{0:N0} сум'}" FontSize="20" FontAttributes="Bold" TextColor="{DynamicResource Color.Success}"/>
-          </VerticalStackLayout>
-        </Border>
-        
-        <!-- Маржа -->
-        <Border Grid.Row="1" Grid.Column="0" StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12">
-          <VerticalStackLayout Spacing="8">
-            <Label Text="🎯 Маржа" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
-            <Label Text="{Binding FinanceMargin, StringFormat='{0:F1}%'}" FontSize="20" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}"/>
-          </VerticalStackLayout>
-        </Border>
-        
-        <!-- Продаж -->
-        <Border Grid.Row="1" Grid.Column="1" StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12">
-          <VerticalStackLayout Spacing="8">
-            <Label Text="🛒 Продаж" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
-            <Label Text="{Binding FinanceSalesCount}" FontSize="20" FontAttributes="Bold"/>
-          </VerticalStackLayout>
-        </Border>
-      </Grid>
-      
-      <!-- Структура (вертикальный анализ) -->
-      <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" Margin="0,8,0,0" StrokeShape="RoundRectangle 12">
-        <VerticalStackLayout Spacing="12">
-          <Label Text="📊 Структура выручки" FontSize="18" FontAttributes="Bold"/>
-          
-          <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="8">
-            <!-- Себестоимость -->
-            <Label Grid.Row="0" Grid.Column="0" Text="💸 Себестоимость:" FontSize="14" VerticalTextAlignment="Center"/>
-            <ProgressBar Grid.Row="0" Grid.Column="1" Progress="{Binding FinanceCostPercent}" ProgressColor="{DynamicResource Color.Error}" HeightRequest="20" VerticalOptions="Center"/>
-            <Label Grid.Row="0" Grid.Column="2" Text="{Binding FinanceCostPercent, StringFormat='{0:P0}'}" FontSize="14" FontAttributes="Bold" VerticalTextAlignment="Center"/>
-            
-            <!-- Валовая прибыль -->
-            <Label Grid.Row="1" Grid.Column="0" Text="✅ Вал. прибыль:" FontSize="14" VerticalTextAlignment="Center"/>
-            <ProgressBar Grid.Row="1" Grid.Column="1" Progress="{Binding FinanceProfitPercent}" ProgressColor="{DynamicResource Color.Success}" HeightRequest="20" VerticalOptions="Center"/>
-            <Label Grid.Row="1" Grid.Column="2" Text="{Binding FinanceProfitPercent, StringFormat='{0:P0}'}" FontSize="14" FontAttributes="Bold" VerticalTextAlignment="Center"/>
+  <Grid Padding="20">
+    <RefreshView IsRefreshing="{Binding IsLoading}" Command="{Binding LoadFinanceKpiCommand}">
+      <ScrollView>
+        <VerticalStackLayout Spacing="16">
+          <!-- Заголовок -->
+          <HorizontalStackLayout HorizontalOptions="Fill" VerticalOptions="Center" Spacing="12">
+            <Label Text="Финансовая аналитика" FontSize="20" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Primary}"/>
+            <Label Text="{Binding PeriodLabel}" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+            <Button Text="Обновить" Command="{Binding LoadFinanceKpiCommand}" />
+          </HorizontalStackLayout>
+
+          <!-- Переключатели периода -->
+          <HorizontalStackLayout Spacing="10">
+            <Button Text="Месяц" Command="{Binding SetPeriodCommand}" CommandParameter="month">
+              <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource Button.Secondary}">
+                  <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface.Muted}" />
+                  <Setter Property="TextColor" Value="{DynamicResource Color.Text.Secondary}" />
+                  <Style.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding Period}" Value="month">
+                      <Setter Property="BackgroundColor" Value="{DynamicResource Color.Primary}" />
+                      <Setter Property="TextColor" Value="{DynamicResource Color.OnPrimary}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Button.Style>
+            </Button>
+            <Button Text="Год" Command="{Binding SetPeriodCommand}" CommandParameter="year">
+              <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource Button.Secondary}">
+                  <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface.Muted}" />
+                  <Setter Property="TextColor" Value="{DynamicResource Color.Text.Secondary}" />
+                  <Style.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding Period}" Value="year">
+                      <Setter Property="BackgroundColor" Value="{DynamicResource Color.Primary}" />
+                      <Setter Property="TextColor" Value="{DynamicResource Color.OnPrimary}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Button.Style>
+            </Button>
+            <Button Text="Диапазон" Command="{Binding SetPeriodCommand}" CommandParameter="custom">
+              <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource Button.Secondary}">
+                  <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface.Muted}" />
+                  <Setter Property="TextColor" Value="{DynamicResource Color.Text.Secondary}" />
+                  <Style.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding Period}" Value="custom">
+                      <Setter Property="BackgroundColor" Value="{DynamicResource Color.Primary}" />
+                      <Setter Property="TextColor" Value="{DynamicResource Color.OnPrimary}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Button.Style>
+            </Button>
+          </HorizontalStackLayout>
+
+          <!-- Произвольный диапазон -->
+          <Grid IsVisible="False">
+            <Grid.Style>
+              <Style TargetType="Grid">
+                <Style.Triggers>
+                  <DataTrigger TargetType="Grid" Binding="{Binding Period}" Value="custom">
+                    <Setter Property="IsVisible" Value="True" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Grid.Style>
+
+            <Grid ColumnDefinitions="Auto,*,Auto,*,Auto" ColumnSpacing="8">
+              <Label Grid.Column="0" Text="с" VerticalTextAlignment="Center" TextColor="{DynamicResource Color.Text.Secondary}"/>
+              <DatePicker Grid.Column="1" Date="{Binding DateFrom}" />
+              <Label Grid.Column="2" Text="по" VerticalTextAlignment="Center" TextColor="{DynamicResource Color.Text.Secondary}"/>
+              <DatePicker Grid.Column="3" Date="{Binding DateTo}" />
+              <Button Grid.Column="4" Text="Показать" Command="{Binding LoadCustomRangeCommand}"/>
+            </Grid>
           </Grid>
+
+          <!-- Карточка KPI: оборот и количество продаж -->
+          <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" StrokeShape="RoundRectangle 12" Padding="20">
+            <VerticalStackLayout Spacing="6">
+              <Label Text="Оборот" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+              <Label Text="{Binding FinanceRevenue, Converter={StaticResource CurrencyConverter}}" FontSize="32" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Primary}"/>
+              <Label Text="{Binding FinanceSalesCount, StringFormat='Количество продаж: {0}'}" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+            </VerticalStackLayout>
+          </Border>
+
+          <!-- ND→IM CASH FLOW -->
+          <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" StrokeShape="RoundRectangle 12" Padding="20">
+            <VerticalStackLayout Spacing="6">
+              <Label Text="ND→IM CASH FLOW" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
+              <Label Text="{Binding NdImCashFlow, Converter={StaticResource CurrencyConverter}}" FontSize="28" FontAttributes="Bold" TextColor="{DynamicResource Color.Error}"/>
+              <Label Text="Сумма корректировок по ND→IM за период" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
+            </VerticalStackLayout>
+          </Border>
+
+          <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"/>
         </VerticalStackLayout>
-      </Border>
-      
-    </VerticalStackLayout>
-  </ScrollView>
+      </ScrollView>
+    </RefreshView>
+  </Grid>
 </ContentPage>

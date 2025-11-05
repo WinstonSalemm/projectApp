@@ -19,11 +19,18 @@ public partial class App : Application
         _services = services;
         _auth = auth;
         Services = services;
+
+        Console.WriteLine("[APP] ctor: initialized services, forcing logout");
         
         // Always logout on app start so user must login again
         _auth.Logout();
+
+        Console.WriteLine($"[APP] ctor: IsAuthenticated={_auth.IsAuthenticated}, Role={_auth.Role ?? "<null>"}");
         
         ApplyAppThemePalette();
+
+        // Start local reservation notifier (polls alerts and shows toast no more than once per 2 days per reservation)
+        try { _services.GetService<LocalReservationNotifier>()?.Start(); } catch { }
 
         // Global UI exception handlers to avoid hard crash in debug and show message
         try
@@ -62,20 +69,24 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
+        Console.WriteLine("[APP] CreateWindow: entering method");
         if (_auth.IsAuthenticated && string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase))
         {
+            Console.WriteLine("[APP] CreateWindow: launching AppShell for Admin");
             // Admin goes to shell with tabs
             var shell = _services.GetRequiredService<AppShell>();
             return new Window(shell);
         }
         else if (_auth.IsAuthenticated)
         {
+            Console.WriteLine($"[APP] CreateWindow: launching PaymentSelectPage for role={_auth.Role}");
             // Manager goes to payment selection without tabs
             var paymentPage = _services.GetRequiredService<PaymentSelectPage>();
             return new Window(new NavigationPage(paymentPage));
         }
         else
         {
+            Console.WriteLine("[APP] CreateWindow: user not authenticated, showing UserSelectPage");
             // Not authenticated - show user select
             var select = _services.GetRequiredService<UserSelectPage>();
             return new Window(new NavigationPage(select));

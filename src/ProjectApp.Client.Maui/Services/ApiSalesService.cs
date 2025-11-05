@@ -126,9 +126,10 @@ public class ApiSalesService : ISalesService
         public decimal Total { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
+        public bool Nd40Transferred { get; set; }
     }
 
-    public async Task<IEnumerable<SaleDto>> GetSalesAsync(DateTime? from = null, DateTime? to = null, string? createdBy = null, string? paymentType = null, int? clientId = null, bool all = false, CancellationToken ct = default)
+    public async Task<IEnumerable<SaleDto>> GetSalesAsync(DateTime? from = null, DateTime? to = null, string? createdBy = null, string? paymentType = null, int? clientId = null, bool all = false, bool? nd40Transferred = null, CancellationToken ct = default)
     {
         var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
@@ -142,6 +143,7 @@ public class ApiSalesService : ISalesService
         if (!string.IsNullOrWhiteSpace(paymentType)) qs.Add($"paymentType={Uri.EscapeDataString(paymentType)}");
         if (clientId.HasValue) qs.Add($"clientId={clientId.Value}");
         if (all) qs.Add("all=true");
+        if (nd40Transferred == true) qs.Add("nd40Transferred=true");
         var url = "/api/sales" + (qs.Count > 0 ? ("?" + string.Join("&", qs)) : string.Empty);
         var resp = await client.GetFromJsonAsync<List<SaleDto>>(url, ct);
         return resp ?? Enumerable.Empty<SaleDto>();
@@ -156,6 +158,7 @@ public class ApiSalesService : ISalesService
         public decimal UnitPrice { get; set; }
         public string Sku { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+        public bool NdToImEligible { get; set; }
     }
     public class SaleDetailsDto
     {
@@ -177,6 +180,38 @@ public class ApiSalesService : ISalesService
         _auth.ConfigureClient(client);
         var url = $"/api/sales/{id}";
         return await client.GetFromJsonAsync<SaleDetailsDto>(url, ct);
+    }
+
+    public class RepriceItem
+    {
+        public int SaleItemId { get; set; }
+        public decimal NewUnitPrice { get; set; }
+    }
+    public class RepriceRequest
+    {
+        public string Mode { get; set; } = "both";
+        public List<RepriceItem> Items { get; set; } = new();
+    }
+    public class RepriceResponse
+    {
+        public int Id { get; set; }
+        public decimal OriginalTotal { get; set; }
+        public decimal AdjustedTotal { get; set; }
+        public decimal CashFlow { get; set; }
+        public List<UpdatedItem> UpdatedItems { get; set; } = new();
+        public class UpdatedItem { public int Id { get; set; } public decimal Old { get; set; } public decimal New { get; set; } }
+    }
+
+    public async Task<RepriceResponse?> RepriceNd2ImAsync(int saleId, IEnumerable<RepriceItem> items, string mode = "both", CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+        var body = new RepriceRequest { Mode = mode, Items = items.ToList() };
+        var resp = await client.PutAsJsonAsync($"/api/sales/{saleId}/nd2im-reprice", body, ct);
+        if (!resp.IsSuccessStatusCode) return null;
+        return await resp.Content.ReadFromJsonAsync<RepriceResponse>(cancellationToken: ct);
     }
 }
 

@@ -2,17 +2,32 @@ using ProjectApp.Client.Maui.ViewModels;
 using ProjectApp.Client.Maui.Services;
 using System.Globalization;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ProjectApp.Client.Maui.Views;
 
 public partial class SupplyEditPage : ContentPage
 {
     private CancellationTokenSource? _priceDebounceCts;
+    private CostingPreviewViewModel? _costingVm;
 
     public SupplyEditPage(SupplyEditViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = viewModel;
+        try
+        {
+            var sp = App.Current?.Handler?.MauiContext?.Services;
+            if (sp != null)
+            {
+                _costingVm = sp.GetService<CostingPreviewViewModel>();
+                if (_costingVm != null)
+                {
+                    CostingSection.BindingContext = _costingVm;
+                }
+            }
+        }
+        catch { }
     }
 
     protected override async void OnAppearing()
@@ -54,6 +69,17 @@ public partial class SupplyEditPage : ContentPage
                 System.Diagnostics.Debug.WriteLine($"ERROR: BindingContext is not SupplyEditViewModel! Type: {BindingContext.GetType()}");
                 await DisplayAlert("Ошибка", $"Wrong ViewModel type: {BindingContext.GetType()}", "ОК");
             }
+            
+            // Инициализация и запуск предпросчёта себестоимости
+            try
+            {
+                if (_costingVm != null && BindingContext is SupplyEditViewModel sVm && sVm.Supply?.Id > 0)
+                {
+                    _costingVm.SupplyId = sVm.Supply.Id;
+                    await _costingVm.RecalculateAsync();
+                }
+            }
+            catch { }
         }
         catch (Exception ex)
         {
@@ -240,9 +266,9 @@ public partial class SupplyEditPage : ContentPage
 
     private async void OnRecalculateClicked(object sender, EventArgs e)
     {
-        if (BindingContext is SupplyEditViewModel vm)
+        if (_costingVm != null)
         {
-            await vm.RecalculateCost();
+            await _costingVm.RecalculateAsync();
         }
     }
 }

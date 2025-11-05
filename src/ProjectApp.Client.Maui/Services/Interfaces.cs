@@ -246,6 +246,86 @@ public interface IReservationsService
 {
     Task<int?> CreateReservationAsync(ReservationCreateDraft draft, bool waitForPhoto, string source, CancellationToken ct = default);
     Task<bool> UploadReservationPhotoAsync(int reservationId, Stream photoStream, string fileName, CancellationToken ct = default);
+    Task<IReadOnlyList<ReservationListItem>> GetReservationsAsync(string? status = null, int? clientId = null, bool? mine = null, CancellationToken ct = default);
+    Task<ReservationDetailsDto?> GetReservationAsync(int id, CancellationToken ct = default);
+    Task<bool> PayAsync(int reservationId, decimal amount, ReservationPaymentMethod method, string? note = null, CancellationToken ct = default);
+    Task<IReadOnlyList<ReservationAlertClientDto>> GetAlertsAsync(DateTime? sinceUtc = null, CancellationToken ct = default);
+}
+
+public enum ReservationPaymentMethod
+{
+    Cash = 0,
+    Card = 1,
+    Click = 2,
+    Other = 9
+}
+
+public class ReservationListItem
+{
+    public int Id { get; set; }
+    public int? ClientId { get; set; }
+    public string? ClientName { get; set; }
+    public string? ClientPhone { get; set; }
+    public string CreatedBy { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime ReservedUntil { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public bool Paid { get; set; }
+    public int ItemsCount { get; set; }
+    public decimal Total { get; set; }
+    public decimal PaidAmount { get; set; }
+    public string? Note { get; set; }
+}
+
+public class ReservationDetailsDto
+{
+    public int Id { get; set; }
+    public int? ClientId { get; set; }
+    public string? ClientName { get; set; }
+    public string? ClientPhone { get; set; }
+    public string CreatedBy { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime ReservedUntil { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public bool Paid { get; set; }
+    public string? Note { get; set; }
+    public decimal Total { get; set; }
+    public decimal PaidAmount { get; set; }
+    public decimal DueAmount { get; set; }
+    public List<ReservationItemRow> Items { get; set; } = new();
+    public List<ReservationPaymentRow> Payments { get; set; } = new();
+}
+
+public class ReservationItemRow
+{
+    public int ProductId { get; set; }
+    public string Sku { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Register { get; set; } = string.Empty;
+    public decimal Qty { get; set; }
+    public decimal UnitPrice { get; set; }
+}
+
+public class ReservationPaymentRow
+{
+    public int Id { get; set; }
+    public decimal Amount { get; set; }
+    public ReservationPaymentMethod Method { get; set; }
+    public string? Note { get; set; }
+    public DateTime PaidAt { get; set; }
+    public string ReceivedBy { get; set; } = string.Empty;
+}
+
+public class ReservationAlertClientDto
+{
+    public int Id { get; set; }
+    public string? ClientName { get; set; }
+    public string? ClientPhone { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? ReservedUntil { get; set; }
+    public bool Paid { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public int? SaleId { get; set; }
 }
 
 // Draft models for submitting sales from the client

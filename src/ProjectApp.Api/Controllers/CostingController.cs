@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Models;
 using ProjectApp.Api.Services;
+using ProjectApp.Api.Costing.Dto;
+using ProjectApp.Core.Costing.Models;
+using ProjectApp.Core.Costing.Services;
 
 namespace ProjectApp.Api.Controllers;
 
@@ -215,6 +218,85 @@ public class CostingController : ControllerBase
             
             return BadRequest($"Failed to create batches: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Предпросчет себестоимости по поставке (новый модуль). Все округления выполняются в калькуляторе (2 знака, AwayFromZero)
+    /// </summary>
+    [HttpPost("preview/{supplyId:int}")]
+    [ProducesResponseType(typeof(CostingPreviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CostingPreviewDto>> Preview([FromRoute] int supplyId, [FromBody] CostingConfigDto cfgDto, CancellationToken ct)
+    {
+        var supplyExists = await _db.Supplies.AsNoTracking().AnyAsync(s => s.Id == supplyId, ct);
+        if (!supplyExists) return NotFound();
+
+        var items = await _db.SupplyItems
+            .AsNoTracking()
+            .Where(si => si.SupplyId == supplyId)
+            .Select(si => new { si.Sku, si.Name, Qty = (decimal)si.Quantity, si.PriceRub, si.PriceUsd, si.PriceUzs })
+            .ToListAsync(ct);
+
+        var input = items.Select(x => new CostingInputRow
+        {
+            SkuOrName = string.IsNullOrWhiteSpace(x.Sku) ? x.Name : x.Sku,
+            Quantity = x.Qty,
+            PriceRub = x.PriceRub,
+            PriceUsd = x.PriceUsd,
+            PriceUzs = x.PriceUzs,
+            LineTotalUzsOverride = null
+        }).ToList();
+
+        var cfg = new CostingConfig
+        {
+            RubToUzs = cfgDto.RubToUzs,
+            UsdToUzs = cfgDto.UsdToUzs,
+            CustomsFixedUzs = cfgDto.CustomsFixedUzs,
+            LoadingTotalUzs = cfgDto.LoadingTotalUzs,
+            LogisticsPct = cfgDto.LogisticsPct,
+            WarehousePct = cfgDto.WarehousePct,
+            DeclarationPct = cfgDto.DeclarationPct,
+            CertificationPct = cfgDto.CertificationPct,
+            McsPct = cfgDto.McsPct,
+            DeviationPct = cfgDto.DeviationPct,
+            TradeMarkupPct = cfgDto.TradeMarkupPct,
+            VatPct = cfgDto.VatPct,
+            ProfitTaxPct = cfgDto.ProfitTaxPct
+        };
+
+        var calc = new CostingCalculator();
+        var res = calc.Calculate(input, cfg);
+
+        var dto = new CostingPreviewDto
+        {
+            Rows = res.Rows.Select(r => new CostingRowDto
+            {
+                SkuOrName = r.SkuOrName,
+                Quantity = r.Quantity,
+                BasePriceUzs = r.BasePriceUzs,
+                LineBaseTotalUzs = r.LineBaseTotalUzs,
+                CustomsUzsPerUnit = r.CustomsUzsPerUnit,
+                LoadingUzsPerUnit = r.LoadingUzsPerUnit,
+                LogisticsUzsPerUnit = r.LogisticsUzsPerUnit,
+                WarehouseUzsPerUnit = r.WarehouseUzsPerUnit,
+                DeclarationUzsPerUnit = r.DeclarationUzsPerUnit,
+                CertificationUzsPerUnit = r.CertificationUzsPerUnit,
+                McsUzsPerUnit = r.McsUzsPerUnit,
+                DeviationUzsPerUnit = r.DeviationUzsPerUnit,
+                CostPerUnitUzs = r.CostPerUnitUzs,
+                TradePriceUzs = r.TradePriceUzs,
+                VatUzs = r.VatUzs,
+                PriceWithVatUzs = r.PriceWithVatUzs,
+                ProfitPerUnitUzs = r.ProfitPerUnitUzs,
+                ProfitTaxUzs = r.ProfitTaxUzs,
+                NetProfitUzs = r.NetProfitUzs
+            }).ToList(),
+            TotalQty = res.TotalQty,
+            TotalBaseSumUzs = res.TotalBaseSumUzs,
+            Warnings = res.Warnings
+        };
+
+        return Ok(dto);
     }
 }
 

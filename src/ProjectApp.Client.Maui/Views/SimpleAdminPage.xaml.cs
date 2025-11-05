@@ -32,6 +32,12 @@ public partial class SimpleAdminPage : ContentPage
         await Navigation.PushAsync(clientsPage);
     }
 
+    private async void OnHistoryClicked(object? sender, EventArgs e)
+    {
+        var historyPage = App.Services.GetRequiredService<SalesHistoryPage>();
+        await Navigation.PushAsync(historyPage);
+    }
+
     private async void OnFinancesClicked(object? sender, EventArgs e)
     {
         var financesPage = App.Services.GetRequiredService<FinancesMenuPage>();

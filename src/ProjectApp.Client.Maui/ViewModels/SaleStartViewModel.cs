@@ -135,10 +135,10 @@ public partial class SaleStartViewModel : ObservableObject
                 new SaleMethodOption { Id = SaleMethodKind.CardWithReceipt,  Title = "Картой с чеком",    Description = "Оплата банковской картой с фискальным чеком.",     Icon = "C", PaymentType = PaymentType.CardWithReceipt },
                 new SaleMethodOption { Id = SaleMethodKind.ClickWithReceipt, Title = "Click с чеком",     Description = "Онлайн-оплата Click с чеком.",                      Icon = "K", PaymentType = PaymentType.ClickWithReceipt },
                 new SaleMethodOption { Id = SaleMethodKind.ClickNoReceipt,   Title = "Click без чека",    Description = "Click-оплата с ручным учётом чека.",                 Icon = "K", PaymentType = PaymentType.ClickNoReceipt },
-                new SaleMethodOption { Id = SaleMethodKind.Site,             Title = "Сайт",              Description = "Продажа, оформленная через интернет-магазин.",       Icon = "W", PaymentType = PaymentType.Site },
+                new SaleMethodOption { Id = SaleMethodKind.Site,             Title = "Сайт",              Description = "Продажа, оформленная через интернет-магазин.",       Icon = "W", PaymentType = PaymentType.Site, IsEnabled = false },
                 new SaleMethodOption { Id = SaleMethodKind.Return,           Title = "Возврат",           Description = "Перейти к оформлению возврата.",                    Icon = "R", PaymentType = PaymentType.Return },
                 new SaleMethodOption { Id = SaleMethodKind.Reservation,      Title = "Бронь",             Description = "Создать бронь и удержать товар.",                    Icon = "B", PaymentType = PaymentType.Reservation },
-                new SaleMethodOption { Id = SaleMethodKind.Payme,            Title = "Payme",             Description = "Онлайн-оплата через Payme.",                         Icon = "P", PaymentType = PaymentType.Payme },
+                new SaleMethodOption { Id = SaleMethodKind.Payme,            Title = "Payme",             Description = "Онлайн-оплата через Payme.",                         Icon = "P", PaymentType = PaymentType.Payme, IsEnabled = false },
                 new SaleMethodOption { Id = SaleMethodKind.Contract,         Title = "Договор",           Description = "Продажа по договору или предоплате.",                Icon = "D", PaymentType = PaymentType.Contract },
                 new SaleMethodOption { Id = SaleMethodKind.CommissionClients,Title = "Комиссионные клиенты", Description = "Открыть клиентов, закреплённых за менеджером.",  Icon = "U", PaymentType = null }
             };

@@ -86,6 +86,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ApiSalesService>();
         builder.Services.AddSingleton<ApiSuppliesService>();
         builder.Services.AddSingleton<ApiCostingService>();
+        builder.Services.AddSingleton<ApiCostingPreviewService>();
         builder.Services.AddSingleton<ApiStocksService>();
         builder.Services.AddSingleton<MockCatalogService>();
         builder.Services.AddSingleton<MockSalesService>();
@@ -95,6 +96,7 @@ public static class MauiProgram
         // builder.Services.AddSingleton<OfflineSyncService>();
         // builder.Services.AddSingleton<OfflineSalesService>();
         builder.Services.AddSingleton<ApiHealthChecker>();
+        builder.Services.AddSingleton<LocalReservationNotifier>();
         
         // Routed services decide at runtime based on current AppSettings
         builder.Services.AddSingleton<ICatalogService, RoutedCatalogService>();
@@ -178,6 +180,7 @@ public static class MauiProgram
         builder.Services.AddTransient<SupplyEditViewModel>();
         builder.Services.AddTransient<SupplyEditPage>();
         builder.Services.AddTransient<CostingViewModel>();
+        builder.Services.AddTransient<CostingPreviewViewModel>();
         builder.Services.AddTransient<CostingPage>();
         builder.Services.AddTransient<ReturnsViewModel>();
         builder.Services.AddTransient<ReturnsPage>();
@@ -198,8 +201,12 @@ public static class MauiProgram
         builder.Services.AddTransient<FinanceAnalyticsPage>();
         builder.Services.AddTransient<AdminDashboardViewModel>();
         builder.Services.AddTransient<AdminDashboardPage>();
+        builder.Services.AddTransient<AdminHistoryViewModel>();
+        builder.Services.AddTransient<AdminHistoryPage>();
         builder.Services.AddTransient<SalesHistoryViewModel>();
         builder.Services.AddTransient<SalesHistoryPage>();
+        builder.Services.AddTransient<SaleEditViewModel>();
+        builder.Services.AddTransient<SaleEditPage>();
         builder.Services.AddTransient<ReturnSourceSelectorViewModel>();
         builder.Services.AddTransient<ReturnSourceSelectorPage>();
         builder.Services.AddTransient<ReturnForSaleViewModel>();
@@ -270,6 +277,14 @@ public static class MauiProgram
         builder.Services.AddTransient<BatchCostCalculationViewModel>();
         builder.Services.AddTransient<BatchCostCalculationPage>();
         
+        // Reservations
+        builder.Services.AddTransient<ReservationsListViewModel>();
+        builder.Services.AddTransient<ReservationsListPage>();
+        builder.Services.AddTransient<ReservationDetailsViewModel>();
+        builder.Services.AddTransient<ReservationDetailsPage>();
+        builder.Services.AddTransient<ReservationCreateViewModel>();
+        builder.Services.AddTransient<ReservationCreatePage>();
+
         builder.Services.AddSingleton<AppShell>();
 
         return builder.Build();

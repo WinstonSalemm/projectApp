@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             xmlns:conv="clr-namespace:ProjectApp.Client.Maui.Converters"
+             xmlns:s="clr-namespace:ProjectApp.Client.Maui.Services"
+             x:Class="ProjectApp.Client.Maui.Views.SaleEditPage"
+             x:DataType="vm:SaleEditViewModel"
+             Title="Редактирование продажи">
+  <ContentPage.Resources>
+    <ResourceDictionary>
+      <conv:CurrencyConverter x:Key="CurrencyConverter" />
+    </ResourceDictionary>
+  </ContentPage.Resources>
+  <ScrollView>
+    <VerticalStackLayout Padding="20" Spacing="16">
+      <Label Text="Продажа #{Binding Id}" FontSize="20" FontAttributes="Bold"/>
+      <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+        <Label Grid.Row="0" Grid.Column="0" Text="Клиент:" TextColor="{DynamicResource Color.Text.Secondary}"/>
+        <Entry Grid.Row="0" Grid.Column="1" Text="{Binding ClientName}"/>
+
+        <Label Grid.Row="1" Grid.Column="0" Text="Тип оплаты:" TextColor="{DynamicResource Color.Text.Secondary}"/>
+        <Entry Grid.Row="1" Grid.Column="1" Text="{Binding PaymentType}"/>
+
+        <Label Grid.Row="2" Grid.Column="0" Text="Сумма:" TextColor="{DynamicResource Color.Text.Secondary}"/>
+        <Label Grid.Row="2" Grid.Column="1" Text="{Binding Total, Converter={StaticResource CurrencyConverter}}"/>
+
+        <Label Grid.Row="3" Grid.Column="0" Text="Дата:" TextColor="{DynamicResource Color.Text.Secondary}"/>
+        <Label Grid.Row="3" Grid.Column="1" Text="{Binding CreatedAt, StringFormat='{}{0:dd.MM.yyyy HH:mm}'}"/>
+      </Grid>
+
+      <Label Text="Позиции" FontAttributes="Bold"/>
+      <CollectionView ItemsSource="{Binding Items}">
+        <CollectionView.Header>
+          <Grid ColumnDefinitions="*,Auto,Auto" Padding="0,0,0,8">
+            <Label Text="Товар"/>
+            <Label Grid.Column="1" Text="Кол-во" HorizontalTextAlignment="End"/>
+            <Label Grid.Column="2" Text="Цена" HorizontalTextAlignment="End"/>
+          </Grid>
+        </CollectionView.Header>
+        <CollectionView.ItemTemplate>
+          <DataTemplate x:DataType="vm:EditableSaleItem">
+            <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto" Padding="0,4" ColumnSpacing="8">
+              <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}"/>
+              <Label Grid.Row="0" Grid.Column="1" Text="{Binding Qty}" HorizontalTextAlignment="End"/>
+              <VerticalStackLayout Grid.Row="0" Grid.Column="2" Spacing="2">
+                <Entry Text="{Binding NewUnitPrice, Mode=TwoWay}" 
+                       IsEnabled="{Binding NdToImEligible}"
+                       Keyboard="Numeric" 
+                       HorizontalTextAlignment="End"
+                       Placeholder="{Binding OldUnitPrice, Converter={StaticResource CurrencyConverter}, StringFormat='старая цена — {0}'}"/>
+              </VerticalStackLayout>
+              <Label Grid.Row="1" Grid.ColumnSpan="3" 
+                     Text="{Binding DeltaCashFlow, Converter={StaticResource CurrencyConverter}, StringFormat='CASH FLOW: {0}'}"
+                     TextColor="{DynamicResource Color.Error}" FontSize="12" IsVisible="{Binding NdToImEligible}"/>
+            </Grid>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+      <Grid ColumnDefinitions="*,Auto,Auto" Padding="0,8,0,0" VerticalOptions="End">
+        <Label Grid.Column="0" Text="{Binding TotalCashFlow, Converter={StaticResource CurrencyConverter}, StringFormat='Итого CASH FLOW: {0}'}" 
+               FontAttributes="Bold" TextColor="{DynamicResource Color.Error}"/>
+        <Button Grid.Column="1" Text="Отмена" Command="{Binding CancelCommand}"/>
+        <Button Grid.Column="2" Text="Сохранить" Command="{Binding SaveCommand}" IsEnabled="{Binding HasChanges}"/>
+      </Grid>
+
+      <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"/>
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

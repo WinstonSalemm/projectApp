@@ -1,0 +1,65 @@
+﻿11-03 17:33:25.732 I/ActivityManager( 1433): Force stopping com.projectapp.client appid=10294 user=0: from pid 11512
+11-03 17:33:25.739 I/ActivityManager( 1433): Killing 32130:com.projectapp.client/u0a294 (adj 0): stop com.projectapp.client due to from pid 11512
+11-03 17:33:25.742 D/ActivityManager( 1433): proc ProcessRecord{8b89cdc 32130:com.projectapp.client/u0a294} already removed. so we skip next process.
+11-03 17:33:25.745 W/ActivityTaskManager( 1433): Force removing ActivityRecord{d812b62 u0 com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity t815 f}}: app died, no saved state
+11-03 17:33:25.792 I/ActivityTaskManager( 1433): Removing activity ActivityRecord{d812b62 u0 com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity t815 f}}(appDied)  from stack callers=com.android.server.wm.ActivityRecord.handleAppDied:4292 com.android.server.wm.WindowProcessController.handleAppDied:1297 com.android.server.wm.ActivityTaskManagerService$LocalService.handleAppDied:7072 com.android.server.am.ActivityManagerService.handleAppDiedLocked:3665 com.android.server.am.ProcessList.removeProcessLocked:3746 
+11-03 17:33:25.815 W/InputManager-JNI( 1433): Input channel object '34af50c com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity (client)' was disposed without first being removed with the input manager!
+11-03 17:33:25.981 I/Layer   ( 1036): id=2110 mRemovedFromDrawingState 34af50c com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity#0 (107)
+11-03 17:33:26.006 I/SurfaceFlinger( 1036): id=2110 Removed 34af50c com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity#0 (107)
+11-03 17:33:26.030 I/Layer   ( 1036): id=2109 mRemovedFromDrawingState ActivityRecord{d812b62 u0 com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity t815}#0 (107)
+11-03 17:33:26.031 I/SurfaceFlinger( 1036): id=2109 Removed ActivityRecord{d812b62 u0 com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity t815}#0 (107)
+11-03 17:33:26.035 I/Layer   ( 1036): id=2110 Destroyed 34af50c com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity#0
+11-03 17:33:26.036 I/Layer   ( 1036): id=2109 Destroyed ActivityRecord{d812b62 u0 com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity t815}#0
+11-03 17:33:26.061 W/UsageStatsService( 1433): Unexpected activity event reported! (com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity event : 23 instanceId : 152222253)
+11-03 17:33:26.065 V/ActivityManager( 1433): Got obituary of 32130:com.projectapp.client
+11-03 17:33:26.071 W/BroadcastQueue( 1433): Background execution not allowed: receiving Intent { act=android.intent.action.PACKAGE_RESTARTED dat=package:com.projectapp.client flg=0x10 (has extras) } to android/com.kddi.android.CpaNotiReceiver
+11-03 17:33:26.072 D/SamsungAlarmManager( 1433): Remove alarm for next reason : android.intent.action.PACKAGE_RESTARTED : package: com.projectapp.client
+11-03 17:33:27.637 W/Monkey  (11515): args: [-p, com.projectapp.client, -c, android.intent.category.LAUNCHER, 1]
+11-03 17:33:27.640 W/Monkey  (11515):  arg: "com.projectapp.client"
+11-03 17:33:27.641 W/Monkey  (11515): data="com.projectapp.client"
+11-03 17:33:27.850 D/FreecessController( 1433): UFZ : com.projectapp.client(0), reason: activity
+11-03 17:33:27.854 D/BaseRestrictionMgr( 1433): Package: com.projectapp.client, userid: 0, hostingType: activity is allowed by freecess, caller is: com.android.shell
+11-03 17:33:27.866 I/ActivityTaskManager( 1433): START u0 {act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity} from uid 2000
+11-03 17:33:27.886 D/ActivityTaskManager( 1433): TaskLaunchParamsModifier:task=null activity=ActivityRecord{9b50884 u0 com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity display-id=0 display-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@205358484
+11-03 17:33:27.888 D/[secipm]( 1433): mSecIpmManager Preload com.projectapp.client dex files
+11-03 17:33:27.894 D/PkgPredictorService-IpmAdcpController( 1433): create a new DexPreloadTask pkg:com.projectapp.client  path:/data/app/~~8alNBn9QzAyJRcDivsXtTg==/com.projectapp.client-kCrujYB6DTazRIXQmjHjJQ==
+11-03 17:33:27.894 D/ActivityTaskManager( 1433): TaskLaunchParamsModifier:task=null activity=ActivityRecord{9b50884 u0 com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity t-1} display-id=0 display-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@205358484 non-freeform-display display-area=DefaultTaskDisplayArea@205358484 maximized-bounds
+11-03 17:33:27.895 D/PkgPredictorService-IpmAdcpController( 1433): /data/app/~~8alNBn9QzAyJRcDivsXtTg==/com.projectapp.client-kCrujYB6DTazRIXQmjHjJQ==/oat/arm64/base.art size 183472
+11-03 17:33:27.933 D/ActivityTaskManager( 1433): TaskLaunchParamsModifier:task=Task{1c3fca2 #816 type=standard A=10294:com.projectapp.client U=0 visible=false mode=fullscreen translucent=true sz=0} activity=ActivityRecord{9b50884 u0 com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity t-1} display-from-task=0 display-id=0 display-windowing-mode=1 suggested-display-area=DefaultTaskDisplayArea@205358484 non-freeform-display display-area=DefaultTaskDisplayArea@205358484 maximized-bounds
+11-03 17:33:27.958 I/SurfaceFlinger( 1036): id=2112 createSurf (0x0),-1 flag=80004, ActivityRecord{9b50884 u0 com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity t816}#0
+11-03 17:33:28.004 D/MARsPolicyManager( 1433): onPackageResumedFG pkgName = com.projectapp.client, userId = 0
+11-03 17:33:28.170 I/ActivityManager( 1433): Start proc 11528:com.projectapp.client/u0a294 for top-activity {com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity}
+11-03 17:33:28.171 D/ActivityManager( 1433): [SecIpm] it's a ML_TYPE_EMPTYPROCESS protected process com.projectapp.client
+11-03 17:33:28.211 E/USNET   (11528): USNET: appName: com.projectapp.client
+11-03 17:33:28.217 I/ActivityManager( 1433): DSS OFF for com.projectapp.client
+11-03 17:33:28.222 D/ActivityManager( 1433): attachApplicationLocked() app=ProcessRecord{eb81d33 11528:com.projectapp.client/u0a294} app.isolatedEntryPoint=null instr2=null
+11-03 17:33:28.246 D/SGM:PkgDataHelper( 1433): notifyAppCreate(), pkgName: com.projectapp.client, userId: 0, sendRet: true
+11-03 17:33:28.247 D/SGM:GameManager( 1433): onLooperPrepared(), msg: MSG_APP_CREATE, pkgName: com.projectapp.client, userId: 0
+11-03 17:33:28.250 D/MARsPolicyManager( 1433): onPackageResumedFG pkgName = com.projectapp.client, userId = 0
+11-03 17:33:28.254 D/SGM:GameManager( 1433):   sendRunningComponentFocus(), pkgName: com.projectapp.client, userId: 0
+11-03 17:33:28.254 D/SGM:GameManager( 1433): onLooperPrepared(), msg: MSG_TASK_FOCUSED, pkgName: com.projectapp.client, userId: 0
+11-03 17:33:28.254 D/SGM:GameManager( 1433):   handleTaskFocused(), pkgName: com.projectapp.client, userID:0
+11-03 17:33:28.278 D/ActivityThread(11528): handleBindApplication()++ app=com.projectapp.client
+11-03 17:33:28.290 D/SGM:GameManager( 1433): noteResumeComponent(), received pkgName: com.projectapp.client, userId: 0
+11-03 17:33:28.291 D/SGM:GameManager( 1433): onLooperPrepared(), msg: MSG_APP_RESUME, pkgName: com.projectapp.client, userid: 0
+11-03 17:33:28.294 I/GameSDK@LifeCycle( 1433): noteResumeComponent(): package name  : com.projectapp.client
+11-03 17:33:28.300 I/Utils   ( 6222): HomePackage : com.sec.android.app.launcher, resumePackageName : com.projectapp.client
+11-03 17:33:28.325 D/nativeloader(11528): Configuring clns-4 for other apk /data/app/~~8alNBn9QzAyJRcDivsXtTg==/com.projectapp.client-kCrujYB6DTazRIXQmjHjJQ==/base.apk. target_sdk_version=34, uses_libraries=, library_path=/data/app/~~8alNBn9QzAyJRcDivsXtTg==/com.projectapp.client-kCrujYB6DTazRIXQmjHjJQ==/lib/arm64:/data/app/~~8alNBn9QzAyJRcDivsXtTg==/com.projectapp.client-kCrujYB6DTazRIXQmjHjJQ==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.projectapp.client
+11-03 17:33:28.371 V/GraphicsEnvironment(11528): ANGLE Developer option for 'com.projectapp.client' set to: 'default'
+11-03 17:33:28.374 D/LoadedApk(11528): LoadedApk::makeApplication() appContext.mOpPackageName=com.projectapp.client appContext.mBasePackageName=com.projectapp.client
+11-03 17:33:28.391 D/nativeloader(11528): Load /data/app/~~8alNBn9QzAyJRcDivsXtTg==/com.projectapp.client-kCrujYB6DTazRIXQmjHjJQ==/lib/arm64/libmonosgen-2.0.so using ns clns-4 from class loader (caller=base.apk!classes2.dex): ok
+11-03 17:33:28.395 D/nativeloader(11528): Load /data/app/~~8alNBn9QzAyJRcDivsXtTg==/com.projectapp.client-kCrujYB6DTazRIXQmjHjJQ==/lib/arm64/libxamarin-app.so using ns clns-4 from class loader (caller=base.apk!classes2.dex): ok
+11-03 17:33:28.398 D/nativeloader(11528): Load /data/app/~~8alNBn9QzAyJRcDivsXtTg==/com.projectapp.client-kCrujYB6DTazRIXQmjHjJQ==/lib/arm64/libSystem.Security.Cryptography.Native.Android.so using ns clns-4 from class loader (caller=base.apk!classes2.dex): ok
+11-03 17:33:28.407 D/nativeloader(11528): Load /data/app/~~8alNBn9QzAyJRcDivsXtTg==/com.projectapp.client-kCrujYB6DTazRIXQmjHjJQ==/lib/arm64/libmonodroid.so using ns clns-4 from class loader (caller=base.apk!classes2.dex): ok
+11-03 17:33:28.422 D/MdnieScenarioControlService( 1433):  packageName : com.projectapp.client    className : crc64d0c9d6f00d9371b6.MainActivity
+11-03 17:33:28.776 W/ActivityTaskManager( 1433): Activity top resumed state loss timeout for ActivityRecord{9b50884 u0 com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity t816}
+11-03 17:33:28.776 W/ActivityTaskManager( 1433): Activity pause timeout for ActivityRecord{9b50884 u0 com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity t816}
+11-03 17:33:28.779 D/SGM:GameManager( 1433): notePauseComponent(), received pkgName: com.projectapp.client, userId: 0
+11-03 17:33:28.908 I/SurfaceFlinger( 1036): id=2113 createSurf (0x0),-1 flag=80004, 8c2b923 com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity#0
+11-03 17:33:28.943 V/WindowManager( 1433): Relayout Window{8c2b923 u0 com.projectapp.client/crc64d0c9d6f00d9371b6.MainActivity}: viewVisibility=8 req=1200x2000 d0
+11-03 17:33:29.315 D/FreecessController( 1433): It has not been able to freeze yet. name=com.projectapp.client, uid=10294
+11-03 17:33:34.557 D/ProfileInstaller(11528): Installing profile for com.projectapp.client
+11-03 17:33:36.386 D/SGM:GameManager( 1433): identifyForegroundApp. com.projectapp.client, mCurrentUserId: 0, callerUserId: 0
+11-03 17:33:36.386 D/SGM:PkgDataHelper( 1433): getGamePkgData(). com.projectapp.client
+11-03 17:33:44.350 D/FreecessController( 1433): FZ : com.projectapp.client(11528)
+11-03 17:33:44.352 D/FreecessController( 1433): FZ : com.projectapp.client(0), reason: LEV

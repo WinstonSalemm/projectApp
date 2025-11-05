@@ -39,16 +39,153 @@ public class SalesController : ControllerBase
         _commissionService = commissionService;
     }
 
+    public class Nd2ImRepriceDto
+    {
+        public string Mode { get; set; } = "both"; // retro | cashflow | both
+        public List<RepriceItemDto> Items { get; set; } = new();
+    }
+    public class RepriceItemDto
+    {
+        public int SaleItemId { get; set; }
+        public decimal NewUnitPrice { get; set; }
+    }
+
+    [HttpPut("{id:int}/nd2im-reprice")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RepriceNd2Im([FromRoute] int id, [FromBody] Nd2ImRepriceDto dto, CancellationToken ct)
+    {
+        var sale = await _sales.GetByIdAsync(id, ct);
+        if (sale is null) return NotFound();
+
+        var user = User?.Identity?.Name ?? "system";
+        var itemsById = sale.Items.ToDictionary(i => i.Id, i => i);
+        var affected = new List<(SaleItem item, decimal oldPrice, decimal newPrice)>();
+
+        // Предварительно определим eligible
+        var itemIds = sale.Items.Select(i => i.Id).ToList();
+        var eligibles = await (from c in _db.SaleItemConsumptions.AsNoTracking()
+                               join b in _db.Batches.AsNoTracking() on c.BatchId equals b.Id
+                               join sup in _db.Supplies.AsNoTracking() on b.Code equals sup.Code
+                               where itemIds.Contains(c.SaleItemId)
+                                     && c.RegisterAtSale == StockRegister.ND40
+                                     && sup.RegisterType == RegisterType.IM40
+                               select new { c.SaleItemId }).Distinct().ToListAsync(ct);
+        var eligibleSet = eligibles.Select(x => x.SaleItemId).ToHashSet();
+
+        foreach (var r in dto.Items)
+        {
+            if (!itemsById.TryGetValue(r.SaleItemId, out var si)) continue;
+            if (!eligibleSet.Contains(si.Id)) continue; // менять можно только ND→IM
+            var old = si.UnitPrice;
+            var @new = r.NewUnitPrice;
+            if (@new == old) continue;
+            affected.Add((si, old, @new));
+        }
+
+        if (affected.Count == 0)
+        {
+            return Ok(new { updated = 0, sale.Id, sale.Total });
+        }
+
+        // Вариант B: создаём CASH FLOW как движение денег (Expense), сумма = (old-new)*qty, категория NDIM-ADJUST
+        if (string.Equals(dto.Mode, "cashflow", StringComparison.OrdinalIgnoreCase) || string.Equals(dto.Mode, "both", StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var a in affected)
+            {
+                var deltaPerUnit = a.oldPrice - a.newPrice;
+                if (deltaPerUnit <= 0) continue;
+                var amount = Math.Round(deltaPerUnit * a.item.Qty, 2);
+                _db.CashTransactions.Add(new CashTransaction
+                {
+                    Type = CashTransactionType.Expense,
+                    Amount = amount,
+                    Currency = "UZS",
+                    Category = "NDIM-ADJUST",
+                    Description = $"ND→IM reprice Sale#{sale.Id} Item#{a.item.Id}",
+                    LinkedSaleId = sale.Id,
+                    CreatedBy = user,
+                    CreatedAt = DateTime.UtcNow,
+                    Status = TransactionStatus.Completed
+                });
+            }
+        }
+
+        decimal originalTotal = sale.Items.Sum(i => i.UnitPrice * i.Qty);
+
+        // Вариант A: ретро-пересчёт UnitPrice и Total
+        if (string.Equals(dto.Mode, "retro", StringComparison.OrdinalIgnoreCase) || string.Equals(dto.Mode, "both", StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var a in affected)
+            {
+                a.item.UnitPrice = a.newPrice;
+            }
+            sale.Total = sale.Items.Sum(i => i.UnitPrice * i.Qty);
+        }
+
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new
+        {
+            sale.Id,
+            OriginalTotal = originalTotal,
+            AdjustedTotal = sale.Items.Sum(i => i.UnitPrice * i.Qty),
+            CashFlow = await _db.CashTransactions
+                .Where(t => t.LinkedSaleId == sale.Id && t.Category == "NDIM-ADJUST")
+                .SumAsync(t => (decimal?)t.Amount, ct) ?? 0m,
+            UpdatedItems = affected.Select(a => new { a.item.Id, Old = a.oldPrice, New = a.newPrice }).ToList()
+        });
+    }
+
     [HttpGet]
     [Authorize(Policy = "ManagerOnly")] // Admin or Manager
-    [ProducesResponseType(typeof(IEnumerable<Sale>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> List([FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo, [FromQuery] string? createdBy, [FromQuery] string? paymentType, [FromQuery] int? clientId, [FromQuery] bool all = false, CancellationToken ct = default)
+    [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> List([FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo, [FromQuery] string? createdBy, [FromQuery] string? paymentType, [FromQuery] int? clientId, [FromQuery] bool all = false, [FromQuery] bool? nd40Transferred = null, CancellationToken ct = default)
     {
         var isAdmin = User.IsInRole("Admin");
         var allowAll = isAdmin || all;
         var effectiveCreatedBy = allowAll ? createdBy : (User?.Identity?.Name ?? createdBy);
+
         var list = await _sales.QueryAsync(dateFrom, dateTo, effectiveCreatedBy, paymentType, clientId, ct);
-        return Ok(list);
+
+        var query = list.AsQueryable();
+
+        Func<Sale, bool> hasNd40Transferred = s =>
+        {
+            using var scope = HttpContext.RequestServices.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var any = (from c in db.SaleItemConsumptions
+                       join si in db.SaleItems on c.SaleItemId equals si.Id
+                       join b in db.Batches on c.BatchId equals b.Id
+                       join sup in db.Supplies on b.Code equals sup.Code
+                       where si.SaleId == s.Id
+                             && c.RegisterAtSale == StockRegister.ND40
+                             && sup.RegisterType == RegisterType.IM40
+                       select c.Id).Any();
+            return any;
+        };
+
+        if (nd40Transferred == true)
+        {
+            query = query.Where(s => hasNd40Transferred(s)).AsQueryable();
+        }
+
+        var result = query
+            .OrderByDescending(s => s.Id)
+            .Select(s => new
+            {
+                s.Id,
+                s.ClientId,
+                s.ClientName,
+                PaymentType = s.PaymentType,
+                s.Total,
+                s.CreatedAt,
+                s.CreatedBy,
+                Nd40Transferred = hasNd40Transferred(s)
+            })
+            .ToList();
+
+        return Ok(result);
     }
 
     [HttpPost]
@@ -189,7 +326,18 @@ public class SalesController : ControllerBase
         var sale = await _sales.GetByIdAsync(id, ct);
         if (sale is null) return NotFound();
         
-        // Return sale with items (Sku and ProductName are snapshots from time of sale)
+        // Вычисляем признак NdToImEligible для каждой позиции: потреблялась из ND-40, а поставка её партии перешла в IM-40
+        var itemIds = sale.Items.Select(i => i.Id).ToList();
+        var eligibles = await (from c in _db.SaleItemConsumptions.AsNoTracking()
+                               join b in _db.Batches.AsNoTracking() on c.BatchId equals b.Id
+                               join sup in _db.Supplies.AsNoTracking() on b.Code equals sup.Code
+                               where itemIds.Contains(c.SaleItemId)
+                                     && c.RegisterAtSale == StockRegister.ND40
+                                     && sup.RegisterType == RegisterType.IM40
+                               select new { c.SaleItemId }).Distinct().ToListAsync(ct);
+        var eligibleSet = eligibles.Select(x => x.SaleItemId).ToHashSet();
+
+        // Вернём детали продажи
         var result = new
         {
             sale.Id,
@@ -205,6 +353,7 @@ public class SalesController : ControllerBase
                 item.ProductId,
                 item.Qty,
                 item.UnitPrice,
+                NdToImEligible = eligibleSet.Contains(item.Id),
                 Sku = item.Sku ?? "",
                 Name = item.ProductName ?? $"Product #{item.ProductId}"
             }).ToList()

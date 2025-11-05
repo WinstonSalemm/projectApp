@@ -14,8 +14,10 @@ public partial class AnalyticsViewModel : ObservableObject
     [ObservableProperty] private bool isLoading;
     [ObservableProperty] private bool hasNoStats;
     [ObservableProperty] private bool hasStats;
-    [ObservableProperty] private string period = "month"; // "month" or "year"
+    [ObservableProperty] private string period = "month"; // "month" | "year" | "custom"
     [ObservableProperty] private string periodLabel = "За текущий месяц";
+    [ObservableProperty] private DateTime? dateFrom;
+    [ObservableProperty] private DateTime? dateTo;
     
     // Finance KPI
     [ObservableProperty] private decimal financeRevenue;
@@ -24,6 +26,7 @@ public partial class AnalyticsViewModel : ObservableObject
     [ObservableProperty] private int financeSalesCount;
     [ObservableProperty] private double financeCostPercent;
     [ObservableProperty] private double financeProfitPercent;
+    [ObservableProperty] private decimal ndImCashFlow;
 
     public class ManagerStatRow
     {
@@ -70,6 +73,73 @@ public partial class AnalyticsViewModel : ObservableObject
         _apiService = apiService;
     }
     
+    private class TotalRevenueDto { public decimal Revenue { get; set; } }
+
+    [RelayCommand]
+    public async Task LoadTotalRevenue()
+    {
+        try
+        {
+            IsLoading = true;
+            if (_apiService == null)
+            {
+                _logger?.LogWarning("[AnalyticsViewModel] ApiService not available for total revenue");
+                return;
+            }
+            var dto = await _apiService.GetAsync<TotalRevenueDto>("api/finance/total-revenue");
+            if (dto != null)
+            {
+                await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    FinanceRevenue = dto.Revenue;
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[AnalyticsViewModel] Failed to load total revenue");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task SetPeriod(string p)
+    {
+        Period = p;
+        var now = DateTime.UtcNow;
+        if (p == "custom")
+        {
+            var firstOfCurrentMonth = new DateTime(now.Year, now.Month, 1);
+            var endPrevMonth = firstOfCurrentMonth.AddDays(-1).Date; // последний день прошлого месяца
+            var startPrevMonth = new DateTime(endPrevMonth.Year, endPrevMonth.Month, 1);
+            DateFrom = startPrevMonth;
+            DateTo = endPrevMonth;
+        }
+        else
+        {
+            DateFrom = null;
+            DateTo = null;
+        }
+        await LoadFinanceKpi();
+    }
+
+    [RelayCommand]
+    public async Task LoadCustomRange()
+    {
+        if (DateFrom.HasValue && DateTo.HasValue)
+        {
+            Period = "custom";
+            await LoadFinanceKpi();
+        }
+        else
+        {
+            _logger?.LogWarning("[AnalyticsViewModel] DateFrom or DateTo not set for custom range");
+        }
+    }
+    
     [RelayCommand]
     public async Task LoadFinanceKpi()
     {
@@ -86,16 +156,24 @@ public partial class AnalyticsViewModel : ObservableObject
             // Определяем период
             var now = DateTime.UtcNow;
             DateTime from, to;
-            
+
             if (Period == "year")
             {
                 from = new DateTime(now.Year, 1, 1);
                 to = new DateTime(now.Year + 1, 1, 1);
+                PeriodLabel = "За текущий год";
             }
-            else
+            else if (Period == "custom" && DateFrom.HasValue && DateTo.HasValue)
+            {
+                from = DateFrom.Value.Date;
+                to = DateTo.Value.Date.AddDays(1);
+                PeriodLabel = $"{DateFrom:dd.MM.yyyy} — {DateTo:dd.MM.yyyy}";
+            }
+            else // month
             {
                 from = new DateTime(now.Year, now.Month, 1);
                 to = from.AddMonths(1);
+                PeriodLabel = "За текущий месяц";
             }
 
             // Загружаем KPI через ApiService (с авторизацией)
@@ -112,6 +190,7 @@ public partial class AnalyticsViewModel : ObservableObject
                     FinanceSalesCount = kpi.SalesCount;
                     FinanceCostPercent = kpi.Revenue > 0 ? (double)(kpi.Cogs / kpi.Revenue) : 0;
                     FinanceProfitPercent = kpi.Revenue > 0 ? (double)(kpi.GrossProfit / kpi.Revenue) : 0;
+                    NdImCashFlow = kpi.NdImCashFlow;
                 });
             }
 
@@ -133,6 +212,7 @@ public partial class AnalyticsViewModel : ObservableObject
         public decimal Cogs { get; set; }
         public decimal GrossProfit { get; set; }
         public int SalesCount { get; set; }
+        public decimal NdImCashFlow { get; set; }
     }
 
     [RelayCommand]

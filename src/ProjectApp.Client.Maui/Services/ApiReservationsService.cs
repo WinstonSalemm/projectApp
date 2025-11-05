@@ -1,5 +1,6 @@
-﻿using System.Net.Http.Headers;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using ProjectApp.Client.Maui.Services;
 
 namespace ProjectApp.Client.Maui.Services;
 
@@ -57,6 +58,51 @@ public class ApiReservationsService : IReservationsService
         content.Add(fileContent, "file", fileName);
         var resp = await client.PostAsync($"/api/reservations/{reservationId}/photo", content, ct);
         return resp.IsSuccessStatusCode;
+    }
+
+    public async Task<IReadOnlyList<ReservationListItem>> GetReservationsAsync(string? status = null, int? clientId = null, bool? mine = null, CancellationToken ct = default)
+    {
+        var client = CreateClient();
+        var qs = new List<string>();
+        if (!string.IsNullOrWhiteSpace(status)) qs.Add($"status={Uri.EscapeDataString(status)}");
+        if (clientId.HasValue) qs.Add($"clientId={clientId.Value}");
+        if (mine.HasValue) qs.Add($"mine={(mine.Value ? "true" : "false")}");
+        var url = "/api/reservations" + (qs.Count > 0 ? ("?" + string.Join("&", qs)) : string.Empty);
+        var list = await client.GetFromJsonAsync<List<ReservationListItem>>(url, ct);
+        return list ?? new List<ReservationListItem>();
+    }
+
+    public async Task<ReservationDetailsDto?> GetReservationAsync(int id, CancellationToken ct = default)
+    {
+        var client = CreateClient();
+        var dto = await client.GetFromJsonAsync<ReservationDetailsDto>($"/api/reservations/{id}", ct);
+        return dto;
+    }
+
+    public async Task<bool> PayAsync(int reservationId, decimal amount, ReservationPaymentMethod method, string? note = null, CancellationToken ct = default)
+    {
+        var client = CreateClient();
+        var body = new { amount = amount, method = (int)method, note = note };
+        var resp = await client.PatchAsJsonAsync($"/api/reservations/{reservationId}/pay", body, ct);
+        return resp.IsSuccessStatusCode;
+    }
+
+    public async Task<IReadOnlyList<ReservationAlertClientDto>> GetAlertsAsync(DateTime? sinceUtc = null, CancellationToken ct = default)
+    {
+        var client = CreateClient();
+        string url;
+        if (sinceUtc.HasValue)
+        {
+            // Use round-trip format for UTC
+            var since = sinceUtc.Value.ToUniversalTime().ToString("o");
+            url = $"/api/reservations/alerts?since={Uri.EscapeDataString(since)}";
+        }
+        else
+        {
+            url = "/api/reservations/alerts";
+        }
+        var list = await client.GetFromJsonAsync<List<ReservationAlertClientDto>>(url, ct);
+        return list ?? new List<ReservationAlertClientDto>();
     }
 }
 

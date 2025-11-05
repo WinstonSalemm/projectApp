@@ -30,6 +30,7 @@ public class ReservationsCleanupService : BackgroundService
                 var now = DateTime.UtcNow;
                 var expired = await db.Reservations
                     .Where(r => r.Status == ReservationStatus.Active && r.ReservedUntil < now)
+                    .Where(r => !db.ReservationPayments.Any(p => p.ReservationId == r.Id))
                     .ToListAsync(stoppingToken);
                 if (expired.Count > 0)
                 {

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             xmlns:svc="clr-namespace:ProjectApp.Client.Maui.Services"
+             x:Class="ProjectApp.Client.Maui.Views.ReservationsListPage"
+             x:DataType="viewModels:ReservationsListViewModel"
+             Title="Брони">
+  <ContentPage.ToolbarItems>
+    <ToolbarItem Text="Новая бронь" Priority="0" Order="Primary" Clicked="OnAddNewClicked" />
+  </ContentPage.ToolbarItems>
+  <ContentPage.Content>
+    <VerticalStackLayout Padding="16" Spacing="12">
+      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto">
+        <SearchBar Grid.Column="0" Placeholder="Поиск по клиенту/№ брони" Text="{Binding Search}" />
+        <Button Grid.Column="1" Text="Обновить" Command="{Binding LoadCommand}" />
+      </Grid>
+
+      <CollectionView ItemsSource="{Binding Items}" SelectionMode="Single" SelectionChanged="OnSelectionChanged">
+        <CollectionView.ItemTemplate>
+          <DataTemplate>
+            <Grid Padding="12" ColumnDefinitions="2*,*,Auto" RowDefinitions="Auto,Auto,Auto" BackgroundColor="{DynamicResource Color.Surface}" 
+                  x:DataType="svc:ReservationListItem">
+              <Label Grid.Row="0" Grid.Column="0" Text="{Binding ClientName}" FontAttributes="Bold" />
+              <Label Grid.Row="0" Grid.Column="1" Text="{Binding ClientPhone}" HorizontalOptions="Start" />
+              <Label Grid.Row="0" Grid.Column="2" Text="{Binding Id, StringFormat=#\{0\}}" HorizontalOptions="End" />
+
+              <Label Grid.Row="1" Grid.Column="0" Text="{Binding CreatedBy}" />
+              <Label Grid.Row="1" Grid.Column="1" Text="{Binding ReservedUntil, StringFormat='до {0:dd.MM.yyyy HH:mm}'}" />
+              <Label Grid.Row="1" Grid.Column="2" Text="{Binding Status}" HorizontalOptions="End" />
+
+              <Label Grid.Row="2" Grid.Column="0" Text="{Binding ItemsCount, StringFormat='Позиции: {0}'}" />
+              <Label Grid.Row="2" Grid.Column="1" Text="{Binding PaidAmount, StringFormat='Оплачено: {0:N0} UZS'}" />
+              <Label Grid.Row="2" Grid.Column="2" Text="{Binding Total, StringFormat='Итого: {0:N0} UZS'}" HorizontalOptions="End" />
+            </Grid>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+    </VerticalStackLayout>
+  </ContentPage.Content>
+</ContentPage>

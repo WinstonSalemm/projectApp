@@ -8,6 +8,7 @@
       <Label Text="Админ-панель" FontSize="32" FontAttributes="Bold"/>
       <Label Text="Добро пожаловать, администратор!" FontSize="18"/>
       
+      <Button Text="История" HeightRequest="64" FontSize="18" Clicked="OnHistoryClicked"/>
       <Button Text="Склад" HeightRequest="64" FontSize="18" Margin="0,32,0,0" Clicked="OnStocksClicked"/>
       <Button Text="Поставки" HeightRequest="64" FontSize="18" Clicked="OnSuppliesClicked"/>
       <Button Text="Клиенты" HeightRequest="64" FontSize="18" Clicked="OnClientsClicked"/>

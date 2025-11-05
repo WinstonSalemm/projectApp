@@ -31,6 +31,8 @@ public class ReservationsController : ControllerBase
     {
         try
         {
+            if (!dto.ClientId.HasValue || dto.ClientId.Value <= 0)
+                return ValidationProblem(detail: "ClientId is required for reservation");
             var createdBy = User?.Identity?.Name ?? "unknown";
             var res = await _svc.CreateAsync(dto, createdBy, ct);
 
@@ -74,6 +76,123 @@ public class ReservationsController : ControllerBase
             _logger.LogError(ex, "Error creating reservation");
             return ValidationProblem(detail: msg);
         }
+    }
+
+    [HttpPatch("{id:int}/pay")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Pay([FromRoute] int id, [FromBody] ReservationPayDto dto, CancellationToken ct)
+    {
+        if (dto is null || dto.Amount <= 0) return ValidationProblem(detail: "Amount must be > 0");
+        var res = await _db.Reservations.Include(r => r.Items).FirstOrDefaultAsync(r => r.Id == id, ct);
+        if (res is null) return ValidationProblem(detail: $"Reservation not found: {id}");
+        if (res.Status != ReservationStatus.Active) return ValidationProblem(detail: "Reservation is not active");
+
+        var user = User?.Identity?.Name ?? "unknown";
+        _db.ReservationPayments.Add(new ReservationPayment
+        {
+            ReservationId = id,
+            Amount = dto.Amount,
+            Method = dto.Method,
+            Note = dto.Note,
+            PaidAt = DateTime.UtcNow,
+            ReceivedBy = user
+        });
+        await _db.SaveChangesAsync(ct);
+
+        // Recalculate paid state
+        var paidAmount = await _db.ReservationPayments.Where(p => p.ReservationId == id).SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
+        var total = res.Items.Sum(i => i.Qty * i.UnitPrice);
+        if (paidAmount >= total && !res.Paid)
+        {
+            res.Paid = true;
+            await _db.SaveChangesAsync(ct);
+        }
+
+        // Log payment
+        _db.ReservationLogs.Add(new ReservationLog
+        {
+            ReservationId = res.Id,
+            Action = "Payment",
+            UserName = user,
+            CreatedAt = DateTime.UtcNow,
+            Details = $"Amount:{dto.Amount}; Method:{dto.Method}; Note:{dto.Note}"
+        });
+        await _db.SaveChangesAsync(ct);
+
+        try { await _svc.NotifyTextOnlyAsync(res.Id, ct); } catch { }
+        return NoContent();
+    }
+
+    [HttpGet]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> List([FromQuery] string? status, [FromQuery] int? clientId, [FromQuery] bool? mine, CancellationToken ct)
+    {
+        var q = _db.Reservations.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ReservationStatus>(status, true, out var st))
+            q = q.Where(r => r.Status == st);
+        if (clientId.HasValue) q = q.Where(r => r.ClientId == clientId.Value);
+        if (mine == true)
+        {
+            var user = User?.Identity?.Name ?? "unknown";
+            q = q.Where(r => r.CreatedBy == user);
+        }
+
+        var list = await q.OrderByDescending(r => r.Id)
+            .Select(r => new
+            {
+                r.Id,
+                r.ClientId,
+                ClientName = _db.Clients.Where(c => c.Id == r.ClientId).Select(c => c.Name).FirstOrDefault(),
+                ClientPhone = _db.Clients.Where(c => c.Id == r.ClientId).Select(c => c.Phone).FirstOrDefault(),
+                r.CreatedBy,
+                r.CreatedAt,
+                r.ReservedUntil,
+                r.Status,
+                r.Paid,
+                ItemsCount = _db.ReservationItems.Count(i => i.ReservationId == r.Id),
+                Total = _db.ReservationItems.Where(i => i.ReservationId == r.Id).Sum(i => (decimal?)i.Qty * i.UnitPrice) ?? 0m,
+                PaidAmount = _db.ReservationPayments.Where(p => p.ReservationId == r.Id).Sum(p => (decimal?)p.Amount) ?? 0m,
+                r.Note
+            })
+            .ToListAsync(ct);
+        return Ok(list);
+    }
+
+    [HttpGet("{id:int}")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Details([FromRoute] int id, CancellationToken ct)
+    {
+        var r = await _db.Reservations.AsNoTracking().Include(x => x.Items).FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (r is null) return NotFound();
+        var client = r.ClientId.HasValue ? await _db.Clients.AsNoTracking().FirstOrDefaultAsync(c => c.Id == r.ClientId.Value, ct) : null;
+        var payments = await _db.ReservationPayments.AsNoTracking().Where(p => p.ReservationId == id).OrderBy(p => p.PaidAt).ToListAsync(ct);
+        var total = r.Items.Sum(i => i.Qty * i.UnitPrice);
+        var paidAmount = payments.Sum(p => p.Amount);
+        var due = Math.Max(0m, total - paidAmount);
+        var result = new
+        {
+            r.Id,
+            r.ClientId,
+            ClientName = client?.Name,
+            ClientPhone = client?.Phone,
+            r.CreatedBy,
+            r.CreatedAt,
+            r.ReservedUntil,
+            r.Status,
+            r.Paid,
+            r.Note,
+            Total = total,
+            PaidAmount = paidAmount,
+            DueAmount = due,
+            Items = r.Items.Select(i => new { i.ProductId, i.Sku, i.Name, i.Register, i.Qty, i.UnitPrice }).ToList(),
+            Payments = payments.Select(p => new { p.Id, p.Amount, p.Method, p.Note, p.PaidAt, p.ReceivedBy }).ToList()
+        };
+        return Ok(result);
     }
 
     [HttpPost("{id:int}/photo")]

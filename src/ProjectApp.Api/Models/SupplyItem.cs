@@ -26,5 +26,11 @@ public class SupplyItem
     public decimal PriceRub { get; set; } // за 1 шт в рублях
     
     [Precision(18, 4)]
+    public decimal? PriceUsd { get; set; } // за 1 шт в USD (опционально)
+    
+    [Precision(18, 4)]
+    public decimal? PriceUzs { get; set; } // за 1 шт в UZS (опционально)
+    
+    [Precision(18, 4)]
     public decimal Weight { get; set; } // Вес в кг
 }

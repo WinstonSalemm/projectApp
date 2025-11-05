@@ -21,5 +21,24 @@ public partial class SalesHistoryPage : ContentPage
             throw;
         }
     }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        if (BindingContext is SalesHistoryViewModel vm)
+        {
+            try
+            {
+                if (!vm.IsLoading && vm.Items.Count == 0)
+                {
+                    vm.LoadCommand.Execute(null);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SalesHistoryPage] OnAppearing load failed: {ex.Message}");
+            }
+        }
+    }
 }
 

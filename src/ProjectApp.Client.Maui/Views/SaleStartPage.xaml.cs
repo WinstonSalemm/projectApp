@@ -72,6 +72,16 @@ public partial class SaleStartPage : ContentPage
             return;
         }
 
+        if (!option.IsEnabled)
+        {
+            if (sender is CollectionView cv)
+            {
+                cv.SelectedItem = null;
+            }
+            await DisplayAlert("Недоступно", "Этот способ оплаты пока недоступен.", "OK");
+            return;
+        }
+
         vm.ApplySaleMethod(option);
         await HandleSaleMethodAsync(vm, option);
     }
@@ -97,6 +107,12 @@ public partial class SaleStartPage : ContentPage
                     System.Diagnostics.Debug.WriteLine("[SaleStartPage] Pushing to navigation...");
                     await Navigation.PushAsync(returnSourcePage);
                     System.Diagnostics.Debug.WriteLine("[SaleStartPage] Navigation push completed");
+                    break;
+                }
+                case PaymentType.Reservation:
+                {
+                    var page = _services.GetRequiredService<ReservationsListPage>();
+                    await Navigation.PushAsync(page);
                     break;
                 }
                 case PaymentType.Contract:

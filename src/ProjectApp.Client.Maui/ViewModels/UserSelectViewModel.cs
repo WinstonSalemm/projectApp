@@ -29,6 +29,7 @@ public partial class UserSelectViewModel : ObservableObject
 
     public UserSelectViewModel(AuthService auth, IServiceProvider services)
     {
+        Console.WriteLine("[UserSelectVM] ctor");
         _auth = auth;
         _services = services;
     }
@@ -39,6 +40,7 @@ public partial class UserSelectViewModel : ObservableObject
     [RelayCommand]
     private async Task LoginManagerAsync(string? userName)
     {
+        Console.WriteLine($"[UserSelectVM] LoginManagerAsync invoked with userName={userName}");
         if (string.IsNullOrWhiteSpace(userName) || !Directory.TryGetValue(userName, out var info))
         {
             await NavigationHelper.DisplayAlert("Неизвестный пользователь", "Выберите одного из доступных менеджеров.", "OK");
@@ -46,13 +48,15 @@ public partial class UserSelectViewModel : ObservableObject
         }
 
         // Login through API to get real token (password=null for managers)
+        Console.WriteLine($"[UserSelectVM] Attempting API login for {userName}");
         var success = await _auth.LoginAsync(userName, null);
         if (!success)
         {
+            Console.WriteLine($"[UserSelectVM] Login failed: {_auth.LastErrorMessage}");
             await NavigationHelper.DisplayAlert("Ошибка", $"Не удалось войти. {_auth.LastErrorMessage}", "OK");
             return;
         }
-        
+        Console.WriteLine($"[UserSelectVM] Login succeeded, role={_auth.Role}, displayName={_auth.DisplayName}");
         // Manager goes directly to payment selection, NOT to shell with tabs
         var paymentPage = _services.GetRequiredService<Views.PaymentSelectPage>();
         NavigationHelper.SetRoot(new NavigationPage(paymentPage));

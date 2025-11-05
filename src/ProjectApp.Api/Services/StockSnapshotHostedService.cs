@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Integrations.Telegram;
+using System.Text;
+using System.IO;
 
 namespace ProjectApp.Api.Services;
 
@@ -96,10 +98,45 @@ public class StockSnapshotHostedService : BackgroundService
             if (ids.Count > 0)
             {
                 var dateStr = (createdAt + TimeSpan.FromMinutes(_tgSettings.TimeZoneOffsetMinutes)).ToString("yyyy-MM-dd");
-                var msg = $"Суточный снимок остатков сохранен за {dateStr}: строк {rows}";
+
+                // Экспортируем остатки в CSV (Excel-friendly)
+                var prods = await db.Products.AsNoTracking()
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id, ct);
+
+                var sb = new StringBuilder();
+                sb.AppendLine("ProductId,SKU,Name,ND_Qty,IM_Qty,Total_Qty,Total_Value");
+                foreach (var s in stocks)
+                {
+                    var total = s.Nd + s.Im;
+                    if (total <= 0) continue;
+                    var sku = prods.TryGetValue(s.ProductId, out var p) ? (p.Sku ?? string.Empty) : string.Empty;
+                    var name = prods.TryGetValue(s.ProductId, out var p2) ? (p2.Name ?? string.Empty) : string.Empty;
+                    var totalValue = batchAgg.TryGetValue(s.ProductId, out var tv) ? tv : 0m;
+                    string Esc(string x) => string.IsNullOrEmpty(x) ? string.Empty : (x.Contains(',') || x.Contains('"') ? $"\"{x.Replace("\"", "\"\"")}\"" : x);
+                    sb.AppendLine(string.Join(',',
+                        s.ProductId,
+                        Esc(sku),
+                        Esc(name),
+                        s.Nd.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        s.Im.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        total.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        totalValue.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    ));
+                }
+                var csvBytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+                var fileName = $"stocks-{dateStr}.csv";
+
+                // Отправим файл в Telegram
                 foreach (var chatId in ids)
                 {
-                    try { await tg.SendMessageAsync(chatId, msg, ct); } catch { }
+                    try
+                    {
+                        await using var ms = new MemoryStream(csvBytes, writable: false);
+                        ms.Position = 0;
+                        await tg.SendDocumentAsync(chatId, ms, fileName, caption: $"Остатки на {dateStr}", ct);
+                    }
+                    catch { }
                 }
             }
         }

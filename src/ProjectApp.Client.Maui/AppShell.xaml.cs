@@ -92,6 +92,7 @@ public partial class AppShell : Shell
         RegisterRoute<DebtDetailPage>("debts/detail");
         RegisterRoute<StocksPage>("stocks/list");
         RegisterRoute<HistoryTabsPage>("history/tabs");
+        RegisterRoute<AdminHistoryPage>("admin/history");
         RegisterRoute<FinancesMenuPage>("finances/menu");
         RegisterRoute<CashboxesPage>("finances/cashboxes");
         RegisterRoute<ExpensesPage>("finances/expenses");

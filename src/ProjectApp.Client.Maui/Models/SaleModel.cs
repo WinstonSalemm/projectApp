@@ -9,5 +9,6 @@ public class SaleModel
     public decimal Total { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
+    public bool Nd40Transferred { get; set; }
 }
 

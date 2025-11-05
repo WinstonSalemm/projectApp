@@ -61,6 +61,7 @@ public class AlertsService
                     message += $"   SKU: {p.Sku}\n";
                     message += $"   Остаток: <b>{p.Qty:F1}</b> ⚠️\n\n";
                 }
+
                 message += "Необходима срочная закупка!";
                 await _telegram.SendMessageToOwnerAsync(message);
                 

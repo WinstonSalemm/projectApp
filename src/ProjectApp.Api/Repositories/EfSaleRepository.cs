@@ -23,7 +23,8 @@ public class EfSaleRepository : ISaleRepository
         var isGreyPayment = sale.PaymentType == PaymentType.CashNoReceipt
                           || sale.PaymentType == PaymentType.ClickNoReceipt
                           || sale.PaymentType == PaymentType.Click // legacy mapping kept as grey
-                          || sale.PaymentType == PaymentType.Payme;
+                          || sale.PaymentType == PaymentType.Payme
+                          || sale.PaymentType == PaymentType.Debt;
 
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
@@ -204,7 +205,7 @@ public class EfSaleRepository : ISaleRepository
         return payment switch
         {
             PaymentType.CashWithReceipt or PaymentType.CardWithReceipt or PaymentType.ClickWithReceipt or PaymentType.Site or PaymentType.Return or PaymentType.Contract or PaymentType.Reservation => StockRegister.IM40,
-            PaymentType.CashNoReceipt or PaymentType.ClickNoReceipt or PaymentType.Click or PaymentType.Payme => StockRegister.ND40,
+            PaymentType.CashNoReceipt or PaymentType.ClickNoReceipt or PaymentType.Click or PaymentType.Payme or PaymentType.Debt => StockRegister.ND40,
             _ => StockRegister.IM40
         };
     }

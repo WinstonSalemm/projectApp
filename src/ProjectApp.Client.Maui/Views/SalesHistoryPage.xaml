@@ -1,28 +1,39 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              xmlns:conv="clr-namespace:ProjectApp.Client.Maui.Converters"
              x:Class="ProjectApp.Client.Maui.Views.SalesHistoryPage"
              x:Name="Page"
-             Title="РСЃС‚РѕСЂРёСЏ РїСЂРѕРґР°Р¶">
+             Title="История продаж">
+  <ContentPage.Resources>
+    <ResourceDictionary>
+      <conv:BoolToColorConverter x:Key="BoolToErrorColor"/>
+    </ResourceDictionary>
+  </ContentPage.Resources>
   <CollectionView ItemsSource="{Binding Items}">
     <CollectionView.Header>
       <Frame Style="{StaticResource CardFrame}">
         <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
           <HorizontalStackLayout Grid.Column="0" Spacing="8">
-            <Label Text="РћС‚:" VerticalTextAlignment="Center"/>
+            <Label Text="От:" VerticalTextAlignment="Center"/>
             <DatePicker Date="{Binding DateFrom, Mode=TwoWay}"/>
           </HorizontalStackLayout>
           <HorizontalStackLayout Grid.Column="1" Spacing="8">
-            <Label Text="Р”Рѕ:" VerticalTextAlignment="Center"/>
+            <Label Text="До:" VerticalTextAlignment="Center"/>
             <DatePicker Date="{Binding DateTo, Mode=TwoWay}"/>
           </HorizontalStackLayout>
-          <Button Grid.Column="2" Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding LoadCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8" Style="{StaticResource OutlinedButton}"/>
-          <HorizontalStackLayout Grid.Column="3" Spacing="8">
-            <Label Text="Р’СЃРµ РїСЂРѕРґР°Р¶Рё" VerticalTextAlignment="Center"/>
-            <Switch IsToggled="{Binding ShowAll}"/>
-          </HorizontalStackLayout>
+          <Button Grid.Column="2" Text="Обновить" Command="{Binding LoadCommand}" ImageSource="{StaticResource IconRefresh}" ContentLayout="Left,8" Style="{StaticResource OutlinedButton}"/>
+          <VerticalStackLayout Grid.Column="3" Spacing="6">
+            <HorizontalStackLayout Spacing="8">
+              <Label Text="Все продажи" VerticalTextAlignment="Center"/>
+              <Switch IsToggled="{Binding ShowAll}"/>
+            </HorizontalStackLayout>
+            <HorizontalStackLayout Spacing="8">
+              <Label Text="Только ND→IM" VerticalTextAlignment="Center"/>
+              <Switch IsToggled="{Binding NdImOnly}"/>
+            </HorizontalStackLayout>
+          </VerticalStackLayout>
           <ActivityIndicator Grid.Row="1" Grid.ColumnSpan="4" IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"/>
         </Grid>
       </Frame>
@@ -37,10 +48,30 @@
     <CollectionView.ItemTemplate>
       <DataTemplate>
         <Frame Style="{StaticResource CardFrame}">
-          <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-            <Label Grid.Row="0" Grid.ColumnSpan="2" Text="{Binding Id, StringFormat='РџСЂРѕРґР°Р¶Р° #{0}'}" FontAttributes="Bold"/>
+          <Frame.Style>
+            <Style TargetType="Frame" BasedOn="{StaticResource CardFrame}">
+              <Setter Property="BorderColor" Value="{DynamicResource Color.Border}"/>
+              <Style.Triggers>
+                <DataTrigger TargetType="Frame" Binding="{Binding Nd40Transferred}" Value="True">
+                  <Setter Property="BorderColor" Value="{DynamicResource Color.Error}" />
+                  <Setter Property="BackgroundColor" Value="#26DC2626" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Frame.Style>
+          <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <!-- Яркий баннер для ND→IM -->
+            <Grid Grid.Row="0" Grid.ColumnSpan="2" IsVisible="{Binding Nd40Transferred}">
+              <Grid BackgroundColor="{DynamicResource Color.Error}" Padding="8,4">
+                <Label Text="ВЫШЕЛ ИМ‑40 НА ЭТОТ ТОВАР" FontAttributes="Bold" TextColor="{DynamicResource Color.OnPrimary}"/>
+              </Grid>
+            </Grid>
+            <Label Grid.Row="0" Grid.ColumnSpan="2"
+                   Text="{Binding Id, StringFormat='Продажа #{0}'}"
+                   FontAttributes="Bold"
+                   TextColor="{Binding Nd40Transferred, Converter={StaticResource BoolToErrorColor}}"/>
             <Label Grid.Row="1" Grid.Column="0" Text="{Binding CreatedAt, Converter={StaticResource DateTimeToRuConverter}}" FontSize="12" TextColor="Gray"/>
-            <Button Grid.Row="1" Grid.Column="1" Text="Р’РѕР·РІСЂР°С‚" Command="{Binding Source={x:Reference Name=Page}, Path=BindingContext.OpenReturnCommand}" CommandParameter="{Binding .}" Style="{StaticResource OutlinedButton}" ImageSource="{StaticResource IconReturn}" ContentLayout="Left,8"/>
+            <Button Grid.Row="1" Grid.Column="1" Text="Изменить" Command="{Binding Source={x:Reference Name=Page}, Path=BindingContext.OpenEditCommand}" CommandParameter="{Binding .}" Style="{StaticResource OutlinedButton}"/>
             <Label Grid.Row="2" Grid.Column="0" Text="{Binding ClientName}"/>
             <!-- Payment type badge -->
             <Frame Grid.Row="3" Grid.Column="0" Style="{StaticResource BadgeFrame}"
@@ -49,15 +80,15 @@
               <Label Text="{Binding PaymentType, Converter={StaticResource PaymentTypeToRuConverter}}" FontSize="12"
                      TextColor="{Binding PaymentType, Converter={StaticResource PaymentTypeToColorConverter}, ConverterParameter=text}"/>
             </Frame>
-            <Label Grid.Row="3" Grid.Column="1" Text="{Binding Total, Converter={StaticResource CurrencyConverter}, StringFormat='РЎСѓРјРјР°: {0}'}" HorizontalTextAlignment="End"/>
+            <Label Grid.Row="3" Grid.Column="1" Text="{Binding Total, Converter={StaticResource CurrencyConverter}, StringFormat='Сумма: {0}'}" HorizontalTextAlignment="End"/>
           </Grid>
         </Frame>
       </DataTemplate>
     </CollectionView.ItemTemplate>
     <CollectionView.EmptyView>
       <VerticalStackLayout Padding="12" Spacing="6">
-        <Label Text="РќРµС‚ РїСЂРѕРґР°Р¶ Р·Р° РІС‹Р±СЂР°РЅРЅС‹Р№ РїРµСЂРёРѕРґ" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
-        <Label Text="РР·РјРµРЅРёС‚Рµ РґР°С‚С‹ РёР»Рё РІРєР»СЋС‡РёС‚Рµ 'Р’СЃРµ РїСЂРѕРґР°Р¶Рё'" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+        <Label Text="Нет продаж за выбранный период" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
+        <Label Text="Измените даты или включите 'Все продажи'" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
       </VerticalStackLayout>
     </CollectionView.EmptyView>
   </CollectionView>

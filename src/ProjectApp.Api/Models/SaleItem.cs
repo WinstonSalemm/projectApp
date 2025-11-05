@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace ProjectApp.Api.Models;
 
 public class SaleItem
@@ -13,4 +15,6 @@ public class SaleItem
     // Snapshot of product info at time of sale (for returns and history)
     public string? Sku { get; set; }
     public string? ProductName { get; set; }
+
+    public ICollection<SaleItemConsumption> Consumptions { get; set; } = new List<SaleItemConsumption>();
 }

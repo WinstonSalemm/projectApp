@@ -36,6 +36,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ReservationItem> ReservationItems => Set<ReservationItem>();
     public DbSet<ReservationItemBatch> ReservationItemBatches => Set<ReservationItemBatch>();
     public DbSet<ReservationLog> ReservationLogs => Set<ReservationLog>();
+    public DbSet<ReservationPayment> ReservationPayments => Set<ReservationPayment>();
     public DbSet<StockSnapshot> StockSnapshots => Set<StockSnapshot>();
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<TaxPayment> TaxPayments => Set<TaxPayment>();
@@ -368,6 +369,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(l => l.CreatedAt).IsRequired();
             b.Property(l => l.Details).HasMaxLength(1024);
             b.HasIndex(l => l.ReservationId);
+        });
+
+        modelBuilder.Entity<ReservationPayment>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+            b.Property(x => x.PaidAt).IsRequired();
+            b.Property(x => x.ReceivedBy).HasMaxLength(64);
+            b.Property(x => x.Note).HasMaxLength(256);
+            b.HasIndex(x => x.ReservationId);
+            b.HasIndex(x => x.PaidAt);
         });
 
         modelBuilder.Entity<StockSnapshot>(b =>

@@ -10,6 +10,7 @@ public class AlertsBackgroundService : BackgroundService
     private readonly TimeSpan _checkInterval = TimeSpan.FromHours(1); // Проверка каждый час
     private DateTime _lastDailyReport = DateTime.MinValue;
     private DateTime _lastWeeklyReport = DateTime.MinValue;
+    private DateTime _lastReservationReminder = DateTime.MinValue;
 
     public AlertsBackgroundService(
         IServiceProvider services,
@@ -58,6 +59,13 @@ public class AlertsBackgroundService : BackgroundService
         await alertsService.CheckOverdueDebtsAsync();
         await alertsService.CheckLowCashboxBalancesAsync();
         await alertsService.CheckLongPendingReservationsAsync();
+
+        // Напоминания по броням раз в 2 дня
+        if ((now - _lastReservationReminder).TotalHours >= 47) // ~двое суток с запасом
+        {
+            await alertsService.CheckReservationRemindersAsync();
+            _lastReservationReminder = now;
+        }
 
         // 2. Ежедневный отчет в 21:00
         if (nowLocal.Hour == 21 && 

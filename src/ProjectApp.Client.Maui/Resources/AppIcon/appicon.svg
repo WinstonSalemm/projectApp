@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#990000"/>
+      <stop offset="100%" stop-color="#660000"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="180" fill="url(#grad)"/>
+  <g fill="#FFFFFF" font-family="Segoe UI" font-weight="700" text-anchor="middle">
+    <text x="512" y="430" font-size="260">POJ</text>
+    <text x="512" y="720" font-size="200">PRO</text>
+  </g>
+</svg>

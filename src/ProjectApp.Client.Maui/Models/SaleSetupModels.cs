@@ -47,4 +47,5 @@ public class SaleMethodOption
     public string Description { get; init; } = string.Empty;
     public string Icon { get; init; } = string.Empty;
     public PaymentType? PaymentType { get; init; }
+    public bool IsEnabled { get; init; } = true;
 }
