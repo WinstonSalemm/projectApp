@@ -115,13 +115,27 @@ public class ApiSuppliesService : ISuppliesService
         var client = CreateClient();
         var dto = new { Name = name, Quantity = quantity, PriceRub = priceRub, Category = category, Sku = sku, Weight = weight };
         var response = await client.PostAsJsonAsync($"/api/supplies/{supplyId}/items", dto);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            string details = string.Empty;
+            try { details = await response.Content.ReadAsStringAsync(); } catch { }
+            var message = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
+            if (!string.IsNullOrWhiteSpace(details)) message += $": {details}";
+            throw new Exception(message);
+        }
     }
 
     public async Task DeleteSupplyItemAsync(int supplyId, int itemId)
     {
         var client = CreateClient();
         var response = await client.DeleteAsync($"/api/supplies/{supplyId}/items/{itemId}");
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            string details = string.Empty;
+            try { details = await response.Content.ReadAsStringAsync(); } catch { }
+            var message = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
+            if (!string.IsNullOrWhiteSpace(details)) message += $": {details}";
+            throw new Exception(message);
+        }
     }
 }

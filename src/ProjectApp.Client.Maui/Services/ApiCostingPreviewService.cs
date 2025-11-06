@@ -15,11 +15,35 @@ public class ApiCostingPreviewService
 
     public async Task<CostingPreviewDto> PreviewAsync(int supplyId, CostingConfigDto cfg, CancellationToken ct = default)
     {
-        var resp = await _http.PostAsJsonAsync($"/api/costing/preview/{supplyId}", cfg, ct);
-        resp.EnsureSuccessStatusCode();
-        var dto = await resp.Content.ReadFromJsonAsync<CostingPreviewDto>(cancellationToken: ct);
-        return dto ?? new CostingPreviewDto { Rows = new List<CostingRowDto>() };
+        try
+        {
+            var resp = await _http.PostAsJsonAsync($"/api/costing/preview/{supplyId}", cfg, ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                var body = string.Empty;
+                try { body = await resp.Content.ReadAsStringAsync(ct); } catch { /* ignore */ }
+                return new CostingPreviewDto
+                {
+                    Rows = new List<CostingRowDto>(),
+                    Warnings = new[] { $"Server error {(int)resp.StatusCode} {resp.ReasonPhrase}: {Truncate(body, 300)}" }
+                };
+            }
+
+            var dto = await resp.Content.ReadFromJsonAsync<CostingPreviewDto>(cancellationToken: ct);
+            return dto ?? new CostingPreviewDto { Rows = new List<CostingRowDto>() };
+        }
+        catch (Exception ex)
+        {
+            return new CostingPreviewDto
+            {
+                Rows = new List<CostingRowDto>(),
+                Warnings = new[] { $"Network error: {ex.Message}" }
+            };
+        }
     }
+
+    private static string Truncate(string value, int max)
+        => string.IsNullOrEmpty(value) ? value : (value.Length <= max ? value : value.Substring(0, max) + "...");
 }
 
 public sealed class CostingPreviewDto

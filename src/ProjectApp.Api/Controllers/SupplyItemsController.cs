@@ -52,17 +52,34 @@ public class SupplyItemsController : ControllerBase
             if (supply == null)
                 return NotFound($"Supply {supplyId} not found");
 
+            // Валидация входных данных
+            var nameRaw = dto.Name?.Trim();
+            if (string.IsNullOrWhiteSpace(nameRaw))
+                return BadRequest("Название товара обязательно");
+            if (nameRaw.Length > 256) nameRaw = nameRaw.Substring(0, 256);
+            if (dto.Quantity <= 0)
+                return BadRequest("Количество должно быть больше 0");
+            if (dto.PriceRub < 0)
+                return BadRequest("Цена не может быть отрицательной");
+
             // Проверяем существование продукта по названию
             var product = await _db.Products
-                .FirstOrDefaultAsync(p => p.Name.ToLower() == dto.Name.ToLower(), ct);
+                .FirstOrDefaultAsync(p => p.Name.ToLower() == nameRaw.ToLower(), ct);
 
             if (product == null)
             {
                 // Создаём новый продукт
+                var sku = string.IsNullOrWhiteSpace(dto.Sku) ? $"AUTO-{Guid.NewGuid().ToString("N")[..8].ToUpper()}" : dto.Sku.Trim();
+                if (sku.Length > 64) sku = sku.Substring(0, 64);
+
                 product = new Product
                 {
-                    Name = dto.Name,
-                    Category = dto.Category ?? "Другое"
+                    Name = nameRaw,
+                    Category = string.IsNullOrWhiteSpace(dto.Category) ? "Другое" : dto.Category!.Trim(),
+                    Sku = sku,
+                    Unit = string.IsNullOrWhiteSpace("шт") ? "шт" : "шт",
+                    Price = 0m,
+                    Cost = 0m
                 };
                 _db.Products.Add(product);
                 await _db.SaveChangesAsync(ct);
@@ -74,7 +91,7 @@ public class SupplyItemsController : ControllerBase
                 SupplyId = supplyId,
                 ProductId = product.Id,
                 Name = product.Name,
-                Sku = dto.Sku ?? string.Empty,
+                Sku = string.IsNullOrWhiteSpace(dto.Sku) ? product.Sku : dto.Sku!.Trim(),
                 Quantity = dto.Quantity,
                 PriceRub = dto.PriceRub,
                 Weight = dto.Weight ?? 0
@@ -191,37 +208,68 @@ public class SupplyItemsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int supplyId, int itemId, CancellationToken ct)
     {
-        var supply = await _db.Supplies.FindAsync(new object[] { supplyId }, ct);
-        if (supply == null)
-            return NotFound("Supply not found");
-
-        // После перевода в IM-40 - read-only
-        if (supply.RegisterType == RegisterType.IM40)
-            return BadRequest("Cannot delete items after transfer to IM-40");
-
-        var item = await _db.SupplyItems.FindAsync(new object[] { itemId }, ct);
-        if (item == null || item.SupplyId != supplyId)
-            return NotFound("Item not found");
-
-        // ✅ Удаляем соответствующую партию со склада
-        var register = supply.RegisterType == RegisterType.ND40 ? StockRegister.ND40 : StockRegister.IM40;
-        
-        var batch = await _db.Batches
-            .Where(b => b.ProductId == item.ProductId 
-                     && b.Register == register 
-                     && b.PurchaseSource == $"SupplyId:{supply.Id}")
-            .FirstOrDefaultAsync(ct);
-        
-        if (batch != null)
+        try
         {
-            // TODO: InventoryTransaction временно отключена
-            _db.Batches.Remove(batch);
+            var supply = await _db.Supplies.FindAsync(new object[] { supplyId }, ct);
+            if (supply == null)
+                return NotFound("Supply not found");
+
+            // После перевода в IM-40 - read-only
+            if (supply.RegisterType == RegisterType.IM40)
+                return BadRequest("Cannot delete items after transfer to IM-40");
+
+            var item = await _db.SupplyItems.FindAsync(new object[] { itemId }, ct);
+            if (item == null || item.SupplyId != supplyId)
+                return NotFound("Item not found");
+
+            // ✅ Удаляем соответствующую партию со склада (если она не используется)
+            var register = supply.RegisterType == RegisterType.ND40 ? StockRegister.ND40 : StockRegister.IM40;
+
+            var batch = await _db.Batches
+                .Where(b => b.ProductId == item.ProductId
+                         && b.Register == register
+                         && b.PurchaseSource == $"SupplyId:{supply.Id}")
+                .OrderByDescending(b => b.Id)
+                .FirstOrDefaultAsync(ct);
+
+            if (batch != null)
+            {
+                var hasRefs = await _db.InventoryConsumptions.AnyAsync(x => x.BatchId == batch.Id, ct)
+                              || await _db.ReservationItemBatches.AnyAsync(x => x.BatchId == batch.Id, ct)
+                              || await _db.ReturnItemRestocks.AnyAsync(x => x.BatchId == batch.Id, ct);
+                if (hasRefs)
+                {
+                    return BadRequest("Нельзя удалить позицию: партия уже использована в продажах/резервациях/возвратах");
+                }
+
+                // Списываем агрегированные остатки
+                var stock = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == item.ProductId && s.Register == register, ct);
+                if (stock != null)
+                {
+                    stock.Qty -= item.Quantity;
+                    if (stock.Qty < 0) stock.Qty = 0;
+                }
+
+                _db.Batches.Remove(batch);
+            }
+
+            _db.SupplyItems.Remove(item);
+            await _db.SaveChangesAsync(ct);
+
+            return NoContent();
         }
-
-        _db.SupplyItems.Remove(item);
-        await _db.SaveChangesAsync(ct);
-
-        return NoContent();
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Delete supply item failed: supply {SupplyId} item {ItemId}", supplyId, itemId);
+            var details = new
+            {
+                error = ex.Message,
+                innerError = ex.InnerException?.Message,
+                type = ex.GetType().Name,
+                stack = ex.StackTrace?.Split('\n').Take(5).ToArray()
+            };
+            return StatusCode(500, details);
+        }
     }
 }
 
