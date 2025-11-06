@@ -2,6 +2,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /app
 
+# Debug: check build context
+COPY . /debug
+RUN ls -la /debug && ls -la /debug/src || echo "No src directory"
+
 # Копируем решение и проекты
 COPY src/ ./
 
