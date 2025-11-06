@@ -1,16 +1,12 @@
 # ====== BUILD ======
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /app
+WORKDIR /build
 
-# Debug: check build context v2
-COPY . /debug
-RUN echo "=== ROOT CONTENT ===" && ls -la /debug && echo "=== SRC CONTENT ===" && ls -la /debug/src || echo "No src directory found"
-
-# Копируем решение и проекты
-COPY src/ ./
+# Копируем весь проект
+COPY . .
 
 # Restore
-WORKDIR /app/ProjectApp.Api
+WORKDIR /build/src/ProjectApp.Api
 RUN dotnet restore "ProjectApp.Api.csproj"
 
 # Build и publish
