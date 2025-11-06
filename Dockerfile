@@ -5,6 +5,11 @@ WORKDIR /build
 # Копируем весь проект
 COPY . .
 
+# Debug: check what was copied
+RUN echo "=== BUILD ROOT ===" && ls -la /build && \
+    echo "=== SRC DIR ===" && ls -la /build/src && \
+    echo "=== API DIR ===" && ls -la /build/src/ProjectApp.Api
+
 # Restore
 WORKDIR /build/src/ProjectApp.Api
 RUN dotnet restore "ProjectApp.Api.csproj"
