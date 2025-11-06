@@ -71,6 +71,10 @@ public partial class ContractsHistoryViewModel : ObservableObject
                     Items.Add(r);
             });
         }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ContractsHistoryViewModel] LoadAsync ERROR: {ex}");
+        }
         finally { IsLoading = false; }
     }
 }

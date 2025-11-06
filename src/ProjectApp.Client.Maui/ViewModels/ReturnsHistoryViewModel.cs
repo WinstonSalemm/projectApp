@@ -41,6 +41,10 @@ public partial class ReturnsHistoryViewModel : ObservableObject
                     Items.Add(r);
             });
         }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ReturnsHistoryViewModel] LoadAsync ERROR: {ex}");
+        }
         finally { IsLoading = false; }
     }
 }

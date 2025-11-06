@@ -76,7 +76,7 @@ public partial class SalesHistoryViewModel : ObservableObject
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[SalesHistoryViewModel] LoadAsync ERROR: {ex}");
-            throw;
+            // swallow to prevent app crash; error is logged above
         }
         finally 
         { 

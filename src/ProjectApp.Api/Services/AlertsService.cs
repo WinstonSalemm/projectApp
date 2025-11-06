@@ -28,6 +28,11 @@ public class AlertsService
         _logger = logger;
     }
 
+    private static string HtmlEscape(string? value)
+        => string.IsNullOrEmpty(value)
+            ? string.Empty
+            : value.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
     /// <summary>
     /// Проверить критические остатки товаров и отправить алерт
     /// </summary>
@@ -230,18 +235,47 @@ public class AlertsService
         try
         {
             var sale = await _db.Sales
+                .AsNoTracking()
                 .Include(s => s.Items)
                 .FirstOrDefaultAsync(s => s.Id == saleId);
 
             if (sale == null) return;
 
-            var message = $"💰 <b>КРУПНАЯ ПРОДАЖА!</b>\n\n";
-            message += $"📊 Продажа #{sale.Id}\n";
-            message += $"👤 Клиент: {sale.ClientName}\n";
-            message += $"💵 Сумма: <b>{total:N0} UZS</b>\n";
-            message += $"👨‍💼 Менеджер: {sale.CreatedBy ?? "Не указан"}\n";
-            message += $"📦 Товаров: {sale.Items.Count}\n";
-            message += $"🕐 Время: {sale.CreatedAt:dd.MM.yyyy HH:mm}\n";
+            var clientName = string.IsNullOrWhiteSpace(sale.ClientName) ? "Посетитель" : sale.ClientName;
+            var managerDisplay = string.IsNullOrWhiteSpace(sale.CreatedBy) ? "Не указан" : sale.CreatedBy;
+
+            var items = sale.Items ?? new List<SaleItem>();
+            var productIds = items.Select(i => i.ProductId).Distinct().ToList();
+            var productMap = await _db.Products.AsNoTracking()
+                .Where(p => productIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.Name })
+                .ToDictionaryAsync(p => p.Id, p => p.Name, CancellationToken.None);
+
+            var itemLines = new List<string>();
+            foreach (var it in items)
+            {
+                productMap.TryGetValue(it.ProductId, out var productName);
+                var name = productName ?? $"#{it.ProductId}";
+                var sum = it.Qty * it.UnitPrice;
+                var nameShort = name.Length > 28 ? name[..28] + "…" : name;
+                var safeName = HtmlEscape(nameShort);
+                itemLines.Add($"{safeName,-30} {it.Qty,5:N0} x {it.UnitPrice,9:N0} = {sum,10:N0}");
+            }
+
+            var message = $"🔥 <b>КРУПНАЯ ПРОДАЖА #{sale.Id}!</b> 🔥\n";
+            message += $"📅 Дата: {sale.CreatedAt.AddMinutes(300):yyyy-MM-dd HH:mm}\n";
+            message += $"👤 Клиент: {HtmlEscape(clientName)}\n";
+            message += $"💳 Оплата: {sale.PaymentType}\n";
+            message += $"📦 Позиции: {items.Count} (шт: {items.Sum(i => i.Qty):N0})\n";
+            message += $"💰 Итого: <b>{total:N0} UZS</b>\n";
+            message += $"👨‍💼 Менеджер: {HtmlEscape(managerDisplay)}";
+
+            if (itemLines.Count > 0)
+            {
+                message += "\n<pre>" + string.Join("\n", itemLines) + "</pre>";
+            }
+
+            message += "\n\n✅ Крупная сделка требует внимания!";
 
             await _telegram.SendMessageToOwnerAsync(message);
         }
