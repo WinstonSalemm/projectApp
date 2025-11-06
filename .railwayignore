@@ -1,0 +1,3 @@
+# Force Railway to use Dockerfile
+*.csproj
+*.sln
