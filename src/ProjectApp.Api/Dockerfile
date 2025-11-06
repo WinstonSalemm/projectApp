@@ -1,13 +1,13 @@
 # ====== BUILD ======
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /src
+WORKDIR /build
 # копим кэш на restore
 COPY src/ProjectApp.Core/ProjectApp.Core.csproj ProjectApp.Core/
 COPY src/ProjectApp.Api/ProjectApp.Api.csproj ProjectApp.Api/
 RUN dotnet restore "ProjectApp.Api/ProjectApp.Api.csproj"
 # остальной код
 COPY src/ .
-WORKDIR /src/ProjectApp.Api
+WORKDIR /build/ProjectApp.Api
 RUN dotnet publish "ProjectApp.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # ====== RUNTIME ======
