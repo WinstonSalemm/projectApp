@@ -1,14 +1,29 @@
+# Git
 **/.git
 **/.gitignore
+
+# IDE
 **/.vs
 **/.vscode
+
+# Build artifacts
 **/*.*proj.user
 **/bin
 **/obj
+
+# Dependencies
 **/node_modules
 **/wwwroot/lib
+
+# OS files
 **/.DS_Store
 **/Thumbs.db
+
+# Documentation (but keep csproj!)
 README.md
 .editorconfig
 *.md
+
+# Explicitly include project files
+!**/*.csproj
+!**/*.sln
