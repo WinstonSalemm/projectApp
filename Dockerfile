@@ -2,9 +2,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /app
 
-# Debug: check build context
+# Debug: check build context v2
 COPY . /debug
-RUN ls -la /debug && ls -la /debug/src || echo "No src directory"
+RUN echo "=== ROOT CONTENT ===" && ls -la /debug && echo "=== SRC CONTENT ===" && ls -la /debug/src || echo "No src directory found"
 
 # Копируем решение и проекты
 COPY src/ ./
