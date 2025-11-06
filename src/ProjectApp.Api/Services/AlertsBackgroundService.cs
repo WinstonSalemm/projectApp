@@ -61,11 +61,12 @@ public class AlertsBackgroundService : BackgroundService
         await alertsService.CheckLongPendingReservationsAsync();
 
         // Напоминания по броням раз в 2 дня
-        if ((now - _lastReservationReminder).TotalHours >= 47) // ~двое суток с запасом
-        {
-            await alertsService.CheckReservationRemindersAsync();
-            _lastReservationReminder = now;
-        }
+        // TODO: Реализовать CheckReservationRemindersAsync в AlertsService
+        // if ((now - _lastReservationReminder).TotalHours >= 47)
+        // {
+        //     await alertsService.CheckReservationRemindersAsync();
+        //     _lastReservationReminder = now;
+        // }
 
         // 2. Ежедневный отчет в 21:00
         if (nowLocal.Hour == 21 && 
