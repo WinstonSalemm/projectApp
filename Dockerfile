@@ -1,20 +1,19 @@
 # ====== BUILD ======
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /build
+WORKDIR /src
 
-# Копируем весь проект
-COPY . .
+# Копируем csproj файлы для restore (кэширование слоев)
+COPY src/ProjectApp.Core/ProjectApp.Core.csproj ProjectApp.Core/
+COPY src/ProjectApp.Api/ProjectApp.Api.csproj ProjectApp.Api/
 
-# Debug: check what was copied
-RUN echo "=== BUILD ROOT ===" && ls -la /build && \
-    echo "=== SRC DIR ===" && ls -la /build/src && \
-    echo "=== API DIR ===" && ls -la /build/src/ProjectApp.Api
+# Restore зависимостей
+RUN dotnet restore "ProjectApp.Api/ProjectApp.Api.csproj"
 
-# Restore
-WORKDIR /build/src/ProjectApp.Api
-RUN dotnet restore "ProjectApp.Api.csproj"
+# Копируем весь исходный код
+COPY src/ .
 
 # Build и publish
+WORKDIR /src/ProjectApp.Api
 RUN dotnet publish "ProjectApp.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # ====== RUNTIME ======
