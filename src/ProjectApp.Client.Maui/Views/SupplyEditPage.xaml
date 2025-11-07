@@ -175,7 +175,8 @@
             </Frame>
             <ContentView x:Name="CostingSection">
                 <ContentView.Content>
-                    <VerticalStackLayout Spacing="10">
+                    <VerticalStackLayout Spacing="10"
+                                          BindingContext="{Binding Source={x:Reference CostingSection}, Path=BindingContext}">
                         <!-- Excel-like parameter grid -->
                         <Grid ColumnDefinitions="180,180,180,180,180"
                               RowDefinitions="Auto,Auto,Auto"

@@ -71,13 +71,21 @@ public partial class SupplyEditPage : ContentPage
                 await DisplayAlert("Ошибка", $"Wrong ViewModel type: {BindingContext.GetType()}", "ОК");
             }
             
-            // Инициализация и запуск предпросчёта себестоимости
             try
             {
-                if (_costingVm != null && BindingContext is SupplyEditViewModel sVm && sVm.Supply?.Id > 0)
+                var sp = App.Current?.Handler?.MauiContext?.Services;
+                if (_costingVm == null && sp != null)
                 {
-                    _costingVm.SupplyId = sVm.Supply.Id;
-                    await _costingVm.RecalculateAsync();
+                    _costingVm = sp.GetService<CostingPreviewViewModel>();
+                }
+                if (_costingVm != null)
+                {
+                    CostingSection.BindingContext = _costingVm;
+                    if (BindingContext is SupplyEditViewModel sVm && sVm.Supply?.Id > 0)
+                    {
+                        _costingVm.SupplyId = sVm.Supply.Id;
+                        await _costingVm.RecalculateAsync();
+                    }
                 }
             }
             catch { }
@@ -88,6 +96,24 @@ public partial class SupplyEditPage : ContentPage
             System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}");
             await DisplayAlert("Ошибка OnAppearing", $"{ex.Message}\n\n{ex.StackTrace}", "ОК");
         }
+    }
+
+    protected override void OnHandlerChanged()
+    {
+        base.OnHandlerChanged();
+        try
+        {
+            var sp = App.Current?.Handler?.MauiContext?.Services;
+            if (_costingVm == null && sp != null)
+            {
+                _costingVm = sp.GetService<CostingPreviewViewModel>();
+            }
+            if (_costingVm != null)
+            {
+                CostingSection.BindingContext = _costingVm;
+            }
+        }
+        catch { }
     }
 
     private async void OnAddProductClicked(object sender, EventArgs e)
