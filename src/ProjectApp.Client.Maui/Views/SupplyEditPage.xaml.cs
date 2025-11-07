@@ -1,6 +1,7 @@
 using ProjectApp.Client.Maui.ViewModels;
 using ProjectApp.Client.Maui.Services;
 using System.Globalization;
+using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -151,16 +152,69 @@ public partial class SupplyEditPage : ContentPage
             if (string.IsNullOrWhiteSpace(weightStr) || !decimal.TryParse(weightStr, out decimal weight))
                 return;
             
-            // 6. Ввод категории
-            var category = await DisplayPromptAsync(
-                "Добавить товар",
-                "Введите категорию:",
-                "Добавить",
-                "Отмена",
-                placeholder: "Электроника");
-            
-            if (string.IsNullOrWhiteSpace(category))
-                category = "Другое"; // Категория по умолчанию
+            // 6. Выбор категории из существующих (с возможностью ввода вручную)
+            string category;
+            try
+            {
+                var catalogService = App.Current?.Handler?.MauiContext?.Services?.GetService<ICatalogService>();
+                if (catalogService != null)
+                {
+                    var catList = (await catalogService.GetCategoriesAsync()).ToList();
+                    // Добавляем специальные опции
+                    var options = new List<string>();
+                    options.AddRange(catList);
+                    options.Insert(0, "(Без категории)");
+                    options.Add("Другая...");
+
+                    var choice = await DisplayActionSheet("Выберите категорию", "Отмена", null, options.ToArray());
+                    if (string.IsNullOrWhiteSpace(choice) || choice == "Отмена")
+                        return; // Отменили добавление
+
+                    if (choice == "(Без категории)")
+                    {
+                        category = string.Empty; // пусть бэкенд проставит по умолчанию
+                    }
+                    else if (choice == "Другая...")
+                    {
+                        var manual = await DisplayPromptAsync(
+                            "Добавить товар",
+                            "Введите категорию:",
+                            "Добавить",
+                            "Отмена",
+                            placeholder: "Электроника");
+                        if (string.IsNullOrWhiteSpace(manual)) return; // отмена
+                        category = manual.Trim();
+                    }
+                    else
+                    {
+                        category = choice.Trim();
+                    }
+                }
+                else
+                {
+                    // Фолбэк: обычный ввод
+                    var manual = await DisplayPromptAsync(
+                        "Добавить товар",
+                        "Введите категорию:",
+                        "Добавить",
+                        "Отмена",
+                        placeholder: "Электроника");
+                    if (string.IsNullOrWhiteSpace(manual)) return; // отмена
+                    category = manual.Trim();
+                }
+            }
+            catch
+            {
+                // На случай сетевой ошибки — фолбэк на ручной ввод
+                var manual = await DisplayPromptAsync(
+                    "Добавить товар",
+                    "Введите категорию:",
+                    "Добавить",
+                    "Отмена",
+                    placeholder: "Электроника");
+                if (string.IsNullOrWhiteSpace(manual)) return; // отмена
+                category = manual.Trim();
+            }
             
             // 7. Добавляем товар в поставку И сразу в расчёт себестоимости
             if (BindingContext is SupplyEditViewModel vm)

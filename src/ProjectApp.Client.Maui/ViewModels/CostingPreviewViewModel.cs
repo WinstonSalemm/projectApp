@@ -138,6 +138,13 @@ public partial class CostingPreviewViewModel : ObservableObject
             ProfitPerUnitUzs = d.ProfitPerUnitUzs;
             ProfitTaxUzs = d.ProfitTaxUzs;
             NetProfitUzs = d.NetProfitUzs;
+
+            // Computed line totals (per position)
+            LineCostUzs = CostPerUnitUzs * Quantity;
+            LineTradePriceUzs = TradePriceUzs * Quantity;
+            LineVatUzs = VatUzs * Quantity;
+            LinePriceWithVatUzs = PriceWithVatUzs * Quantity;
+            LineNetProfitUzs = NetProfitUzs * Quantity;
         }
         public string SkuOrName { get; }
         public decimal Quantity { get; }
@@ -158,5 +165,12 @@ public partial class CostingPreviewViewModel : ObservableObject
         public decimal ProfitPerUnitUzs { get; }
         public decimal ProfitTaxUzs { get; }
         public decimal NetProfitUzs { get; }
+
+        // Totals per position (Quantity * per-unit value)
+        public decimal LineCostUzs { get; }
+        public decimal LineTradePriceUzs { get; }
+        public decimal LineVatUzs { get; }
+        public decimal LinePriceWithVatUzs { get; }
+        public decimal LineNetProfitUzs { get; }
     }
 }
