@@ -268,7 +268,8 @@
                             </Border>
                         </Grid>
 
-                        <ScrollView Orientation="Both" HeightRequest="300" HorizontalScrollBarVisibility="Always" VerticalScrollBarVisibility="Always">
+                        <!-- Horizontal-only scroll to avoid nested ScrollView conflicts -->
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Always" VerticalScrollBarVisibility="Never">
                             <Grid>
                                 <!-- Purchase-only columns: #, Name, Qty, Base, Customs, Loading, Logistics, Warehouse, Declaration, Certification, MChs, Deviation, Cost/Unit, Line Total -->
                                 <Grid RowDefinitions="Auto,*" ColumnDefinitions="40,240,90,110,110,110,110,110,110,110,110,110,120,140" ColumnSpacing="0">
@@ -304,7 +305,10 @@
                                         <Border Grid.Column="12" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeaderLabel}" Text="Себес/шт" HorizontalTextAlignment="End"/></Border>
                                         <Border Grid.Column="13" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeaderLabel}" Text="Итого (UZS)" HorizontalTextAlignment="End"/></Border>
                                     </Grid>
-                                    <CollectionView Grid.Row="1" ItemsSource="{Binding Rows}" SelectionMode="None">
+                                    <CollectionView Grid.Row="1" ItemsSource="{Binding Rows}" SelectionMode="None" HeightRequest="260" ItemSizingStrategy="MeasureAllItems">
+                                        <CollectionView.EmptyView>
+                                            <Label Text="Нет данных для отображения. Нажмите Пересчитать." TextColor="Gray" Padding="8"/>
+                                        </CollectionView.EmptyView>
                                         <CollectionView.ItemTemplate>
                                             <DataTemplate>
                                                 <Grid ColumnSpacing="0">
