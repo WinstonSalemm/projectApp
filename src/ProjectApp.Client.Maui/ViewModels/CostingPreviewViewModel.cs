@@ -35,6 +35,8 @@ public partial class CostingPreviewViewModel : ObservableObject
     [ObservableProperty] private decimal totalCostUzs;
 
     public ObservableCollection<CostingRowVM> Rows { get; } = new();
+    public ObservableCollection<string> Warnings { get; } = new();
+    [ObservableProperty] private bool hasWarnings;
 
     private CancellationTokenSource? _debounceCts;
     private readonly TimeSpan _debounce = TimeSpan.FromMilliseconds(300);
@@ -76,6 +78,19 @@ public partial class CostingPreviewViewModel : ObservableObject
             TotalQty = dto.TotalQty;
             TotalBaseSumUzs = dto.TotalBaseSumUzs;
             TotalCostUzs = Rows.Sum(x => x.CostPerUnitUzs * x.Quantity);
+
+            // warnings
+            Warnings.Clear();
+            if (dto.Warnings != null && dto.Warnings.Length > 0)
+            {
+                foreach (var w in dto.Warnings)
+                    if (!string.IsNullOrWhiteSpace(w)) Warnings.Add(w.Trim());
+            }
+            if (Rows.Count == 0 && Warnings.Count == 0)
+            {
+                Warnings.Add("Нет данных для отображения. Возможно, в поставке нет товаров или фильтр/параметры расчёта дали пустой результат.");
+            }
+            HasWarnings = Warnings.Count > 0;
         }
         finally
         {

@@ -268,6 +268,22 @@
                             </Border>
                         </Grid>
 
+                        <!-- Warnings from server / calculation -->
+                        <VerticalStackLayout Spacing="6" Margin="0,8,0,0">
+                            <Border IsVisible="{Binding HasWarnings}" BackgroundColor="#332200" Stroke="#CC9900" StrokeThickness="1" Padding="8" StrokeShape="RoundRectangle 6">
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="Предупреждения" FontAttributes="Bold" TextColor="#FFCC00"/>
+                                    <CollectionView ItemsSource="{Binding Warnings}" SelectionMode="None">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Label Text="{Binding}" TextColor="#FFDD66"/>
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
+                                </VerticalStackLayout>
+                            </Border>
+                        </VerticalStackLayout>
+
                         <!-- Horizontal-only scroll to avoid nested ScrollView conflicts -->
                         <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Always" VerticalScrollBarVisibility="Never">
                             <Grid>
