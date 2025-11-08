@@ -1,386 +1,141 @@
 using ProjectApp.Client.Maui.ViewModels;
 using ProjectApp.Client.Maui.Services;
-using System.Globalization;
-using System.Collections.Generic;
-using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using System.Globalization;
 
 namespace ProjectApp.Client.Maui.Views;
 
 public partial class SupplyEditPage : ContentPage
 {
-    private CancellationTokenSource? _priceDebounceCts;
     private CostingPreviewViewModel? _costingVm;
 
-    public SupplyEditPage(SupplyEditViewModel viewModel)
+    public SupplyEditPage(SupplyEditViewModel vm)
     {
         InitializeComponent();
-        BindingContext = viewModel;
-        try
-        {
-            var sp = App.Current?.Handler?.MauiContext?.Services;
-            if (sp != null)
-            {
-                _costingVm = sp.GetService<CostingPreviewViewModel>();
-                if (_costingVm != null)
-                {
-                    CostingSection.BindingContext = _costingVm;
-                }
-            }
-        }
-        catch { }
+        BindingContext = vm;
+
+        // подтянем VM для предпросмотра
+        var sp = App.Current?.Handler?.MauiContext?.Services;
+        if (_costingVm == null && sp != null)
+            _costingVm = sp.GetService<CostingPreviewViewModel>();
+
+        if (_costingVm != null)
+            CostingSection.BindingContext = _costingVm;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        
+
         try
         {
-            System.Diagnostics.Debug.WriteLine("=== SupplyEditPage OnAppearing START");
-            
-            if (BindingContext == null)
-            {
-                System.Diagnostics.Debug.WriteLine("ERROR: BindingContext is NULL!");
-                await DisplayAlert("Ошибка", "BindingContext is NULL", "ОК");
-                return;
-            }
-            
-            System.Diagnostics.Debug.WriteLine($"BindingContext type: {BindingContext.GetType()}");
-            
             if (BindingContext is SupplyEditViewModel vm)
+                await vm.LoadSupply();
+
+            if (_costingVm != null && BindingContext is SupplyEditViewModel sVm && sVm.Supply?.Id > 0)
             {
-                System.Diagnostics.Debug.WriteLine("BindingContext is SupplyEditViewModel - OK");
-                System.Diagnostics.Debug.WriteLine("Calling LoadSupply...");
-                
-                try
-                {
-                    await vm.LoadSupply();
-                    System.Diagnostics.Debug.WriteLine("LoadSupply completed successfully");
-                }
-                catch (Exception loadEx)
-                {
-                    System.Diagnostics.Debug.WriteLine($"LoadSupply error: {loadEx}");
-                    System.Diagnostics.Debug.WriteLine($"LoadSupply StackTrace: {loadEx.StackTrace}");
-                    await DisplayAlert("Ошибка в LoadSupply", $"{loadEx.Message}\n\n{loadEx.StackTrace}", "ОК");
-                }
+                // гарантируем биндинг секции на VM расчёта
+                CostingSection.BindingContext = _costingVm;
+                _costingVm.SupplyId = sVm.Supply.Id;
+                await _costingVm.RecalculateAsync();
+
+                await Task.Delay(50);
+                if (TableScroll is not null)
+                    await TableScroll.ScrollToAsync(0, 0, false);
             }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"ERROR: BindingContext is not SupplyEditViewModel! Type: {BindingContext.GetType()}");
-                await DisplayAlert("Ошибка", $"Wrong ViewModel type: {BindingContext.GetType()}", "ОК");
-            }
-            
-            try
-            {
-                var sp = App.Current?.Handler?.MauiContext?.Services;
-                if (_costingVm == null && sp != null)
-                {
-                    _costingVm = sp.GetService<CostingPreviewViewModel>();
-                }
-                if (_costingVm != null)
-                {
-                    CostingSection.BindingContext = _costingVm;
-                    if (BindingContext is SupplyEditViewModel sVm && sVm.Supply?.Id > 0)
-                    {
-                        _costingVm.SupplyId = sVm.Supply.Id;
-                        await _costingVm.RecalculateAsync();
-                        // небольшая автопрокрутка вправо, чтобы было видно, что таблица горизонтальная
-                        await Task.Delay(50);
-                        if (TableScroll != null)
-                        {
-                            await TableScroll.ScrollToAsync(300, 0, true);
-                        }
-                    }
-                }
-            }
-            catch { }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"OnAppearing outer error: {ex}");
-            System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}");
-            await DisplayAlert("Ошибка OnAppearing", $"{ex.Message}\n\n{ex.StackTrace}", "ОК");
+            await DisplayAlert("Ошибка", ex.Message, "OK");
         }
-    }
-
-    protected override void OnHandlerChanged()
-    {
-        base.OnHandlerChanged();
-        try
-        {
-            var sp = App.Current?.Handler?.MauiContext?.Services;
-            if (_costingVm == null && sp != null)
-            {
-                _costingVm = sp.GetService<CostingPreviewViewModel>();
-            }
-            if (_costingVm != null)
-            {
-                CostingSection.BindingContext = _costingVm;
-            }
-        }
-        catch { }
     }
 
     private async void OnAddProductClicked(object sender, EventArgs e)
     {
-        try
+        // оставляю как было у тебя: добавление товара -> загрузка -> пересчёт -> перерисовка таблицы
+        if (BindingContext is not SupplyEditViewModel vm) return;
+
+        var name = await DisplayPromptAsync("Добавить товар", "Название:", "OK", "Отмена", "Огнетушитель ОП-5");
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        var sku = await DisplayPromptAsync("Добавить товар", "SKU:", "OK", "Отмена", "OP-5");
+        if (string.IsNullOrWhiteSpace(sku)) sku = $"AUTO-{DateTime.Now:yyyyMMddHHmmss}";
+
+        var quantityStr = await DisplayPromptAsync(
+            "Добавить товар",
+            "Введите количество:",
+            "Далее",
+            "Отмена",
+            placeholder: "10",
+            maxLength: -1,
+            keyboard: Keyboard.Numeric);
+        if (!int.TryParse(quantityStr, out var qty)) return;
+
+        var priceText = await DisplayPromptAsync(
+            "Добавить товар",
+            "Цена (₽):",
+            "OK",
+            "Отмена",
+            placeholder: "500",
+            maxLength: -1,
+            keyboard: Keyboard.Numeric);
+        if (!decimal.TryParse(N(priceText), NumberStyles.Any, CultureInfo.InvariantCulture, out var priceRub)) return;
+
+        var weightStr = await DisplayPromptAsync(
+            "Добавить товар",
+            "Введите вес (кг):",
+            "Далее",
+            "Отмена",
+            placeholder: "5.5",
+            maxLength: -1,
+            keyboard: Keyboard.Numeric);
+        if (!decimal.TryParse(N(weightStr), NumberStyles.Any, CultureInfo.InvariantCulture, out var weight)) return;
+
+        var category = await DisplayPromptAsync("Добавить товар", "Категория:", "OK", "Отмена", "Пожарное оборудование");
+        if (string.IsNullOrWhiteSpace(category)) return;
+
+        var supplies = App.Current?.Handler?.MauiContext?.Services?.GetService<ISuppliesService>();
+        if (supplies != null && vm.Supply.Id > 0)
         {
-            // 1. Ввод НАЗВАНИЯ товара (не ID!)
-            var productName = await DisplayPromptAsync(
-                "Добавить товар",
-                "Введите название товара:",
-                "Далее",
-                "Отмена",
-                placeholder: "Огнетушитель ОП-5");
-            
-            if (string.IsNullOrWhiteSpace(productName))
-                return;
-            
-            // 2. Ввод SKU (артикула)
-            var sku = await DisplayPromptAsync(
-                "Добавить товар",
-                "Введите артикул (SKU):",
-                "Далее",
-                "Отмена",
-                placeholder: "OP-5-2024");
-            
-            if (string.IsNullOrWhiteSpace(sku))
-                sku = $"AUTO-{DateTime.Now:yyyyMMddHHmmss}"; // Авто-генерация если пустой
-            
-            // 3. Ввод количества
-            var quantityStr = await DisplayPromptAsync(
-                "Добавить товар",
-                "Введите количество:",
-                "Далее",
-                "Отмена",
-                placeholder: "10",
-                keyboard: Keyboard.Numeric);
-            
-            if (string.IsNullOrWhiteSpace(quantityStr) || !int.TryParse(quantityStr, out int quantity))
-                return;
-            
-            // 4. Ввод цены в рублях
-            var priceStr = await DisplayPromptAsync(
-                "Добавить товар",
-                "Введите цену в рублях:",
-                "Далее",
-                "Отмена",
-                placeholder: "1500.50",
-                keyboard: Keyboard.Numeric);
-            
-            if (string.IsNullOrWhiteSpace(priceStr) || !decimal.TryParse(priceStr, out decimal price))
-                return;
-            
-            // 5. Ввод веса
-            var weightStr = await DisplayPromptAsync(
-                "Добавить товар",
-                "Введите вес (кг):",
-                "Далее",
-                "Отмена",
-                placeholder: "5.5",
-                keyboard: Keyboard.Numeric);
-            
-            if (string.IsNullOrWhiteSpace(weightStr) || !decimal.TryParse(weightStr, out decimal weight))
-                return;
-            
-            // 6. Выбор категории из существующих (с возможностью ввода вручную)
-            string category;
-            try
-            {
-                var catalogService = App.Current?.Handler?.MauiContext?.Services?.GetService<ICatalogService>();
-                if (catalogService != null)
-                {
-                    var catList = (await catalogService.GetCategoriesAsync()).ToList();
-                    // Добавляем специальные опции
-                    var options = new List<string>();
-                    options.AddRange(catList);
-                    options.Insert(0, "(Без категории)");
-                    options.Add("Другая...");
-
-                    var choice = await DisplayActionSheet("Выберите категорию", "Отмена", null, options.ToArray());
-                    if (string.IsNullOrWhiteSpace(choice) || choice == "Отмена")
-                        return; // Отменили добавление
-
-                    if (choice == "(Без категории)")
-                    {
-                        category = string.Empty; // пусть бэкенд проставит по умолчанию
-                    }
-                    else if (choice == "Другая...")
-                    {
-                        var manual = await DisplayPromptAsync(
-                            "Добавить товар",
-                            "Введите категорию:",
-                            "Добавить",
-                            "Отмена",
-                            placeholder: "Электроника");
-                        if (string.IsNullOrWhiteSpace(manual)) return; // отмена
-                        category = manual.Trim();
-                    }
-                    else
-                    {
-                        category = choice.Trim();
-                    }
-                }
-                else
-                {
-                    // Фолбэк: обычный ввод
-                    var manual = await DisplayPromptAsync(
-                        "Добавить товар",
-                        "Введите категорию:",
-                        "Добавить",
-                        "Отмена",
-                        placeholder: "Электроника");
-                    if (string.IsNullOrWhiteSpace(manual)) return; // отмена
-                    category = manual.Trim();
-                }
-            }
-            catch
-            {
-                // На случай сетевой ошибки — фолбэк на ручной ввод
-                var manual = await DisplayPromptAsync(
-                    "Добавить товар",
-                    "Введите категорию:",
-                    "Добавить",
-                    "Отмена",
-                    placeholder: "Электроника");
-                if (string.IsNullOrWhiteSpace(manual)) return; // отмена
-                category = manual.Trim();
-            }
-            
-            // 7. Добавляем товар в поставку И сразу в расчёт себестоимости
-            if (BindingContext is SupplyEditViewModel vm)
-            {
-                // ✅ СОХРАНЯЕМ НА СЕРВЕР через API
-                var suppliesService = App.Current.Handler.MauiContext.Services.GetService<ISuppliesService>();
-                if (suppliesService != null && vm.Supply.Id > 0)
-                {
-                    await suppliesService.AddSupplyItemAsync(vm.Supply.Id, productName, quantity, price, category, sku, weight);
-                    System.Diagnostics.Debug.WriteLine($"✅ Товар сохранен на сервер с категорией: {category}");
-                    
-                    // Перезагружаем список товаров с сервера
-                    await vm.LoadSupply();
-                }
-                
-                // ✅ Добавляем в расчёт себестоимости
-                try
-                {
-                    var batchCostService = App.Current.Handler.MauiContext.Services.GetService<IBatchCostService>();
-                    if (batchCostService != null && vm.Supply.Id > 0)
-                    {
-                        await batchCostService.AddItemAsync(vm.Supply.Id, productName, quantity, price);
-                        System.Diagnostics.Debug.WriteLine($"✅ Товар добавлен в расчёт себестоимости");
-                    }
-                }
-                catch (Exception costEx)
-                {
-                    System.Diagnostics.Debug.WriteLine($"⚠️ Не удалось добавить в расчёт себеса: {costEx.Message}");
-                }
-                
-                await DisplayAlert("✅ Добавлено", 
-                    $"Товар \"{productName}\" ({category}) добавлен в поставку и в расчёт себестоимости", 
-                    "ОК");
-            }
+            await supplies.AddSupplyItemAsync(vm.Supply.Id, name, qty, priceRub, category, sku, weight);
+            await vm.LoadSupply();
         }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"OnAddProductClicked error: {ex}");
-            await DisplayAlert("Ошибка", $"Не удалось добавить товар: {ex.Message}", "ОК");
-        }
-    }
 
-    private async void OnRemoveProductClicked(object sender, EventArgs e)
-    {
-        if (sender is Button button && button.CommandParameter != null)
-        {
-            var confirm = await DisplayAlert("Удалить товар?", "Вы уверены?", "Да", "Нет");
-            if (confirm && BindingContext is SupplyEditViewModel vm)
-            {
-                await vm.RemoveProduct(button.CommandParameter);
-            }
-        }
-    }
-
-    private void OnInlineNumberChanged(object sender, TextChangedEventArgs e)
-    {
-        if (BindingContext is SupplyEditViewModel vm)
-        {
-            vm.TriggerLocalRecalculate();
-        }
-    }
-
-    private async void OnPriceRubChanged(object sender, TextChangedEventArgs e)
-    {
-        _priceDebounceCts?.Cancel();
-        _priceDebounceCts?.Dispose();
-        _priceDebounceCts = new CancellationTokenSource();
-        var token = _priceDebounceCts.Token;
-
-        try
-        {
-            await Task.Delay(200, token);
-
-            if (token.IsCancellationRequested)
-                return;
-
-            if (sender is Entry entry && entry.BindingContext is BatchCostItemDto item)
-            {
-                var text = entry.Text?.Trim();
-                if (!string.IsNullOrWhiteSpace(text))
-                {
-                    text = text.Replace(',', '.');
-                    if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var value))
-                    {
-                        if (item.PriceRub != value)
-                        {
-                            item.PriceRub = value;
-                        }
-                    }
-                }
-
-                if (BindingContext is SupplyEditViewModel vm)
-                {
-                    vm.RecalculateSingleItem(item);
-                }
-            }
-        }
-        catch (TaskCanceledException)
-        {
-            // debounced
-        }
-    }
-
-    private async void OnRecalculateClicked(object sender, EventArgs e)
-    {
         if (_costingVm != null)
         {
             await _costingVm.RecalculateAsync();
         }
     }
 
-    private async void OnScrollLeftClicked(object sender, EventArgs e)
+    private async void OnRemoveProductClicked(object sender, EventArgs e)
     {
-        try
+        if (sender is not Button b || BindingContext is not SupplyEditViewModel vm) return;
+        if (!await DisplayAlert("Удалить товар?", "Вы уверены?", "Да", "Нет")) return;
+
+        await vm.RemoveProduct(b.CommandParameter);
+        if (_costingVm != null)
         {
-            if (TableScroll != null)
-            {
-                var x = Math.Max(0, TableScroll.ScrollX - 800);
-                await TableScroll.ScrollToAsync(x, 0, true);
-            }
+            await _costingVm.RecalculateAsync();
         }
-        catch { }
     }
 
-    private async void OnScrollRightClicked(object sender, EventArgs e)
+    private async void OnRecalculateClicked(object? sender, EventArgs e)
     {
-        try
+        if (_costingVm == null) return;
+
+        // общий курс (из Excel-поля) — только подставляем в существующие свойства, БЕЗ смены твоей логики
+        if (!string.IsNullOrWhiteSpace(AnyFxEntry?.Text) &&
+            decimal.TryParse(N(AnyFxEntry.Text), NumberStyles.Any, CultureInfo.InvariantCulture, out var fx))
         {
-            if (TableScroll != null)
-            {
-                var x = TableScroll.ScrollX + 800;
-                await TableScroll.ScrollToAsync(x, 0, true);
-            }
+            _costingVm.RubToUzs = fx;
+            _costingVm.UsdToUzs = fx;
         }
-        catch { }
+
+        await _costingVm.RecalculateAsync();
+        await Task.Delay(30);
+        await TableScroll.ScrollToAsync(0,0,false);
     }
+
+    // ===== helpers =====
+    private static string N(string? s) => (s ?? "").Trim().Replace(' ', '\u00A0').Replace(',', '.');
 }

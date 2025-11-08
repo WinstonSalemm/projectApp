@@ -156,9 +156,9 @@ public partial class CostingPreviewViewModel : ObservableObject
 
     public sealed class CostingRowVM
     {
-        public CostingRowVM(CostingRowDto d, int index)
+        public CostingRowVM(CostingRowDto d, int rowNo)
         {
-            Index = index;
+            RowNo = rowNo;
             SkuOrName = d.SkuOrName;
             Quantity = d.Quantity;
             BasePriceUzs = d.BasePriceUzs;
@@ -194,6 +194,7 @@ public partial class CostingPreviewViewModel : ObservableObject
             LinePriceWithVatUzs = PriceWithVatUzs * Quantity;
             LineNetProfitUzs = NetProfitUzs * Quantity;
         }
+        public int RowNo { get; }
         public string SkuOrName { get; }
         public decimal Quantity { get; }
         public decimal BasePriceUzs { get; }
