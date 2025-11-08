@@ -34,6 +34,18 @@ public partial class CostingPreviewViewModel : ObservableObject
     [ObservableProperty] private decimal totalBaseSumUzs;
     [ObservableProperty] private decimal totalCostUzs;
 
+    // Totals by component (sum across positions, UZS)
+    [ObservableProperty] private decimal totalCustomsUzs;
+    [ObservableProperty] private decimal totalLoadingUzs;
+    [ObservableProperty] private decimal totalLogisticsUzs;
+    [ObservableProperty] private decimal totalWarehouseUzs;
+    [ObservableProperty] private decimal totalDeclarationUzs;
+    [ObservableProperty] private decimal totalCertificationUzs;
+    [ObservableProperty] private decimal totalMcsUzs;
+    [ObservableProperty] private decimal totalDeviationUzs;
+
+    public decimal WeightedCostPerUnitUzs => TotalQty > 0 ? Math.Round(TotalCostUzs / TotalQty, 2, MidpointRounding.AwayFromZero) : 0m;
+
     public ObservableCollection<CostingRowVM> Rows { get; } = new();
     public ObservableCollection<string> Warnings { get; } = new();
     [ObservableProperty] private bool hasWarnings;
@@ -71,13 +83,25 @@ public partial class CostingPreviewViewModel : ObservableObject
             };
             var dto = await _api.PreviewAsync(SupplyId, cfg);
             Rows.Clear();
-            foreach (var r in dto.Rows)
+            for (int i = 0; i < dto.Rows.Count; i++)
             {
-                Rows.Add(new CostingRowVM(r));
+                Rows.Add(new CostingRowVM(dto.Rows[i], i + 1));
             }
             TotalQty = dto.TotalQty;
             TotalBaseSumUzs = dto.TotalBaseSumUzs;
             TotalCostUzs = Rows.Sum(x => x.CostPerUnitUzs * x.Quantity);
+
+            // Per-component totals (sum over positions)
+            TotalCustomsUzs = Rows.Sum(x => x.LineCustomsUzs);
+            TotalLoadingUzs = Rows.Sum(x => x.LineLoadingUzs);
+            TotalLogisticsUzs = Rows.Sum(x => x.LineLogisticsUzs);
+            TotalWarehouseUzs = Rows.Sum(x => x.LineWarehouseUzs);
+            TotalDeclarationUzs = Rows.Sum(x => x.LineDeclarationUzs);
+            TotalCertificationUzs = Rows.Sum(x => x.LineCertificationUzs);
+            TotalMcsUzs = Rows.Sum(x => x.LineMcsUzs);
+            TotalDeviationUzs = Rows.Sum(x => x.LineDeviationUzs);
+
+            OnPropertyChanged(nameof(WeightedCostPerUnitUzs));
 
             // warnings
             Warnings.Clear();
@@ -132,8 +156,9 @@ public partial class CostingPreviewViewModel : ObservableObject
 
     public sealed class CostingRowVM
     {
-        public CostingRowVM(CostingRowDto d)
+        public CostingRowVM(CostingRowDto d, int index)
         {
+            Index = index;
             SkuOrName = d.SkuOrName;
             Quantity = d.Quantity;
             BasePriceUzs = d.BasePriceUzs;
@@ -156,6 +181,14 @@ public partial class CostingPreviewViewModel : ObservableObject
 
             // Computed line totals (per position)
             LineCostUzs = CostPerUnitUzs * Quantity;
+            LineCustomsUzs = CustomsUzsPerUnit * Quantity;
+            LineLoadingUzs = LoadingUzsPerUnit * Quantity;
+            LineLogisticsUzs = LogisticsUzsPerUnit * Quantity;
+            LineWarehouseUzs = WarehouseUzsPerUnit * Quantity;
+            LineDeclarationUzs = DeclarationUzsPerUnit * Quantity;
+            LineCertificationUzs = CertificationUzsPerUnit * Quantity;
+            LineMcsUzs = McsUzsPerUnit * Quantity;
+            LineDeviationUzs = DeviationUzsPerUnit * Quantity;
             LineTradePriceUzs = TradePriceUzs * Quantity;
             LineVatUzs = VatUzs * Quantity;
             LinePriceWithVatUzs = PriceWithVatUzs * Quantity;
@@ -183,6 +216,14 @@ public partial class CostingPreviewViewModel : ObservableObject
 
         // Totals per position (Quantity * per-unit value)
         public decimal LineCostUzs { get; }
+        public decimal LineCustomsUzs { get; }
+        public decimal LineLoadingUzs { get; }
+        public decimal LineLogisticsUzs { get; }
+        public decimal LineWarehouseUzs { get; }
+        public decimal LineDeclarationUzs { get; }
+        public decimal LineCertificationUzs { get; }
+        public decimal LineMcsUzs { get; }
+        public decimal LineDeviationUzs { get; }
         public decimal LineTradePriceUzs { get; }
         public decimal LineVatUzs { get; }
         public decimal LinePriceWithVatUzs { get; }

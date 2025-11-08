@@ -85,6 +85,12 @@ public partial class SupplyEditPage : ContentPage
                     {
                         _costingVm.SupplyId = sVm.Supply.Id;
                         await _costingVm.RecalculateAsync();
+                        // небольшая автопрокрутка вправо, чтобы было видно, что таблица горизонтальная
+                        await Task.Delay(50);
+                        if (TableScroll != null)
+                        {
+                            await TableScroll.ScrollToAsync(300, 0, true);
+                        }
                     }
                 }
             }
@@ -350,5 +356,31 @@ public partial class SupplyEditPage : ContentPage
         {
             await _costingVm.RecalculateAsync();
         }
+    }
+
+    private async void OnScrollLeftClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            if (TableScroll != null)
+            {
+                var x = Math.Max(0, TableScroll.ScrollX - 800);
+                await TableScroll.ScrollToAsync(x, 0, true);
+            }
+        }
+        catch { }
+    }
+
+    private async void OnScrollRightClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            if (TableScroll != null)
+            {
+                var x = TableScroll.ScrollX + 800;
+                await TableScroll.ScrollToAsync(x, 0, true);
+            }
+        }
+        catch { }
     }
 }
