@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Models;
+using MySqlConnector;
 
 namespace ProjectApp.Api.Controllers;
 
@@ -234,15 +235,24 @@ public class SupplyItemsController : ControllerBase
 
             if (batch != null)
             {
-                var hasRefs = await _db.InventoryConsumptions.AnyAsync(x => x.BatchId == batch.Id, ct)
-                              || await _db.ReservationItemBatches.AnyAsync(x => x.BatchId == batch.Id, ct)
-                              || await _db.ReturnItemRestocks.AnyAsync(x => x.BatchId == batch.Id, ct);
+                bool hasConsumptionRefs = false;
+                try
+                {
+                    hasConsumptionRefs = await _db.InventoryConsumptions.AnyAsync(x => x.BatchId == batch.Id, ct);
+                }
+                catch (Exception ex) when (ex is MySqlException || ex.InnerException is MySqlException)
+                {
+                    _logger.LogWarning(ex, "InventoryConsumptions table missing or inaccessible; skipping consumption check");
+                }
+
+                var hasOtherRefs = await _db.ReservationItemBatches.AnyAsync(x => x.BatchId == batch.Id, ct)
+                                   || await _db.ReturnItemRestocks.AnyAsync(x => x.BatchId == batch.Id, ct);
+                var hasRefs = hasConsumptionRefs || hasOtherRefs;
                 if (hasRefs)
                 {
                     return BadRequest("Нельзя удалить позицию: партия уже использована в продажах/резервациях/возвратах");
                 }
 
-                // Списываем агрегированные остатки
                 var stock = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == item.ProductId && s.Register == register, ct);
                 if (stock != null)
                 {

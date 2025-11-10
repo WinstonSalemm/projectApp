@@ -2,12 +2,28 @@ using ProjectApp.Client.Maui.ViewModels;
 using ProjectApp.Client.Maui.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using Microsoft.Maui.ApplicationModel;
+using System.Linq;
 
 namespace ProjectApp.Client.Maui.Views;
 
 public partial class SupplyEditPage : ContentPage
 {
     private CostingPreviewViewModel? _costingVm;
+    public CostingPreviewViewModel? CostingVm
+    {
+        get => _costingVm;
+        private set
+        {
+            if (_costingVm == value) return;
+            _costingVm = value;
+            OnPropertyChanged(nameof(CostingVm));
+        }
+    }
 
     public SupplyEditPage(SupplyEditViewModel vm)
     {
@@ -16,11 +32,11 @@ public partial class SupplyEditPage : ContentPage
 
         // подтянем VM для предпросмотра
         var sp = App.Current?.Handler?.MauiContext?.Services;
-        if (_costingVm == null && sp != null)
-            _costingVm = sp.GetService<CostingPreviewViewModel>();
+        if (CostingVm == null && sp != null)
+            CostingVm = sp.GetService<CostingPreviewViewModel>();
 
-        if (_costingVm != null)
-            CostingSection.BindingContext = _costingVm;
+        if (CostingVm != null)
+            CostingSection.BindingContext = CostingVm;
     }
 
     protected override async void OnAppearing()
@@ -32,12 +48,15 @@ public partial class SupplyEditPage : ContentPage
             if (BindingContext is SupplyEditViewModel vm)
                 await vm.LoadSupply();
 
-            if (_costingVm != null && BindingContext is SupplyEditViewModel sVm && sVm.Supply?.Id > 0)
+            if (CostingVm != null && BindingContext is SupplyEditViewModel sVm && sVm.Supply?.Id > 0)
             {
                 // гарантируем биндинг секции на VM расчёта
-                CostingSection.BindingContext = _costingVm;
-                _costingVm.SupplyId = sVm.Supply.Id;
-                await _costingVm.RecalculateAsync();
+                CostingSection.BindingContext = CostingVm;
+                CostingVm.SupplyId = sVm.Supply.Id;
+                await CostingVm.RecalculateAsync();
+
+                // построим локальную проекцию и итоги
+                RebuildDisplayedRows();
 
                 await Task.Delay(50);
                 if (TableScroll is not null)
@@ -101,9 +120,10 @@ public partial class SupplyEditPage : ContentPage
             await vm.LoadSupply();
         }
 
-        if (_costingVm != null)
+        if (CostingVm != null)
         {
-            await _costingVm.RecalculateAsync();
+            await CostingVm.RecalculateAsync();
+            RebuildDisplayedRows();
         }
     }
 
@@ -112,30 +132,292 @@ public partial class SupplyEditPage : ContentPage
         if (sender is not Button b || BindingContext is not SupplyEditViewModel vm) return;
         if (!await DisplayAlert("Удалить товар?", "Вы уверены?", "Да", "Нет")) return;
 
-        await vm.RemoveProduct(b.CommandParameter);
-        if (_costingVm != null)
+        var param = b.CommandParameter;
+        if (param is DisplayedRow dr)
         {
-            await _costingVm.RecalculateAsync();
+            if (dr.SupplyItemIndex >= 0 && dr.SupplyItemIndex < vm.SupplyItems.Count)
+            {
+                param = vm.SupplyItems[dr.SupplyItemIndex];
+            }
+            else
+            {
+                var key = SNorm(dr.SkuOrName);
+                var match = vm.SupplyItems.FirstOrDefault(si => SNorm(si.Sku) == key || SNorm(si.Name) == key)
+                           ?? vm.SupplyItems.FirstOrDefault(si => SNorm(si.Name).Contains(key) || key.Contains(SNorm(si.Name)));
+                if (match != null)
+                    param = match;
+                else
+                {
+                    await DisplayAlert("Ошибка", "Не удалось сопоставить позицию для удаления", "ОК");
+                    return;
+                }
+            }
+        }
+
+        await vm.RemoveProduct(param);
+        if (CostingVm != null)
+        {
+            await vm.LoadSupply();
+            await CostingVm.RecalculateAsync();
+            RebuildDisplayedRows();
         }
     }
 
     private async void OnRecalculateClicked(object? sender, EventArgs e)
     {
-        if (_costingVm == null) return;
+        if (CostingVm == null) return;
 
         // общий курс (из Excel-поля) — только подставляем в существующие свойства, БЕЗ смены твоей логики
         if (!string.IsNullOrWhiteSpace(AnyFxEntry?.Text) &&
             decimal.TryParse(N(AnyFxEntry.Text), NumberStyles.Any, CultureInfo.InvariantCulture, out var fx))
         {
-            _costingVm.RubToUzs = fx;
-            _costingVm.UsdToUzs = fx;
+            CostingVm.RubToUzs = fx;
+            CostingVm.UsdToUzs = fx;
         }
 
-        await _costingVm.RecalculateAsync();
+        await CostingVm.RecalculateAsync();
+        RebuildDisplayedRows();
         await Task.Delay(30);
         await TableScroll.ScrollToAsync(0,0,false);
     }
 
     // ===== helpers =====
-    private static string N(string? s) => (s ?? "").Trim().Replace(' ', '\u00A0').Replace(',', '.');
+    private static string N(string? s) => (s ?? "").Trim().Replace(" ", string.Empty).Replace(',', '.');
+    private static string SNorm(string? s) => (s ?? "").Trim().ToLowerInvariant();
+
+    // ===== Local visual layer (DisplayedRows) =====
+    public ObservableCollection<DisplayedRow> DisplayedRows { get; } = new();
+
+    public decimal TotalQtyDisplay { get; private set; }
+    public decimal TotalBaseSumUzsDisplay { get; private set; }
+    public decimal TotalCostUzsDisplay { get; private set; }
+    public decimal WeightedCostPerUnitUzsDisplay => TotalQtyDisplay > 0 ? Math.Round(TotalCostUzsDisplay / TotalQtyDisplay, 2, MidpointRounding.AwayFromZero) : 0m;
+
+    private CancellationTokenSource? _debouncePriceCts;
+    private DisplayedRow? _pendingPriceRow;
+
+    private void RebuildDisplayedRows()
+    {
+        if (CostingVm == null) return;
+
+        var fx = CostingVm.RubToUzs;
+
+        var totalQty = CostingVm.Rows.Sum(r => r.Quantity);
+        if (totalQty <= 0) totalQty = 1;
+
+        var fee10Party = ParseUzs(CustomsFee10Entry?.Text);
+        var fee12Party = 0m;
+        var loadingParty = ParseUzs(LoadingPartyEntry?.Text);
+
+        var fee10PerUnit = fee10Party / totalQty;
+        var fee12PerUnit = fee12Party / totalQty;
+        var loadingPerUnit = loadingParty / totalQty;
+
+        var previous = DisplayedRows.ToDictionary(x => x.SkuOrName, x => x.PriceRub);
+        DisplayedRows.Clear();
+        var svm = BindingContext as SupplyEditViewModel;
+        foreach (var r in CostingVm.Rows)
+        {
+            // Try keep previous RUB price if exists
+            var priceRub = previous.TryGetValue(r.SkuOrName, out var prevRub)
+                ? prevRub
+                : (fx > 0 ? Math.Round(r.BasePriceUzs / fx, 2, MidpointRounding.AwayFromZero) : 0m);
+
+            var dr = new DisplayedRow
+            {
+                RowNo = r.RowNo,
+                SkuOrName = r.SkuOrName,
+                Quantity = r.Quantity,
+                PriceRub = priceRub,
+                VmCustomsUzsPerUnit = r.CustomsUzsPerUnit,
+                Fee10UzsPerUnit = fee10PerUnit,
+                Fee12UzsPerUnit = fee12PerUnit,
+                LoadingUzsPerUnit = loadingPerUnit,
+            };
+
+            var idx = -1;
+            if (svm != null && svm.SupplyItems.Count > 0)
+            {
+                var key = SNorm(r.SkuOrName);
+                for (int i = 0; i < svm.SupplyItems.Count; i++)
+                {
+                    var si = svm.SupplyItems[i];
+                    if (SNorm(si.Name) == key || SNorm(si.Sku) == key) { idx = i; break; }
+                }
+                if (idx < 0)
+                {
+                    for (int i = 0; i < svm.SupplyItems.Count; i++)
+                    {
+                        var si = svm.SupplyItems[i];
+                        var nm = SNorm(si.Name);
+                        if (nm.Contains(key) || key.Contains(nm)) { idx = i; break; }
+                    }
+                }
+            }
+            dr.SupplyItemIndex = idx;
+
+            RecalculateRow(dr, fx,
+                CostingVm.VatPct, CostingVm.LogisticsPct, CostingVm.WarehousePct,
+                CostingVm.DeclarationPct, CostingVm.CertificationPct, CostingVm.McsPct,
+                CostingVm.DeviationPct);
+
+            DisplayedRows.Add(dr);
+        }
+
+        RecalculateTotals();
+        OnPropertyChanged(nameof(DisplayedRows));
+        OnPropertyChanged(nameof(WeightedCostPerUnitUzsDisplay));
+    }
+
+    private void RecalculateTotals()
+    {
+        TotalQtyDisplay = DisplayedRows.Sum(x => x.Quantity);
+        TotalBaseSumUzsDisplay = DisplayedRows.Sum(x => x.LineBaseTotalUzs);
+        TotalCostUzsDisplay = DisplayedRows.Sum(x => x.LineCostUzs);
+        OnPropertyChanged(nameof(TotalQtyDisplay));
+        OnPropertyChanged(nameof(TotalBaseSumUzsDisplay));
+        OnPropertyChanged(nameof(TotalCostUzsDisplay));
+        OnPropertyChanged(nameof(WeightedCostPerUnitUzsDisplay));
+    }
+
+    private void RecalculateRow(DisplayedRow dr, decimal fx,
+        decimal vatPct, decimal logisticsPct, decimal warehousePct,
+        decimal declarationPct, decimal certificationPct, decimal mcsPct,
+        decimal deviationPct)
+    {
+        var baseUzsUnit = Math.Round(dr.PriceRub * fx, 2, MidpointRounding.AwayFromZero);
+        dr.BasePriceUzs = baseUzsUnit;
+
+        var vatUzs = baseUzsUnit * vatPct;
+        var logisticsUzs = baseUzsUnit * logisticsPct;
+        var wareUzs = baseUzsUnit * warehousePct;
+        var declUzs = baseUzsUnit * declarationPct;
+        var certUzs = baseUzsUnit * certificationPct;
+        var mcsUzs = baseUzsUnit * mcsPct;
+        var devUzs = baseUzsUnit * deviationPct;
+
+        var customsUzsPerUnit = (dr.VmCustomsUzsPerUnit) + dr.Fee10UzsPerUnit + dr.Fee12UzsPerUnit;
+
+        dr.CustomsUzsPerUnit = customsUzsPerUnit;
+        dr.VatUzsPerUnit = vatUzs;
+        dr.LogisticsUzsPerUnit = logisticsUzs;
+        dr.WarehouseUzsPerUnit = wareUzs;
+        dr.DeclarationUzsPerUnit = declUzs;
+        dr.CertificationUzsPerUnit = certUzs;
+        dr.McsUzsPerUnit = mcsUzs;
+        dr.DeviationUzsPerUnit = devUzs;
+
+        var costPerUnit = baseUzsUnit
+                          + customsUzsPerUnit
+                          + dr.LoadingUzsPerUnit
+                          + vatUzs + logisticsUzs + wareUzs + declUzs
+                          + certUzs + mcsUzs + devUzs;
+
+        dr.CostPerUnitUzs = costPerUnit;
+        dr.LineCostUzs = costPerUnit * dr.Quantity;
+        dr.LineBaseTotalUzs = baseUzsUnit * dr.Quantity;
+
+        // Percent hint: logistics as % of base
+        dr.PercentHint = baseUzsUnit > 0 ? Math.Round((logisticsUzs / baseUzsUnit) * 100m, 0, MidpointRounding.AwayFromZero) : 0m;
+    }
+
+    private static decimal ParseUzs(string? s)
+        => decimal.TryParse(N(s), NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0m;
+
+    private void OnPriceRubChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (sender is not Entry entry) return;
+        if (entry.BindingContext is not DisplayedRow row) return;
+
+        _pendingPriceRow = row;
+        _debouncePriceCts?.Cancel();
+        _debouncePriceCts?.Dispose();
+        _debouncePriceCts = new CancellationTokenSource();
+        var token = _debouncePriceCts.Token;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(200, token);
+                if (token.IsCancellationRequested) return;
+
+                if (decimal.TryParse(N(entry.Text), NumberStyles.Any, CultureInfo.InvariantCulture, out var pr))
+                {
+                    row.PriceRub = pr;
+                    var fx = CostingVm?.RubToUzs ?? 0m;
+                    if (fx <= 0 && !string.IsNullOrWhiteSpace(AnyFxEntry?.Text) && decimal.TryParse(N(AnyFxEntry.Text), NumberStyles.Any, CultureInfo.InvariantCulture, out var manualFx))
+                        fx = manualFx;
+
+                    RecalculateRow(row, fx,
+                        CostingVm?.VatPct ?? 0m, CostingVm?.LogisticsPct ?? 0m, CostingVm?.WarehousePct ?? 0m,
+                        CostingVm?.DeclarationPct ?? 0m, CostingVm?.CertificationPct ?? 0m, CostingVm?.McsPct ?? 0m,
+                        CostingVm?.DeviationPct ?? 0m);
+
+                    await MainThread.InvokeOnMainThreadAsync(RecalculateTotals);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // ignored
+            }
+        }, token);
+    }
+
+    public sealed class DisplayedRow : INotifyPropertyChanged
+    {
+        private decimal _priceRub;
+        private decimal _basePriceUzs;
+        private decimal _customsUzsPerUnit;
+        private decimal _loadingUzsPerUnit;
+        private decimal _vatUzsPerUnit;
+        private decimal _logisticsUzsPerUnit;
+        private decimal _warehouseUzsPerUnit;
+        private decimal _declarationUzsPerUnit;
+        private decimal _certificationUzsPerUnit;
+        private decimal _mcsUzsPerUnit;
+        private decimal _deviationUzsPerUnit;
+        private decimal _costPerUnitUzs;
+        private decimal _lineCostUzs;
+        private decimal _percentHint;
+        private decimal _lineBaseTotalUzs;
+
+        public int RowNo { get; set; }
+        public string SkuOrName { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public int SupplyItemIndex { get; set; } = -1;
+
+        public decimal PriceRub { get => _priceRub; set { if (_priceRub != value) { _priceRub = value; OnPropertyChanged(); } } }
+
+        // Base UZS per unit (maps to "BasePriceUzs" binding in XAML)
+        public decimal BasePriceUzs { get => _basePriceUzs; set { if (_basePriceUzs != value) { _basePriceUzs = value; OnPropertyChanged(); } } }
+
+        // From VM row
+        public decimal VmCustomsUzsPerUnit { get; set; }
+
+        // Party-distributed absolutes per unit
+        public decimal Fee10UzsPerUnit { get; set; }
+        public decimal Fee12UzsPerUnit { get; set; }
+        public decimal LoadingUzsPerUnit { get => _loadingUzsPerUnit; set { if (_loadingUzsPerUnit != value) { _loadingUzsPerUnit = value; OnPropertyChanged(); } } }
+
+        // Resulting per-unit columns used by existing XAML bindings
+        public decimal CustomsUzsPerUnit { get => _customsUzsPerUnit; set { if (_customsUzsPerUnit != value) { _customsUzsPerUnit = value; OnPropertyChanged(); } } }
+        public decimal VatUzsPerUnit { get => _vatUzsPerUnit; set { if (_vatUzsPerUnit != value) { _vatUzsPerUnit = value; OnPropertyChanged(); } } }
+        public decimal LogisticsUzsPerUnit { get => _logisticsUzsPerUnit; set { if (_logisticsUzsPerUnit != value) { _logisticsUzsPerUnit = value; OnPropertyChanged(); } } }
+        public decimal WarehouseUzsPerUnit { get => _warehouseUzsPerUnit; set { if (_warehouseUzsPerUnit != value) { _warehouseUzsPerUnit = value; OnPropertyChanged(); } } }
+        public decimal DeclarationUzsPerUnit { get => _declarationUzsPerUnit; set { if (_declarationUzsPerUnit != value) { _declarationUzsPerUnit = value; OnPropertyChanged(); } } }
+        public decimal CertificationUzsPerUnit { get => _certificationUzsPerUnit; set { if (_certificationUzsPerUnit != value) { _certificationUzsPerUnit = value; OnPropertyChanged(); } } }
+        public decimal McsUzsPerUnit { get => _mcsUzsPerUnit; set { if (_mcsUzsPerUnit != value) { _mcsUzsPerUnit = value; OnPropertyChanged(); } } }
+        public decimal DeviationUzsPerUnit { get => _deviationUzsPerUnit; set { if (_deviationUzsPerUnit != value) { _deviationUzsPerUnit = value; OnPropertyChanged(); } } }
+
+        public decimal CostPerUnitUzs { get => _costPerUnitUzs; set { if (_costPerUnitUzs != value) { _costPerUnitUzs = value; OnPropertyChanged(); } } }
+        public decimal LineCostUzs { get => _lineCostUzs; set { if (_lineCostUzs != value) { _lineCostUzs = value; OnPropertyChanged(); } } }
+
+        // Extra visuals
+        public decimal PercentHint { get => _percentHint; set { if (_percentHint != value) { _percentHint = value; OnPropertyChanged(); } } }
+        public decimal LineBaseTotalUzs { get => _lineBaseTotalUzs; set { if (_lineBaseTotalUzs != value) { _lineBaseTotalUzs = value; OnPropertyChanged(); } } }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
 }

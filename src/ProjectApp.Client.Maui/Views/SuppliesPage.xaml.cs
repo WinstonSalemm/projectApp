@@ -69,9 +69,7 @@ public partial class SuppliesPage : ContentPage
             }
             
             await DisplayAlert("✅ УСПЕХ", $"Поставка {code} создана в {newSupply.RegisterType}\n\nНажмите кнопку ✏️ чтобы добавить товары", "ОК");
-            
-            // ❌ АВТОНАВИГАЦИЯ УБРАНА - пользователь сам нажмет кнопку "Редактировать"
-            // Проблема: Shell.Current может быть NULL в некоторых контекстах
+          
         }
         catch (Exception ex)
         {
@@ -81,7 +79,6 @@ public partial class SuppliesPage : ContentPage
         }
     }
     
-    // ✅ TOOLBAR: Обновить
     private async void OnRefreshClicked(object sender, EventArgs e)
     {
         System.Diagnostics.Debug.WriteLine("=== OnRefreshClicked FIRED (TOOLBAR) ===");
@@ -92,7 +89,6 @@ public partial class SuppliesPage : ContentPage
         }
     }
     
-    // ✅ КАРТОЧКА: Редактировать поставку
     private async void OnEditSupplyClicked(object sender, EventArgs e)
     {
         try
@@ -129,12 +125,10 @@ public partial class SuppliesPage : ContentPage
                     
                     System.Diagnostics.Debug.WriteLine($"Opening editor for supply {supply.Id}");
                     
-                    // Создаем страницу редактирования напрямую
                     var editPage = App.Current.Handler.MauiContext.Services.GetService<SupplyEditPage>();
                     
                     if (editPage != null)
                     {
-                        // Передаем параметры через ViewModel
                         if (editPage.BindingContext is SupplyEditViewModel vm)
                         {
                             var queryParams = new Dictionary<string, object>
@@ -170,7 +164,6 @@ public partial class SuppliesPage : ContentPage
         }
     }
     
-    // ✅ КАРТОЧКА: Удалить поставку
     private async void OnDeleteSupplyClicked(object sender, EventArgs e)
     {
         try
@@ -211,7 +204,6 @@ public partial class SuppliesPage : ContentPage
         }
     }
     
-    // ✅ КАРТОЧКА: Перевести в IM-40
     private async void OnTransferToIm40Clicked(object sender, EventArgs e)
     {
         try
@@ -247,7 +239,6 @@ public partial class SuppliesPage : ContentPage
         }
     }
     
-    // ✅ КАРТОЧКА: Открыть расчет себестоимости
     private async void OnOpenCostingClicked(object sender, EventArgs e)
     {
         try

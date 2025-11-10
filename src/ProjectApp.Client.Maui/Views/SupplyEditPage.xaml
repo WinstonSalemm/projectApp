@@ -3,389 +3,744 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:services="clr-namespace:ProjectApp.Client.Maui.Services"
              x:Class="ProjectApp.Client.Maui.Views.SupplyEditPage"
+             x:Name="ThisPage"
              Title="Редактирование поставки"
              x:DataType="{x:Null}"
              BackgroundColor="#0F1320">
-
-  <!-- ===== DARK THEME ===== -->
-  <ContentPage.Resources>
-    <ResourceDictionary>
-      <Color x:Key="Bg">#0F1320</Color>
-      <Color x:Key="Card">#121A2A</Color>
-      <Color x:Key="Ink">#E5E7EB</Color>
-      <Color x:Key="InkMuted">#9CA3AF</Color>
-      <Color x:Key="Stroke">#1F2A44</Color>
-      <Color x:Key="Brand">#356AE6</Color>
-
-      <Style TargetType="Frame">
-        <Setter Property="BackgroundColor" Value="{StaticResource Card}"/>
-        <Setter Property="BorderColor" Value="{StaticResource Stroke}"/>
-        <Setter Property="CornerRadius" Value="12"/>
-        <Setter Property="Padding" Value="12"/>
-      </Style>
-
-      <Style x:Key="H1" TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource Ink}"/>
-        <Setter Property="FontSize" Value="20"/>
-        <Setter Property="FontAttributes" Value="Bold"/>
-      </Style>
-
-      <Style x:Key="H2" TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource Ink}"/>
-        <Setter Property="FontSize" Value="16"/>
-        <Setter Property="FontAttributes" Value="Bold"/>
-      </Style>
-
-      <Style x:Key="P" TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource Ink}"/>
-        <Setter Property="FontSize" Value="13"/>
-      </Style>
-
-      <Style x:Key="Pmuted" TargetType="Label" BasedOn="{StaticResource P}">
-        <Setter Property="TextColor" Value="{StaticResource InkMuted}"/>
-      </Style>
-
-      <Style x:Key="FieldEntry" TargetType="Entry">
-        <Setter Property="Keyboard" Value="Numeric"/>
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="TextColor" Value="{StaticResource Ink}"/>
-        <Setter Property="BackgroundColor" Value="#0C1220"/>
-        <Setter Property="HeightRequest" Value="40"/>
-        <Setter Property="HorizontalTextAlignment" Value="End"/>
-      </Style>
-
-      <Style x:Key="TableHeader" TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource Ink}"/>
-        <Setter Property="FontAttributes" Value="Bold"/>
-        <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Padding" Value="6,4"/>
-        <Setter Property="VerticalTextAlignment" Value="Center"/>
-        <Setter Property="LineBreakMode" Value="TailTruncation"/>
-      </Style>
-
-      <Style x:Key="TableHint" TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource Ink}"/>
-        <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Padding" Value="6,2"/>
-        <Setter Property="VerticalTextAlignment" Value="Center"/>
-        <Setter Property="LineBreakMode" Value="WordWrap"/>
-      </Style>
-
-      <Style x:Key="Cell" TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource Ink}"/>
-        <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Padding" Value="6,4"/>
-        <Setter Property="VerticalTextAlignment" Value="Center"/>
-      </Style>
-
-      <Style x:Key="CellNum" TargetType="Label" BasedOn="{StaticResource Cell}">
-        <Setter Property="HorizontalTextAlignment" Value="End"/>
-      </Style>
-
-      <Style x:Key="CellBorder" TargetType="Border">
-        <Setter Property="Stroke" Value="{StaticResource Stroke}"/>
-        <Setter Property="StrokeThickness" Value="1"/>
-      </Style>
-    </ResourceDictionary>
-  </ContentPage.Resources>
-
-  <!-- ===== TOOLBAR ===== -->
-  <ContentPage.ToolbarItems>
-    <ToolbarItem Text="Добавить товар" Clicked="OnAddProductClicked"/>
-    <ToolbarItem Text="Пересчитать" Clicked="OnRecalculateClicked"/>
-  </ContentPage.ToolbarItems>
-
-  <!-- ===== PAGE ===== -->
-  <ScrollView>
-    <VerticalStackLayout Padding="12" Spacing="12">
-
-      <!-- Шапка -->
-      <Frame Padding="14" BackgroundColor="{StaticResource Brand}" BorderColor="{StaticResource Brand}">
-        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-          <Label Grid.Row="0" Grid.Column="0" Style="{StaticResource H1}"
-                 Text="{Binding Supply.Code, StringFormat='Поставка: {0}', FallbackValue='Поставка: …'}"/>
-          <Label Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource P}"
-                 Text="{Binding Supply.RegisterType, StringFormat='Регистр: {0}', FallbackValue='Регистр: …'}"/>
-        </Grid>
-      </Frame>
-
-      <!-- Товары -->
-      <Label Style="{StaticResource H2}" Text="Товары в поставке"/>
-      <Frame>
-        <CollectionView ItemsSource="{Binding SupplyItems}" SelectionMode="None" HeightRequest="220">
-          <CollectionView.EmptyView>
-            <Label Text="Нет товаров. Нажмите «Добавить товар»."
-                   TextColor="{StaticResource InkMuted}"
-                   HorizontalTextAlignment="Center" Margin="0,8"/>
-          </CollectionView.EmptyView>
-          <CollectionView.ItemTemplate>
-            <DataTemplate x:DataType="services:SupplyItemDto">
-              <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="8" Padding="6">
-                <Label Grid.Row="0" Grid.Column="0" Style="{StaticResource P}" FontAttributes="Bold" FontSize="15" Text="{Binding Name}"/>
-                <Button Grid.Row="0" Grid.Column="1" Text="Удалить" BackgroundColor="#EF4444" TextColor="White"
-                        WidthRequest="84" HeightRequest="36" CornerRadius="10"
-                        Clicked="OnRemoveProductClicked" CommandParameter="{Binding .}"/>
-                <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                  <Label Grid.Column="0" Style="{StaticResource Pmuted}" Text="{Binding Sku, StringFormat='SKU: {0}'}"/>
-                  <Label Grid.Column="1" Style="{StaticResource Pmuted}" Text="{Binding Quantity, StringFormat='Кол-во: {0}'}"/>
-                  <Label Grid.Column="2" Style="{StaticResource Pmuted}" Text="{Binding PriceRub, StringFormat='Цена: {0:F2} ₽'}"/>
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <Color x:Key="Bg">#0F1320</Color>
+            <Color x:Key="Card">#121A2A</Color>
+            <Color x:Key="Ink">#E5E7EB</Color>
+            <Color x:Key="InkMuted">#9CA3AF</Color>
+            <Color x:Key="Stroke">#1F2A44</Color>
+            <Color x:Key="Brand">#2563EB</Color>
+            <Color x:Key="HeaderBg">#1A2335</Color>
+            <Style TargetType="Frame"
+                   x:Key="CardFrame">
+                <Setter Property="BackgroundColor"
+                        Value="{StaticResource Card}" />
+                <Setter Property="BorderColor"
+                        Value="{StaticResource Stroke}" />
+                <Setter Property="CornerRadius"
+                        Value="10" />
+                <Setter Property="Padding"
+                        Value="16" />
+                <Setter Property="HasShadow"
+                        Value="False" />
+            </Style>
+            <Style x:Key="H1"
+                   TargetType="Label">
+                <Setter Property="TextColor"
+                        Value="{StaticResource Ink}" />
+                <Setter Property="FontSize"
+                        Value="20" />
+                <Setter Property="FontAttributes"
+                        Value="Bold" />
+            </Style>
+            <Style x:Key="H2"
+                   TargetType="Label">
+                <Setter Property="TextColor"
+                        Value="{StaticResource Ink}" />
+                <Setter Property="FontSize"
+                        Value="16" />
+                <Setter Property="FontAttributes"
+                        Value="Bold" />
+            </Style>
+            <Style x:Key="P"
+                   TargetType="Label">
+                <Setter Property="TextColor"
+                        Value="{StaticResource Ink}" />
+                <Setter Property="FontSize"
+                        Value="13" />
+            </Style>
+            <Style x:Key="Pmuted"
+                   TargetType="Label"
+                   BasedOn="{StaticResource P}">
+                <Setter Property="TextColor"
+                        Value="{StaticResource InkMuted}" />
+            </Style>
+            <Style x:Key="FieldLabel"
+                   TargetType="Label"
+                   BasedOn="{StaticResource P}">
+                <Setter Property="FontSize"
+                        Value="13" />
+                <Setter Property="TextColor"
+                        Value="{StaticResource Ink}" />
+            </Style>
+            <Style x:Key="FieldEntry"
+                   TargetType="Entry">
+                <Setter Property="Keyboard"
+                        Value="Numeric" />
+                <Setter Property="FontSize"
+                        Value="14" />
+                <Setter Property="TextColor"
+                        Value="{StaticResource Ink}" />
+                <Setter Property="BackgroundColor"
+                        Value="#0C1220" />
+                <Setter Property="HeightRequest"
+                        Value="44" />
+                <Setter Property="HorizontalTextAlignment"
+                        Value="End" />
+                <Setter Property="Margin"
+                        Value="0,4,0,0" />
+            </Style>
+            <Style x:Key="CellEntry"
+                   TargetType="Entry"
+                   BasedOn="{StaticResource FieldEntry}">
+                <Setter Property="HeightRequest"
+                        Value="32" />
+                <Setter Property="FontSize"
+                        Value="12" />
+                <Setter Property="BackgroundColor"
+                        Value="#0C1220" />
+                <Setter Property="Margin"
+                        Value="2" />
+            </Style>
+            <Style x:Key="Cell"
+                   TargetType="Label">
+                <Setter Property="TextColor"
+                        Value="{StaticResource Ink}" />
+                <Setter Property="FontSize"
+                        Value="12" />
+                <Setter Property="Padding"
+                        Value="6,4" />
+                <Setter Property="VerticalTextAlignment"
+                        Value="Center" />
+            </Style>
+            <Style x:Key="CellNum"
+                   TargetType="Label"
+                   BasedOn="{StaticResource Cell}">
+                <Setter Property="HorizontalTextAlignment"
+                        Value="End" />
+            </Style>
+            <Style x:Key="CellBorder"
+                   TargetType="Border">
+                <Setter Property="Stroke"
+                        Value="{StaticResource Stroke}" />
+                <Setter Property="StrokeThickness"
+                        Value="1" />
+            </Style>
+            <Style x:Key="PrimaryButton"
+                   TargetType="Button">
+                <Setter Property="BackgroundColor"
+                        Value="{StaticResource Brand}" />
+                <Setter Property="TextColor"
+                        Value="White" />
+                <Setter Property="CornerRadius"
+                        Value="10" />
+                <Setter Property="HeightRequest"
+                        Value="50" />
+            </Style>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Добавить товар"
+                     Clicked="OnAddProductClicked" />
+    </ContentPage.ToolbarItems>
+    <ScrollView>
+        <!-- Корневая сетка: теперь 3 секции — шапка, параметры, таблица -->
+        <Grid Padding="24"
+              RowSpacing="16"
+              ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <!-- Шапка -->
+                <RowDefinition Height="Auto" />
+                <!-- Параметры -->
+                <RowDefinition Height="Auto" />
+                <!-- Таблица расчёта -->
+            </Grid.RowDefinitions>
+            <!-- Шапка -->
+            <Frame Grid.Row="0"
+                   Grid.Column="0"
+                   Grid.ColumnSpan="12"
+                   Style="{StaticResource CardFrame}">
+                <Grid ColumnDefinitions="*,Auto"
+                      RowDefinitions="Auto"
+                      ColumnSpacing="12"
+                      RowSpacing="4">
+                    <Grid Grid.Row="0"
+                          Grid.Column="0"
+                          ColumnDefinitions="Auto,*"
+                          ColumnSpacing="8"
+                          VerticalOptions="Center">
+                        <Label Grid.Column="0"
+                               Style="{StaticResource H1}"
+                               VerticalTextAlignment="Center"
+                               Text="{Binding Supply.Code, StringFormat='Поставка: {0}', FallbackValue='Поставка: …'}" />
+                        <Label Grid.Column="1"
+                               Style="{StaticResource Pmuted}"
+                               VerticalTextAlignment="Center"
+                               Text="{Binding Supply.RegisterType, StringFormat='  •  Регистр: {0}', FallbackValue='  •  Регистр: …'}" />
+                    </Grid>
+                    <HorizontalStackLayout Grid.Row="0"
+                                           Grid.Column="1"
+                                           Spacing="8"
+                                           VerticalOptions="Center">
+                        <Button Text="Добавить товар"
+                                Clicked="OnAddProductClicked"
+                                BackgroundColor="#2563EB"
+                                TextColor="White"
+                                HeightRequest="36"
+                                CornerRadius="10" />
+                    </HorizontalStackLayout>
                 </Grid>
-              </Grid>
-            </DataTemplate>
-          </CollectionView.ItemTemplate>
-        </CollectionView>
-      </Frame>
-
-      <!-- Параметры из Excel -->
-      <Frame>
-        <VerticalStackLayout Spacing="10">
-          <Label Style="{StaticResource H2}" Text="💰 РАСЧЁТ СЕБЕСТОИМОСТИ"/>
-          <Grid ColumnDefinitions="*,*,*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
-            <!-- строка 1 -->
-            <Grid>
-              <Label Style="{StaticResource Pmuted}" Text="Курс (любой → UZS)"/>
-              <Entry x:Name="AnyFxEntry" Style="{StaticResource FieldEntry}" Placeholder="149.41 / 12800"/>
-            </Grid>
-            <Grid Grid.Column="1">
-              <Label Style="{StaticResource Pmuted}" Text="Таможенный сбор 10 (UZS, по партии)"/>
-              <Entry x:Name="CustomsFee10Entry" Style="{StaticResource FieldEntry}" Placeholder="1 030 000"/>
-            </Grid>
-            <Grid Grid.Column="2">
-              <Label Style="{StaticResource Pmuted}" Text="Доп. сбор 12 (UZS, по партии)"/>
-              <Entry x:Name="ExtraFee12Entry" Style="{StaticResource FieldEntry}" Placeholder="0"/>
-            </Grid>
-            <Grid Grid.Column="3">
-              <Label Style="{StaticResource Pmuted}" Text="Погрузка (UZS, по партии)"/>
-              <Entry x:Name="LoadingPartyEntry" Style="{StaticResource FieldEntry}" Placeholder="0"/>
-            </Grid>
-            <Grid Grid.Column="4">
-              <Label Style="{StaticResource Pmuted}" Text="Наценка (доля)"/>
-              <Entry Style="{StaticResource FieldEntry}" Text="{Binding TradeMarkupPct, Mode=TwoWay}" Placeholder="0.15"/>
-            </Grid>
-
-            <!-- строка 2 (проценты от базы) -->
-            <Grid Grid.Row="1">
-              <Label Style="{StaticResource Pmuted}" Text="Логистика (доля)"/>
-              <Entry Style="{StaticResource FieldEntry}" Text="{Binding LogisticsPct, Mode=TwoWay}" Placeholder="0.05"/>
-            </Grid>
-            <Grid Grid.Row="1" Grid.Column="1">
-              <Label Style="{StaticResource Pmuted}" Text="Склад (доля)"/>
-              <Entry Style="{StaticResource FieldEntry}" Text="{Binding WarehousePct, Mode=TwoWay}" Placeholder="0.0025"/>
-            </Grid>
-            <Grid Grid.Row="1" Grid.Column="2">
-              <Label Style="{StaticResource Pmuted}" Text="Декларация (доля)"/>
-              <Entry Style="{StaticResource FieldEntry}" Text="{Binding DeclarationPct, Mode=TwoWay}" Placeholder="0.0094"/>
-            </Grid>
-            <Grid Grid.Row="1" Grid.Column="3">
-              <Label Style="{StaticResource Pmuted}" Text="Сертификация (доля)"/>
-              <Entry Style="{StaticResource FieldEntry}" Text="{Binding CertificationPct, Mode=TwoWay}" Placeholder="0.0113"/>
-            </Grid>
-            <Grid Grid.Row="1" Grid.Column="4">
-              <Label Style="{StaticResource Pmuted}" Text="МЧС (доля)"/>
-              <Entry Style="{StaticResource FieldEntry}" Text="{Binding McsPct, Mode=TwoWay}" Placeholder="0.01"/>
-            </Grid>
-          </Grid>
-
-          <Button Text="Пересчитать" Clicked="OnRecalculateClicked"
-                  BackgroundColor="#1D4ED8" TextColor="White" HeightRequest="44" CornerRadius="10"/>
-
-          <Label Style="{StaticResource Pmuted}"
-                 Text="Примечание: «Сбор 10», «Доп. сбор 12» и «Погрузка (партия)» — абсолюты по партии, равномерно распределяются на шт. Остальные — проценты от БАЗЫ."/>
-        </VerticalStackLayout>
-      </Frame>
-
-      <!-- Таблица расчёта: один список на VM.Rows -->
-      <ContentView x:Name="CostingSection">
-        <ContentView.Content>
-          <VerticalStackLayout Spacing="10"
-                               BindingContext="{Binding Source={x:Reference CostingSection}, Path=BindingContext}">
-            <Frame Padding="0">
-              <ScrollView x:Name="TableScroll" Orientation="Horizontal" HorizontalScrollBarVisibility="Always" VerticalScrollBarVisibility="Never">
-                <Grid MinimumWidthRequest="2200" WidthRequest="2200" HorizontalOptions="Start" BackgroundColor="{StaticResource Card}">
-                  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto"
-                        ColumnDefinitions="40,240,90,110,110,110,110,110,110,110,110,110,120,140"
-                        ColumnSpacing="0">
-                    <!-- Групповые заголовки -->
-                    <Grid Grid.Row="0" ColumnSpacing="0">
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="40"/>
-                        <ColumnDefinition Width="240"/>
-                        <ColumnDefinition Width="90"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="120"/>
-                        <ColumnDefinition Width="140"/>
-                      </Grid.ColumnDefinitions>
-                      <Border Grid.Column="3" BackgroundColor="#2C2F3F" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="База"/></Border>
-                      <Border Grid.Column="4" Grid.ColumnSpan="2" BackgroundColor="#3A2430" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Абсолюты на шт"/></Border>
-                      <Border Grid.Column="6" Grid.ColumnSpan="6" BackgroundColor="#1C2A46" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Проценты от базы"/></Border>
-                      <Border Grid.Column="12" BackgroundColor="#12331F" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Себес/шт"/></Border>
-                      <Border Grid.Column="13" BackgroundColor="#2B2B2B" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Итого"/></Border>
-                    </Grid>
-
-                    <!-- Пояснения к колонкам -->
-                    <Grid Grid.Row="1" ColumnSpacing="0" BackgroundColor="{StaticResource Card}">
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="40"/>
-                        <ColumnDefinition Width="240"/>
-                        <ColumnDefinition Width="90"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="120"/>
-                        <ColumnDefinition Width="140"/>
-                      </Grid.ColumnDefinitions>
-                      <Border Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="№"/></Border>
-                      <Border Grid.Column="1" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="Название / SKU"/></Border>
-                      <Border Grid.Column="2" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="Кол-во, шт" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="3" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="База — закупка (UZS/шт)" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="4" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="Сбор 10: по партии → на шт" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="5" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="Погрузка: по партии → на шт" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="6" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="Логистика: % от БАЗЫ" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="7" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="Склад: % от БАЗЫ" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="8" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="Декларация: % от БАЗЫ" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="9" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="Сертификация: % от БАЗЫ" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="10" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="МЧС: % от БАЗЫ" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="11" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="Отклонение: % от БАЗЫ" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="12" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="Себестоимость за шт" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="13" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHint}" Text="Итого = себес × кол-во" HorizontalTextAlignment="End"/></Border>
-                    </Grid>
-
-                    <!-- Заголовки колонок -->
-                    <Grid Grid.Row="2" ColumnSpacing="0" BackgroundColor="{StaticResource Card}">
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="40"/>
-                        <ColumnDefinition Width="240"/>
-                        <ColumnDefinition Width="90"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="120"/>
-                        <ColumnDefinition Width="140"/>
-                      </Grid.ColumnDefinitions>
-                      <Border Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="#"/></Border>
-                      <Border Grid.Column="1" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Наименование"/></Border>
-                      <Border Grid.Column="2" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Кол-во" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="3" BackgroundColor="#2C2F3F" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="База (UZS/шт)" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="4" BackgroundColor="#3A2430" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Тамож (UZS/шт)" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="5" BackgroundColor="#3A2430" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Погруз (UZS/шт)" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="6" BackgroundColor="#1C2A46" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Логистика (доля)" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="7" BackgroundColor="#1C2A46" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Склад (доля)" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="8" BackgroundColor="#1C2A46" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Декл (доля)" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="9" BackgroundColor="#1C2A46" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Сертиф (доля)" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="10" BackgroundColor="#1C2A46" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="МЧС (доля)" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="11" BackgroundColor="#1C2A46" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Откл (доля)" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="12" BackgroundColor="#12331F" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Себес/шт (UZS/шт)" HorizontalTextAlignment="End"/></Border>
-                      <Border Grid.Column="13" BackgroundColor="#2B2B2B" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Итого (UZS, позиция)" HorizontalTextAlignment="End"/></Border>
-                    </Grid>
-
-                    <!-- Данные -->
-                    <CollectionView Grid.Row="3" ItemsSource="{Binding Rows}" SelectionMode="None" HeightRequest="260" ItemSizingStrategy="MeasureAllItems" WidthRequest="2200" HorizontalOptions="Start" BackgroundColor="{StaticResource Card}">
-                      <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                          <Grid ColumnSpacing="0" WidthRequest="2200" HorizontalOptions="Start" HeightRequest="38" BackgroundColor="{StaticResource Card}">
-                            <Grid.ColumnDefinitions>
-                              <ColumnDefinition Width="40"/>
-                              <ColumnDefinition Width="240"/>
-                              <ColumnDefinition Width="90"/>
-                              <ColumnDefinition Width="110"/>
-                              <ColumnDefinition Width="110"/>
-                              <ColumnDefinition Width="110"/>
-                              <ColumnDefinition Width="110"/>
-                              <ColumnDefinition Width="110"/>
-                              <ColumnDefinition Width="110"/>
-                              <ColumnDefinition Width="110"/>
-                              <ColumnDefinition Width="110"/>
-                              <ColumnDefinition Width="110"/>
-                              <ColumnDefinition Width="120"/>
-                              <ColumnDefinition Width="140"/>
-                            </Grid.ColumnDefinitions>
-                            <Border Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding RowNo}"/></Border>
-                            <Border Grid.Column="1" Style="{StaticResource CellBorder}"><Label Style="{StaticResource Cell}" Text="{Binding SkuOrName}"/></Border>
-                            <Border Grid.Column="2" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding Quantity, StringFormat='{0:N2}'}"/></Border>
-                            <Border Grid.Column="3" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding BasePriceUzs, StringFormat='{0:N2}'}"/></Border>
-                            <Border Grid.Column="4" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding CustomsUzsPerUnit, StringFormat='{0:N2}'}"/></Border>
-                            <Border Grid.Column="5" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding LoadingUzsPerUnit, StringFormat='{0:N2}'}"/></Border>
-                            <Border Grid.Column="6" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding LogisticsUzsPerUnit, StringFormat='{0:N2}'}"/></Border>
-                            <Border Grid.Column="7" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding WarehouseUzsPerUnit, StringFormat='{0:N2}'}"/></Border>
-                            <Border Grid.Column="8" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding DeclarationUzsPerUnit, StringFormat='{0:N2}'}"/></Border>
-                            <Border Grid.Column="9" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding CertificationUzsPerUnit, StringFormat='{0:N2}'}"/></Border>
-                            <Border Grid.Column="10" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding McsUzsPerUnit, StringFormat='{0:N2}'}"/></Border>
-                            <Border Grid.Column="11" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding DeviationUzsPerUnit, StringFormat='{0:N2}'}"/></Border>
-                            <Border Grid.Column="12" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding CostPerUnitUzs, StringFormat='{0:N2}'}"/></Border>
-                            <Border Grid.Column="13" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding LineCostUzs, StringFormat='{0:N2}'}"/></Border>
-                          </Grid>
-                        </DataTemplate>
-                      </CollectionView.ItemTemplate>
-                    </CollectionView>
-
-                    <!-- Итоги -->
-                    <Grid Grid.Row="4" ColumnSpacing="0" BackgroundColor="{StaticResource Card}">
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="40"/>
-                        <ColumnDefinition Width="240"/>
-                        <ColumnDefinition Width="90"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="110"/>
-                        <ColumnDefinition Width="120"/>
-                        <ColumnDefinition Width="140"/>
-                      </Grid.ColumnDefinitions>
-                      <Border Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Σ"/></Border>
-                      <Border Grid.Column="1" Style="{StaticResource CellBorder}"><Label Style="{StaticResource TableHeader}" Text="Итоги"/></Border>
-                      <Border Grid.Column="2" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding TotalQty, StringFormat='{0:N2}'}"/></Border>
-                      <Border Grid.Column="3" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding TotalBaseSumUzs, StringFormat='{0:N2}'}"/></Border>
-                      <Border Grid.Column="4" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding TotalCustomsUzs, StringFormat='{0:N2}'}"/></Border>
-                      <Border Grid.Column="5" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding TotalLoadingUzs, StringFormat='{0:N2}'}"/></Border>
-                      <Border Grid.Column="6" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding TotalLogisticsUzs, StringFormat='{0:N2}'}"/></Border>
-                      <Border Grid.Column="7" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding TotalWarehouseUzs, StringFormat='{0:N2}'}"/></Border>
-                      <Border Grid.Column="8" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding TotalDeclarationUzs, StringFormat='{0:N2}'}"/></Border>
-                      <Border Grid.Column="9" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding TotalCertificationUzs, StringFormat='{0:N2}'}"/></Border>
-                      <Border Grid.Column="10" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding TotalMcsUzs, StringFormat='{0:N2}'}"/></Border>
-                      <Border Grid.Column="11" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding TotalDeviationUzs, StringFormat='{0:N2}'}"/></Border>
-                      <Border Grid.Column="12" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding WeightedCostPerUnitUzs, StringFormat='{0:N2}'}"/></Border>
-                      <Border Grid.Column="13" Style="{StaticResource CellBorder}"><Label Style="{StaticResource CellNum}" Text="{Binding TotalCostUzs, StringFormat='{0:N2}'}"/></Border>
-                    </Grid>
-                  </Grid>
-                </Grid>
-              </ScrollView>
             </Frame>
-          </VerticalStackLayout>
-        </ContentView.Content>
-      </ContentView>
-
-      <!-- Низ -->
-      <Grid ColumnDefinitions="*,Auto,Auto">
-        <Label Grid.Column="0" Style="{StaticResource Pmuted}" Text="Суммы и веса берутся из VM. ‘Сбор 10/12’ и ‘Погрузка (партия)’ распределяются на шт. поверх VM."/>
-        <Label Grid.Column="1" Style="{StaticResource P}" Text="{Binding TotalQty, StringFormat='Кол-во: {0:N2}'}"/>
-        <Label Grid.Column="2" Style="{StaticResource P}" Text="{Binding TotalBaseSumUzs, StringFormat='База: {0:N2} UZS'}"/>
-      </Grid>
-
-    </VerticalStackLayout>
-  </ScrollView>
+            
+            <!-- Параметры (3x5) -->
+            <Frame Grid.Row="1"
+                   Grid.Column="1"
+                   Grid.ColumnSpan="10"
+                   Style="{StaticResource CardFrame}">
+                <Grid ColumnSpacing="12"
+                      RowSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <VerticalStackLayout Grid.Row="0"
+                                         Grid.Column="0"
+                                         Spacing="4">
+                        <Label Style="{StaticResource FieldLabel}"
+                               Text="Курс (RUB/$ → UZS)" />
+                        <Entry x:Name="AnyFxEntry"
+                               Style="{StaticResource FieldEntry}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="0"
+                                         Grid.Column="1"
+                                         Spacing="4">
+                        <Label Style="{StaticResource FieldLabel}"
+                               Text="Сбор (UZS, партия)" />
+                        <Entry x:Name="CustomsFee10Entry"
+                               Style="{StaticResource FieldEntry}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="0"
+                                         Grid.Column="2"
+                                         Spacing="4">
+                        <Label Style="{StaticResource FieldLabel}"
+                               Text="Погрузка (UZS, партия)" />
+                        <Entry x:Name="LoadingPartyEntry"
+                               Style="{StaticResource FieldEntry}" />
+                    </VerticalStackLayout>
+                    
+                    <Grid Grid.Row="0"
+                          Grid.Column="4" />
+                    <VerticalStackLayout Grid.Row="1"
+                                         Grid.Column="0"
+                                         Spacing="4">
+                        <Label Style="{StaticResource FieldLabel}"
+                               Text="Логистика (%)" />
+                        <Entry Style="{StaticResource FieldEntry}"
+                               Text="{Binding Source={x:Reference ThisPage}, Path=CostingVm.LogisticsPct, Mode=TwoWay}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="1"
+                                         Grid.Column="1"
+                                         Spacing="4">
+                        <Label Style="{StaticResource FieldLabel}"
+                               Text="Склад (%)" />
+                        <Entry Style="{StaticResource FieldEntry}"
+                               Text="{Binding Source={x:Reference ThisPage}, Path=CostingVm.WarehousePct, Mode=TwoWay}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="1"
+                                         Grid.Column="2"
+                                         Spacing="4">
+                        <Label Style="{StaticResource FieldLabel}"
+                               Text="Декларация (%)" />
+                        <Entry Style="{StaticResource FieldEntry}"
+                               Text="{Binding Source={x:Reference ThisPage}, Path=CostingVm.DeclarationPct, Mode=TwoWay}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="1"
+                                         Grid.Column="3"
+                                         Spacing="4">
+                        <Label Style="{StaticResource FieldLabel}"
+                               Text="Сертификация (%)" />
+                        <Entry Style="{StaticResource FieldEntry}"
+                               Text="{Binding Source={x:Reference ThisPage}, Path=CostingVm.CertificationPct, Mode=TwoWay}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="1"
+                                         Grid.Column="4"
+                                         Spacing="4">
+                        <Label Style="{StaticResource FieldLabel}"
+                               Text="МЧС (%)" />
+                        <Entry Style="{StaticResource FieldEntry}"
+                               Text="{Binding Source={x:Reference ThisPage}, Path=CostingVm.McsPct, Mode=TwoWay}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="2"
+                                         Grid.Column="0"
+                                         Spacing="4">
+                        <Label Style="{StaticResource FieldLabel}"
+                               Text="Отклонения (%)" />
+                        <Entry Style="{StaticResource FieldEntry}"
+                               Text="{Binding Source={x:Reference ThisPage}, Path=CostingVm.DeviationPct, Mode=TwoWay}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="2"
+                                         Grid.Column="1"
+                                         Spacing="4">
+                        <Label Style="{StaticResource FieldLabel}"
+                               Text="НДС (%)" />
+                        <Entry Style="{StaticResource FieldEntry}"
+                               Text="{Binding Source={x:Reference ThisPage}, Path=CostingVm.VatPct, Mode=TwoWay}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="2"
+                                         Grid.Column="2"
+                                         Spacing="4">
+                        <Label Style="{StaticResource FieldLabel}"
+                               Text="Налог На Прибыль (%)" />
+                        <Entry Style="{StaticResource FieldEntry}"
+                               Text="{Binding Source={x:Reference ThisPage}, Path=CostingVm.ProfitTaxPct, Mode=TwoWay}" />
+                    </VerticalStackLayout>
+                    <Button Grid.Row="2"
+                            Grid.Column="3"
+                            Grid.ColumnSpan="2"
+                            Text="Пересчитать"
+                            Clicked="OnRecalculateClicked"
+                            Style="{StaticResource PrimaryButton}" />
+                </Grid>
+            </Frame>
+            <!-- Таблица расчёта (единственный список позиций) -->
+            <Frame x:Name="CostingSection"
+                   Grid.Row="2"
+                   Grid.Column="0"
+                   Grid.ColumnSpan="12"
+                   Style="{StaticResource CardFrame}"
+                   Padding="0">
+                <Grid RowSpacing="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <ScrollView x:Name="TableScroll"
+                                Grid.Row="0"
+                                Orientation="Horizontal"
+                                HorizontalScrollBarVisibility="Always"
+                                VerticalScrollBarVisibility="Never">
+                        <Grid RowSpacing="0"
+                              ColumnSpacing="0"
+                              RowDefinitions="Auto,*,Auto"
+                              MinimumWidthRequest="2800"
+                              WidthRequest="2800">
+                            <!-- Шапка -->
+                            <Grid Grid.Row="0"
+                                  ColumnSpacing="0"
+                                  BackgroundColor="{StaticResource HeaderBg}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="50" />
+                                    <ColumnDefinition Width="220" />
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="200" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="140" />
+                                    <ColumnDefinition Width="160" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.Resources>
+                                    <Style TargetType="Border"
+                                           x:Key="ThCell">
+                                        <Setter Property="Stroke"
+                                                Value="{StaticResource Stroke}" />
+                                        <Setter Property="StrokeThickness"
+                                                Value="1" />
+                                        <Setter Property="BackgroundColor"
+                                                Value="{StaticResource HeaderBg}" />
+                                        <Setter Property="Padding"
+                                                Value="6,8" />
+                                    </Style>
+                                    <Style TargetType="Label"
+                                           x:Key="ThText">
+                                        <Setter Property="TextColor"
+                                                Value="{StaticResource Ink}" />
+                                        <Setter Property="FontSize"
+                                                Value="13" />
+                                        <Setter Property="FontAttributes"
+                                                Value="Bold" />
+                                        <Setter Property="HorizontalTextAlignment"
+                                                Value="Center" />
+                                        <Setter Property="VerticalTextAlignment"
+                                                Value="Center" />
+                                        <Setter Property="LineBreakMode"
+                                                Value="TailTruncation" />
+                                    </Style>
+                                </Grid.Resources>
+                                <Border Grid.Column="0"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="#" />
+                                </Border>
+                                <Border Grid.Column="1"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Наименование" />
+                                </Border>
+                                <Border Grid.Column="2"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Кол-во" />
+                                </Border>
+                                <Border Grid.Column="3"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Стоимость партии (UZS)" />
+                                </Border>
+                                <Border Grid.Column="4"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Цена ₽/шт" />
+                                </Border>
+                                <Border Grid.Column="5"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="База (UZS/шт)" />
+                                </Border>
+                                <Border Grid.Column="6"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Сбор (UZS/шт)" />
+                                </Border>
+                                <Border Grid.Column="7"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Таможня (UZS/шт)" />
+                                </Border>
+                                <Border Grid.Column="8"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="НДС (UZS/шт)" />
+                                </Border>
+                                <Border Grid.Column="9"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Логистика (UZS/шт)" />
+                                </Border>
+                                <Border Grid.Column="10"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Склад (UZS/шт)" />
+                                </Border>
+                                <Border Grid.Column="11"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Декларация (UZS/шт)" />
+                                </Border>
+                                <Border Grid.Column="12"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Сертификация (UZS/шт)" />
+                                </Border>
+                                <Border Grid.Column="13"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="МЧС (UZS/шт)" />
+                                </Border>
+                                <Border Grid.Column="14"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Погрузка (UZS/шт)" />
+                                </Border>
+                                <Border Grid.Column="15"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Отклонения (UZS/шт)" />
+                                </Border>
+                                <Border Grid.Column="16"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Себес закуп (UZS/шт)" />
+                                </Border>
+                                <Border Grid.Column="17"
+                                        Style="{StaticResource ThCell}">
+                                    <Label Style="{StaticResource ThText}"
+                                           Text="Итого (UZS)" />
+                                </Border>
+                            </Grid>
+                            <!-- Строки -->
+                            <CollectionView Grid.Row="1"
+                                            ItemsSource="{Binding Source={x:Reference ThisPage}, Path=DisplayedRows}"
+                                            SelectionMode="None"
+                                            ItemSizingStrategy="MeasureAllItems"
+                                            HeightRequest="260"
+                                            BackgroundColor="{StaticResource Card}">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnSpacing="0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="50" />
+                                                <ColumnDefinition Width="220" />
+                                                <ColumnDefinition Width="100" />
+                                                <ColumnDefinition Width="200" />
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="140" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding RowNo}" />
+                                            </Border>
+                                            <Border Grid.Column="1"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6" Padding="0,0,6,0">
+                                                    <Label Style="{StaticResource Cell}"
+                                                           Text="{Binding SkuOrName}" />
+                                                    <Button Grid.Column="1"
+                                                            Text="Удалить"
+                                                            BackgroundColor="#EF4444"
+                                                            TextColor="White"
+                                                            HeightRequest="28"
+                                                            WidthRequest="84"
+                                                            CornerRadius="8"
+                                                            Clicked="OnRemoveProductClicked"
+                                                            CommandParameter="{Binding .}" />
+                                                </Grid>
+                                            </Border>
+                                            <Border Grid.Column="2"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding Quantity, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="3"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding LineBaseTotalUzs, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="4"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Entry Style="{StaticResource CellEntry}"
+                                                       Text="{Binding PriceRub, Mode=TwoWay}"
+                                                       TextChanged="OnPriceRubChanged" />
+                                            </Border>
+                                            <Border Grid.Column="5"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding BasePriceUzs, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="6"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding Fee10UzsPerUnit, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="7"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding CustomsUzsPerUnit, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="8"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding VatUzsPerUnit, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="9"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding LogisticsUzsPerUnit, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="10"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding WarehouseUzsPerUnit, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="11"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding DeclarationUzsPerUnit, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="12"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding CertificationUzsPerUnit, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="13"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding McsUzsPerUnit, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="14"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding LoadingUzsPerUnit, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="15"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding DeviationUzsPerUnit, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="16"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding CostPerUnitUzs, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                            <Border Grid.Column="17"
+                                                    Style="{StaticResource CellBorder}">
+                                                <Label Style="{StaticResource CellNum}"
+                                                       Text="{Binding LineCostUzs, StringFormat='{0:N2}'}" />
+                                            </Border>
+                                        </Grid>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                            <!-- Итоги (оставлены внутри таблицы) -->
+                            <Grid Grid.Row="2"
+                                  ColumnSpacing="0"
+                                  BackgroundColor="{StaticResource HeaderBg}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60" />
+                                    <ColumnDefinition Width="220" />
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="200" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="140" />
+                                    <ColumnDefinition Width="160" />
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="ИТОГО"
+                                           HorizontalTextAlignment="Center" />
+                                </Border>
+                                <Border Grid.Column="1"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="" />
+                                </Border>
+                                <Border Grid.Column="2"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource CellNum}"
+                                           Text="{Binding Source={x:Reference ThisPage}, Path=TotalQtyDisplay, StringFormat='{0:N2}'}" />
+                                </Border>
+                                <Border Grid.Column="3"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource CellNum}"
+                                           Text="{Binding Source={x:Reference ThisPage}, Path=TotalBaseSumUzsDisplay, StringFormat='{0:N2}'}" />
+                                </Border>
+                                <Border Grid.Column="4"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="" />
+                                </Border>
+                                <Border Grid.Column="5"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="" />
+                                </Border>
+                                <Border Grid.Column="6"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="" />
+                                </Border>
+                                <Border Grid.Column="7"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="" />
+                                </Border>
+                                <Border Grid.Column="8"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="" />
+                                </Border>
+                                <Border Grid.Column="9"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="" />
+                                </Border>
+                                <Border Grid.Column="10"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="" />
+                                </Border>
+                                <Border Grid.Column="11"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="" />
+                                </Border>
+                                <Border Grid.Column="12"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="" />
+                                </Border>
+                                <Border Grid.Column="13"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="" />
+                                </Border>
+                                <Border Grid.Column="14"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="" />
+                                </Border>
+                                <Border Grid.Column="15"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource Cell}"
+                                           Text="" />
+                                </Border>
+                                <Border Grid.Column="16"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource CellNum}"
+                                           Text="{Binding Source={x:Reference ThisPage}, Path=WeightedCostPerUnitUzsDisplay, StringFormat='{0:N2}'}" />
+                                </Border>
+                                <Border Grid.Column="17"
+                                        Style="{StaticResource CellBorder}">
+                                    <Label Style="{StaticResource CellNum}"
+                                           Text="{Binding Source={x:Reference ThisPage}, Path=TotalCostUzsDisplay, StringFormat='{0:N2}'}" />
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </ScrollView>
+                </Grid>
+            </Frame>
+        </Grid>
+    </ScrollView>
 </ContentPage>
