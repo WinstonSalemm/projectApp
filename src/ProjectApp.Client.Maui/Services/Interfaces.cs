@@ -246,10 +246,13 @@ public interface IReservationsService
 {
     Task<int?> CreateReservationAsync(ReservationCreateDraft draft, bool waitForPhoto, string source, CancellationToken ct = default);
     Task<bool> UploadReservationPhotoAsync(int reservationId, Stream photoStream, string fileName, CancellationToken ct = default);
-    Task<IReadOnlyList<ReservationListItem>> GetReservationsAsync(string? status = null, int? clientId = null, bool? mine = null, CancellationToken ct = default);
+    Task<IReadOnlyList<ReservationListItem>> GetReservationsAsync(string? status = null, int? clientId = null, bool? mine = null, DateTime? dateFrom = null, DateTime? dateTo = null, CancellationToken ct = default);
     Task<ReservationDetailsDto?> GetReservationAsync(int id, CancellationToken ct = default);
     Task<bool> PayAsync(int reservationId, decimal amount, ReservationPaymentMethod method, string? note = null, CancellationToken ct = default);
+    Task<bool> FulfillAsync(int reservationId, CancellationToken ct = default);
+    Task<bool> ReleaseAsync(int reservationId, string? reason = null, CancellationToken ct = default);
     Task<IReadOnlyList<ReservationAlertClientDto>> GetAlertsAsync(DateTime? sinceUtc = null, CancellationToken ct = default);
+    Task<bool> UpdateItemsAsync(int reservationId, IEnumerable<ReservationUpdateItem> items, CancellationToken ct = default);
 }
 
 public enum ReservationPaymentMethod
@@ -306,6 +309,12 @@ public class ReservationItemRow
     public decimal UnitPrice { get; set; }
 }
 
+public class ReservationUpdateItem
+{
+    public int ProductId { get; set; }
+    public decimal Qty { get; set; }
+}
+
 public class ReservationPaymentRow
 {
     public int Id { get; set; }
@@ -338,6 +347,9 @@ public class SaleDraft
     public List<string>? ReservationNotes { get; set; }
     // Android: request API to hold text notify; client will send photo+caption
     public bool? NotifyHold { get; set; }
+    // Commission (partner program)
+    public int? CommissionAgentId { get; set; }
+    public decimal? CommissionRate { get; set; }
 }
 
 public class SaleDraftItem

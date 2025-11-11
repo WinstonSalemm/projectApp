@@ -27,8 +27,7 @@
       <Button Grid.Column="1" 
               Text="🔄 Обновить" 
               Command="{Binding LoadSalesCommand}"
-              BackgroundColor="{DynamicResource Color.Primary}"
-              TextColor="White"/>
+              Style="{StaticResource Button.Primary}"/>
     </Grid>
     
     <!-- Поиск -->
@@ -50,7 +49,7 @@
     <ActivityIndicator Grid.Row="2" IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"/>
 
     <!-- Список продаж -->
-    <ScrollView Grid.Row="3">
+    <ScrollView Grid.Row="3" VerticalScrollBarVisibility="Always">
       <VerticalStackLayout BindableLayout.ItemsSource="{Binding Sales}" Spacing="12">
         <BindableLayout.EmptyView>
           <VerticalStackLayout Padding="32" Spacing="12" HorizontalOptions="Center">

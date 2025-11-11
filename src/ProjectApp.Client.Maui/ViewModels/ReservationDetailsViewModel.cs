@@ -27,6 +27,7 @@ public partial class ReservationDetailsViewModel : ObservableObject
     [ObservableProperty] private decimal partialAmount;
     [ObservableProperty] private ReservationPaymentMethod selectedMethod = ReservationPaymentMethod.Cash;
     [ObservableProperty] private string? paymentNote;
+    [ObservableProperty] private string? releaseReason;
 
     public ObservableCollection<ReservationItemRow> Items { get; } = new();
     public ObservableCollection<ReservationPaymentRow> Payments { get; } = new();
@@ -34,6 +35,85 @@ public partial class ReservationDetailsViewModel : ObservableObject
     public ReservationDetailsViewModel(IReservationsService reservations)
     {
         _reservations = reservations;
+    }
+
+    [RelayCommand]
+    public async Task IncreaseQtyAsync(ReservationItemRow? row)
+    {
+        if (row is null) return;
+        await UpdateQtyAsync(row.ProductId, row.Qty + 1);
+    }
+
+    [RelayCommand]
+    public async Task DecreaseQtyAsync(ReservationItemRow? row)
+    {
+        if (row is null) return;
+        var newQty = row.Qty - 1;
+        if (newQty < 0) newQty = 0;
+        await UpdateQtyAsync(row.ProductId, newQty);
+    }
+
+    [RelayCommand]
+    public async Task RemoveItemAsync(ReservationItemRow? row)
+    {
+        if (row is null) return;
+        await UpdateQtyAsync(row.ProductId, 0);
+    }
+
+    private async Task UpdateQtyAsync(int productId, decimal newQty)
+    {
+        if (Id <= 0) return;
+        try
+        {
+            IsLoading = true;
+            var map = Items
+                .GroupBy(i => i.ProductId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Qty));
+            map[productId] = newQty;
+            var list = map.Select(kv => new ReservationUpdateItem { ProductId = kv.Key, Qty = kv.Value }).ToList();
+            var ok = await _reservations.UpdateItemsAsync(Id, list);
+            if (ok)
+            {
+                await LoadAsync(Id);
+            }
+            else
+            {
+                await NavigationHelper.DisplayAlert("Ошибка", "Не удалось обновить количество", "OK");
+            }
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    public async Task AddProductAsync(int productId, decimal qty)
+    {
+        if (Id <= 0 || qty <= 0) return;
+        try
+        {
+            IsLoading = true;
+            // Build desired items = existing items + added product
+            var map = Items
+                .GroupBy(i => i.ProductId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Qty));
+            if (map.ContainsKey(productId)) map[productId] += qty; else map[productId] = qty;
+
+            var list = map.Select(kv => new ReservationUpdateItem { ProductId = kv.Key, Qty = kv.Value }).ToList();
+            var ok = await _reservations.UpdateItemsAsync(Id, list);
+            if (ok)
+            {
+                await LoadAsync(Id);
+            }
+            else
+            {
+                await NavigationHelper.DisplayAlert("Ошибка", "Не удалось обновить бронь", "OK");
+            }
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     public async Task LoadAsync(int reservationId)
@@ -88,6 +168,29 @@ public partial class ReservationDetailsViewModel : ObservableObject
         if (ok)
         {
             PartialAmount = 0;
+            await LoadAsync(Id);
+        }
+    }
+
+    [RelayCommand]
+    public async Task FulfillAsync()
+    {
+        if (Id <= 0) return;
+        var ok = await _reservations.FulfillAsync(Id);
+        if (ok)
+        {
+            await LoadAsync(Id);
+        }
+    }
+
+    [RelayCommand]
+    public async Task ReleaseAsync()
+    {
+        if (Id <= 0) return;
+        var ok = await _reservations.ReleaseAsync(Id, ReleaseReason);
+        if (ok)
+        {
+            ReleaseReason = null;
             await LoadAsync(Id);
         }
     }

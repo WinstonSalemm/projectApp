@@ -60,13 +60,15 @@ public class ApiReservationsService : IReservationsService
         return resp.IsSuccessStatusCode;
     }
 
-    public async Task<IReadOnlyList<ReservationListItem>> GetReservationsAsync(string? status = null, int? clientId = null, bool? mine = null, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ReservationListItem>> GetReservationsAsync(string? status = null, int? clientId = null, bool? mine = null, DateTime? dateFrom = null, DateTime? dateTo = null, CancellationToken ct = default)
     {
         var client = CreateClient();
         var qs = new List<string>();
         if (!string.IsNullOrWhiteSpace(status)) qs.Add($"status={Uri.EscapeDataString(status)}");
         if (clientId.HasValue) qs.Add($"clientId={clientId.Value}");
         if (mine.HasValue) qs.Add($"mine={(mine.Value ? "true" : "false")}");
+        if (dateFrom.HasValue) qs.Add($"dateFrom={Uri.EscapeDataString(DateTime.SpecifyKind(dateFrom.Value, DateTimeKind.Utc).ToString("o"))}");
+        if (dateTo.HasValue) qs.Add($"dateTo={Uri.EscapeDataString(DateTime.SpecifyKind(dateTo.Value, DateTimeKind.Utc).ToString("o"))}");
         var url = "/api/reservations" + (qs.Count > 0 ? ("?" + string.Join("&", qs)) : string.Empty);
         var list = await client.GetFromJsonAsync<List<ReservationListItem>>(url, ct);
         return list ?? new List<ReservationListItem>();
@@ -87,6 +89,21 @@ public class ApiReservationsService : IReservationsService
         return resp.IsSuccessStatusCode;
     }
 
+    public async Task<bool> FulfillAsync(int reservationId, CancellationToken ct = default)
+    {
+        var client = CreateClient();
+        var resp = await client.PostAsync($"/api/reservations/{reservationId}/fulfill", content: null, ct);
+        return resp.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> ReleaseAsync(int reservationId, string? reason = null, CancellationToken ct = default)
+    {
+        var client = CreateClient();
+        var body = new { reason = reason };
+        var resp = await client.PostAsJsonAsync($"/api/reservations/{reservationId}/release", body, ct);
+        return resp.IsSuccessStatusCode;
+    }
+
     public async Task<IReadOnlyList<ReservationAlertClientDto>> GetAlertsAsync(DateTime? sinceUtc = null, CancellationToken ct = default)
     {
         var client = CreateClient();
@@ -103,6 +120,14 @@ public class ApiReservationsService : IReservationsService
         }
         var list = await client.GetFromJsonAsync<List<ReservationAlertClientDto>>(url, ct);
         return list ?? new List<ReservationAlertClientDto>();
+    }
+
+    public async Task<bool> UpdateItemsAsync(int reservationId, IEnumerable<ReservationUpdateItem> items, CancellationToken ct = default)
+    {
+        var client = CreateClient();
+        var body = new { items = items.Select(i => new { productId = i.ProductId, qty = i.Qty }).ToList() };
+        var resp = await client.PatchAsJsonAsync($"/api/reservations/{reservationId}/items", body, ct);
+        return resp.IsSuccessStatusCode;
     }
 }
 

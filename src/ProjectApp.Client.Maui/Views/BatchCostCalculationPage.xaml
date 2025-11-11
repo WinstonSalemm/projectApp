@@ -4,7 +4,8 @@
              xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.BatchCostCalculationPage"
              Title="Расчет себестоимости партии"
-             x:DataType="vm:BatchCostCalculationViewModel">
+             x:DataType="vm:BatchCostCalculationViewModel"
+             BackgroundColor="{DynamicResource Color.Background}">
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Настройки" 
@@ -18,35 +19,35 @@
     <Grid RowDefinitions="Auto,*,Auto">
         
         <!-- Заголовок с общей информацией -->
-        <Frame Grid.Row="0" BackgroundColor="#3498db" Padding="15" Margin="10">
+        <Frame Grid.Row="0" Style="{StaticResource Card}" Padding="15" Margin="10">
             <VerticalStackLayout Spacing="5">
                 <Label Text="{Binding SupplyCode, StringFormat='Поставка: {0}'}" 
-                       TextColor="White" 
+                       TextColor="{DynamicResource Color.Text.Primary}" 
                        FontSize="18" 
                        FontAttributes="Bold"/>
                 <Label Text="{Binding TotalCost, StringFormat='ИТОГО СЕБЕСТОИМОСТЬ ПАРТИИ: {0:N0} UZS'}" 
-                       TextColor="#f1c40f" 
+                       TextColor="{DynamicResource Color.Primary}" 
                        FontSize="20" 
                        FontAttributes="Bold"/>
             </VerticalStackLayout>
         </Frame>
 
         <!-- Таблица товаров -->
-        <ScrollView Grid.Row="1" Orientation="Both">
+        <ScrollView Grid.Row="1" Orientation="Both" x:Name="TableScroll" HorizontalScrollBarVisibility="Always" VerticalScrollBarVisibility="Always">
             <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
                 <CollectionView.Header>
                     <Grid ColumnDefinitions="40,200,80,100,80,100,80,*" 
-                          BackgroundColor="#2c3e50" 
+                          BackgroundColor="{DynamicResource Color.Surface}"
                           Padding="5"
                           HeightRequest="60">
-                        <Label Grid.Column="0" Text="№" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
-                        <Label Grid.Column="1" Text="Наименование" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center"/>
-                        <Label Grid.Column="2" Text="Кол-во" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
-                        <Label Grid.Column="3" Text="Цена в рублях" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
-                        <Label Grid.Column="4" Text="Курс" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
-                        <Label Grid.Column="5" Text="Цена в сумах" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
-                        <Label Grid.Column="6" Text="НДС %" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
-                        <Label Grid.Column="7" Text="Действия" TextColor="White" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="0" Text="№" TextColor="{DynamicResource Color.Text.Primary}" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="1" Text="Наименование" TextColor="{DynamicResource Color.Text.Primary}" FontAttributes="Bold" VerticalTextAlignment="Center"/>
+                        <Label Grid.Column="2" Text="Кол-во" TextColor="{DynamicResource Color.Text.Primary}" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="3" Text="Цена в рублях" TextColor="{DynamicResource Color.Text.Primary}" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="4" Text="Курс" TextColor="{DynamicResource Color.Text.Primary}" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="5" Text="Цена в сумах" TextColor="{DynamicResource Color.Text.Primary}" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="6" Text="НДС %" TextColor="{DynamicResource Color.Text.Primary}" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
+                        <Label Grid.Column="7" Text="Действия" TextColor="{DynamicResource Color.Text.Primary}" FontAttributes="Bold" VerticalTextAlignment="Center" HorizontalTextAlignment="Center"/>
                     </Grid>
                 </CollectionView.Header>
 
@@ -86,7 +87,7 @@
                                    VerticalTextAlignment="Center" 
                                    HorizontalTextAlignment="End"
                                    FontAttributes="Bold"
-                                   TextColor="#2980b9"/>
+                                   TextColor="{DynamicResource Color.Primary}"/>
                             
                             <Label Grid.Column="6" 
                                    Text="{Binding VatPercent, StringFormat='{0:F2}'}" 
@@ -99,24 +100,21 @@
                                 <Button Text="✏️" 
                                         Clicked="OnEditItemClicked"
                                         CommandParameter="{Binding .}"
-                                        BackgroundColor="#3498db"
-                                        TextColor="White"
+                                        Style="{StaticResource Button.Secondary}"
                                         WidthRequest="40"
                                         HeightRequest="35"
                                         Margin="2"/>
                                 <Button Text="🗑️" 
                                         Clicked="OnDeleteItemClicked"
                                         CommandParameter="{Binding .}"
-                                        BackgroundColor="#e74c3c"
-                                        TextColor="White"
+                                        Style="{StaticResource Button.Danger}"
                                         WidthRequest="40"
                                         HeightRequest="35"
                                         Margin="2"/>
                                 <Button Text="📊" 
                                         Clicked="OnViewDetailsClicked"
                                         CommandParameter="{Binding .}"
-                                        BackgroundColor="#27ae60"
-                                        TextColor="White"
+                                        Style="{StaticResource Button.Secondary}"
                                         WidthRequest="40"
                                         HeightRequest="35"
                                         Margin="2"/>
@@ -143,7 +141,7 @@
         </ScrollView>
 
         <!-- Итоги -->
-        <Frame Grid.Row="2" BackgroundColor="#ecf0f1" Padding="15" Margin="10">
+        <Frame Grid.Row="2" Style="{StaticResource Card}" Padding="15" Margin="10">
             <Grid ColumnDefinitions="*,Auto">
                 <Label Grid.Column="0" 
                        Text="ИТОГО СЕБЕСТОИМОСТЬ ПАРТИИ:" 
@@ -154,7 +152,7 @@
                        Text="{Binding TotalCost, StringFormat='{0:N0} UZS'}" 
                        FontSize="24" 
                        FontAttributes="Bold"
-                       TextColor="#e74c3c"
+                       TextColor="{DynamicResource Color.Primary}"
                        VerticalTextAlignment="Center"/>
             </Grid>
         </Frame>

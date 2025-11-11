@@ -37,7 +37,7 @@ public partial class ReservationCreateViewModel : ObservableObject
             Name = name,
             UnitPrice = unitPrice,
             Qty = 1,
-            Register = StockRegister.ND40
+            Register = StockRegister.IM40
         });
     }
 

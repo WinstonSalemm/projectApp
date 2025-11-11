@@ -11,6 +11,9 @@
         <ResourceDictionary Source="Resources/Styles/DesignSystem.xaml" />
         <ResourceDictionary Source="Resources/Styles/Controls.xaml" />
         <ResourceDictionary Source="Resources/Styles/Components.xaml" />
+        <!-- New app-wide design system -->
+        <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+        <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
       </ResourceDictionary.MergedDictionaries>
 
       <x:Double x:Key="RadiusSm">{StaticResource Radius.8}</x:Double>

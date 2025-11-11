@@ -1,26 +1,26 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.ProductCreatePage"
              Title="РќРѕРІС‹Р№ С‚РѕРІР°СЂ">
-  <ScrollView>
+  <ScrollView VerticalScrollBarVisibility="Always">
     <VerticalStackLayout Padding="12" Spacing="12">
-      <Frame>
+      <Frame Style="{StaticResource Card}">
         <VerticalStackLayout Spacing="8">
           <Label Text="РљР°С‚РµРіРѕСЂРёСЏ" FontAttributes="Bold"/>
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <Picker Grid.Column="0" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}"/>
-            <Button Grid.Column="1" Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding LoadCategoriesAsyncCommand}"/>
+            <Button Grid.Column="1" Text="РћР±РЅРѕРІРёС‚СЊ" Command="{Binding LoadCategoriesAsyncCommand}" Style="{StaticResource Button.Secondary}"/>
           </Grid>
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <Entry Grid.Column="0" Placeholder="РќРѕРІР°СЏ РєР°С‚РµРіРѕСЂРёСЏ" Text="{Binding NewCategoryName}"/>
-            <Button Grid.Column="1" Text="РЎРѕР·РґР°С‚СЊ" Command="{Binding CreateCategoryAsyncCommand}"/>
+            <Button Grid.Column="1" Text="РЎРѕР·РґР°С‚СЊ" Command="{Binding CreateCategoryAsyncCommand}" Style="{StaticResource Button.Primary}"/>
           </Grid>
         </VerticalStackLayout>
       </Frame>
 
-      <Frame>
+      <Frame Style="{StaticResource Card}">
         <VerticalStackLayout Spacing="8">
           <Label Text="РџР°СЂР°РјРµС‚СЂС‹ С‚РѕРІР°СЂР°" FontAttributes="Bold"/>
           <Entry Placeholder="SKU" Text="{Binding Sku}"/>
@@ -33,12 +33,10 @@
       </Frame>
 
       <HorizontalStackLayout Spacing="8">
-        <Button Text="РЎРѕР·РґР°С‚СЊ С‚РѕРІР°СЂ" Command="{Binding CreateProductAsyncCommand}"/>
+        <Button Text="РЎРѕР·РґР°С‚СЊ С‚РѕРІР°СЂ" Command="{Binding CreateProductAsyncCommand}" Style="{StaticResource Button.Primary}"/>
       </HorizontalStackLayout>
 
       <Label Text="{Binding StatusMessage}" TextColor="Orange"/>
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>
-
-

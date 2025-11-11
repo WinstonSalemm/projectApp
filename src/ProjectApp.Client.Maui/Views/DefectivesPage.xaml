@@ -4,13 +4,14 @@
              xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.DefectivesPage"
              x:DataType="vm:DefectivesViewModel"
-             Title="🗑️ Брак">
+             Title="🗑️ Брак"
+             BackgroundColor="{DynamicResource Color.Background}">
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Обновить" Command="{Binding LoadDefectivesCommand}" />
     </ContentPage.ToolbarItems>
 
-    <ScrollView>
+    <ScrollView VerticalScrollBarVisibility="Always">
         <VerticalStackLayout Padding="16" Spacing="20">
 
             <!-- Индикатор загрузки -->
@@ -19,30 +20,25 @@
                              HeightRequest="50" />
 
             <!-- ФОРМА СПИСАНИЯ БРАКА -->
-            <Frame BackgroundColor="White" 
-                   BorderColor="#FF0000"
-                   CornerRadius="12"
-                   Padding="20">
+            <Frame Style="{StaticResource Card}" Padding="20">
                 <VerticalStackLayout Spacing="16">
                     <Label Text="🗑️ Списать брак"
                            FontSize="18"
-                           TextColor="#212121"
+                           TextColor="{DynamicResource Color.Text.Primary}"
                            FontFamily="InterBold" />
 
                     <!-- Товар -->
                     <VerticalStackLayout Spacing="4">
                         <Label Text="ID Товара:"
                                FontSize="13"
-                               TextColor="#757575" />
+                               TextColor="{DynamicResource Color.Text.Secondary}" />
                         <Entry Text="{Binding ProductIdText}"
                                Placeholder="Введите ID товара"
                                Keyboard="Numeric"
-                               FontSize="16"
-                               BackgroundColor="#F5F5F5"
-                               TextColor="#212121" />
+                               FontSize="16" />
                         <Label Text="{Binding SelectedProductName}"
                                FontSize="12"
-                               TextColor="#2196F3"
+                               TextColor="{DynamicResource Color.Primary}"
                                IsVisible="{Binding SelectedProductName, Converter={StaticResource IsNotNullOrEmptyConverter}}"
                                Margin="4,4,0,0" />
                     </VerticalStackLayout>
@@ -51,57 +47,43 @@
                     <VerticalStackLayout Spacing="4">
                         <Label Text="Количество:"
                                FontSize="13"
-                               TextColor="#757575" />
+                               TextColor="{DynamicResource Color.Text.Secondary}" />
                         <Entry Text="{Binding Quantity}"
                                Placeholder="1"
                                Keyboard="Numeric"
-                               FontSize="16"
-                               BackgroundColor="#F5F5F5"
-                               TextColor="#212121" />
+                               FontSize="16" />
                     </VerticalStackLayout>
 
                     <!-- Склад -->
                     <VerticalStackLayout Spacing="4">
                         <Label Text="Склад:"
                                FontSize="13"
-                               TextColor="#757575" />
+                               TextColor="{DynamicResource Color.Text.Secondary}" />
                         <Button Text="{Binding WarehouseName}"
                                 Command="{Binding ToggleWarehouseCommand}"
-                                BackgroundColor="#2196F3"
-                                TextColor="White"
-                                FontFamily="InterSemiBold"
-                                FontSize="14"
-                                Padding="12"
-                                CornerRadius="8" />
+                                Style="{StaticResource Button.Secondary}" />
                     </VerticalStackLayout>
 
                     <!-- Причина брака -->
                     <VerticalStackLayout Spacing="4">
                         <Label Text="Причина брака:"
                                FontSize="13"
-                               TextColor="#757575" />
+                               TextColor="{DynamicResource Color.Text.Secondary}" />
                         <Editor Text="{Binding Reason}"
                                 Placeholder="Например: Повреждение корпуса при транспортировке"
                                 HeightRequest="80"
-                                FontSize="14"
-                                BackgroundColor="#F5F5F5"
-                                TextColor="#212121" />
+                                FontSize="14" />
                     </VerticalStackLayout>
 
                     <!-- Кнопка -->
                     <Button Text="🗑️ Списать брак"
                             Command="{Binding CreateDefectiveCommand}"
                             IsEnabled="{Binding CanSubmit}"
-                            BackgroundColor="#FF0000"
-                            TextColor="White"
-                            FontFamily="InterBold"
-                            FontSize="16"
-                            Padding="0,14"
-                            CornerRadius="8" />
+                            Style="{StaticResource Button.Danger}" />
 
                     <Label Text="⚠️ Товар будет списан со склада"
                            FontSize="11"
-                           TextColor="#FF5722"
+                           TextColor="{DynamicResource Color.Text.Secondary}"
                            HorizontalOptions="Center"
                            FontAttributes="Italic" />
                 </VerticalStackLayout>
@@ -110,7 +92,7 @@
             <!-- ИСТОРИЯ БРАКА -->
             <Label Text="📜 ИСТОРИЯ БРАКА"
                    FontSize="16"
-                   TextColor="#424242"
+                   TextColor="{DynamicResource Color.Text.Primary}"
                    FontFamily="InterBold"
                    Margin="0,12,0,0" />
 
@@ -120,9 +102,7 @@
                     <DataTemplate x:DataType="vm:DefectiveRow">
                         <Frame Margin="0,0,0,12"
                                Padding="16"
-                               BackgroundColor="White"
-                               BorderColor="#E0E0E0"
-                               CornerRadius="8">
+                               Style="{StaticResource CardFrame}">
                             <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" 
                                   ColumnDefinitions="100,*"
                                   RowSpacing="8">
@@ -131,50 +111,50 @@
                                 <Label Grid.Row="0" Grid.Column="0"
                                        Text="📦 Товар:"
                                        FontSize="12"
-                                       TextColor="#757575" />
+                                       TextColor="{DynamicResource Color.Text.Secondary}" />
                                 <Label Grid.Row="0" Grid.Column="1"
                                        Text="{Binding ProductName}"
                                        FontSize="12"
-                                       TextColor="#212121"
+                                       TextColor="{DynamicResource Color.Text.Primary}"
                                        FontFamily="InterSemiBold" />
 
                                 <!-- Количество -->
                                 <Label Grid.Row="1" Grid.Column="0"
                                        Text="📊 Кол-во:"
                                        FontSize="12"
-                                       TextColor="#757575" />
+                                       TextColor="{DynamicResource Color.Text.Secondary}" />
                                 <Label Grid.Row="1" Grid.Column="1"
                                        Text="{Binding Quantity, StringFormat='{0} шт.'}"
                                        FontSize="12"
-                                       TextColor="#FF0000"
+                                       TextColor="{DynamicResource Color.Error}"
                                        FontFamily="InterSemiBold" />
 
                                 <!-- Склад -->
                                 <Label Grid.Row="2" Grid.Column="0"
                                        Text="🏢 Склад:"
                                        FontSize="12"
-                                       TextColor="#757575" />
+                                       TextColor="{DynamicResource Color.Text.Secondary}" />
                                 <Label Grid.Row="2" Grid.Column="1"
                                        Text="{Binding Warehouse}"
                                        FontSize="12"
-                                       TextColor="#212121" />
+                                       TextColor="{DynamicResource Color.Text.Primary}" />
 
                                 <!-- Причина -->
                                 <Label Grid.Row="3" Grid.Column="0"
                                        Text="📝 Причина:"
                                        FontSize="12"
-                                       TextColor="#757575" />
+                                       TextColor="{DynamicResource Color.Text.Secondary}" />
                                 <Label Grid.Row="3" Grid.Column="1"
                                        Text="{Binding Reason}"
                                        FontSize="12"
-                                       TextColor="#212121"
+                                       TextColor="{DynamicResource Color.Text.Primary}"
                                        LineBreakMode="WordWrap" />
 
                                 <!-- Статус -->
                                 <Label Grid.Row="4" Grid.Column="0"
                                        Text="⚡ Статус:"
                                        FontSize="12"
-                                       TextColor="#757575" />
+                                       TextColor="{DynamicResource Color.Text.Secondary}" />
                                 <Label Grid.Row="4" Grid.Column="1"
                                        Text="{Binding Status}"
                                        FontSize="12"
@@ -185,11 +165,11 @@
                                 <Label Grid.Row="5" Grid.Column="0"
                                        Text="📅 Дата:"
                                        FontSize="11"
-                                       TextColor="#9E9E9E" />
+                                       TextColor="{DynamicResource Color.Text.Tertiary}" />
                                 <Label Grid.Row="5" Grid.Column="1"
                                        Text="{Binding CreatedAt, StringFormat='{0} / {1}'}"
                                        FontSize="11"
-                                       TextColor="#9E9E9E">
+                                       TextColor="{DynamicResource Color.Text.Tertiary}">
                                     <Label.FormattedText>
                                         <FormattedString>
                                             <Span Text="{Binding CreatedAt}" />
@@ -205,11 +185,7 @@
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DefectivesViewModel}}, Path=CancelDefectiveCommand}"
                                         CommandParameter="{Binding .}"
                                         IsVisible="{Binding CanCancel}"
-                                        BackgroundColor="#FFC107"
-                                        TextColor="White"
-                                        FontSize="13"
-                                        Padding="0,8"
-                                        CornerRadius="6"
+                                        Style="{StaticResource Button.Secondary}"
                                         Margin="0,8,0,0" />
                             </Grid>
                         </Frame>

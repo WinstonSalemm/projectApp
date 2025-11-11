@@ -337,6 +337,14 @@ public class SalesController : ControllerBase
                                select new { c.SaleItemId }).Distinct().ToListAsync(ct);
         var eligibleSet = eligibles.Select(x => x.SaleItemId).ToHashSet();
 
+        // Источник склада для продажи: если по позиции было хоть одно списание из IM-40 → IM40, иначе ND40
+        var sourceRegs = await _db.SaleItemConsumptions.AsNoTracking()
+            .Where(c => itemIds.Contains(c.SaleItemId))
+            .GroupBy(c => c.SaleItemId)
+            .Select(g => new { SaleItemId = g.Key, HasIm = g.Any(x => x.RegisterAtSale == StockRegister.IM40) })
+            .ToListAsync(ct);
+        var sourceMap = sourceRegs.ToDictionary(x => x.SaleItemId, x => x.HasIm ? "IM40" : "ND40");
+
         // Вернём детали продажи
         var result = new
         {
@@ -355,7 +363,8 @@ public class SalesController : ControllerBase
                 item.UnitPrice,
                 NdToImEligible = eligibleSet.Contains(item.Id),
                 Sku = item.Sku ?? "",
-                Name = item.ProductName ?? $"Product #{item.ProductId}"
+                Name = item.ProductName ?? $"Product #{item.ProductId}",
+                SourceRegister = sourceMap.TryGetValue(item.Id, out var reg) ? reg : "ND40"
             }).ToList()
         };
         

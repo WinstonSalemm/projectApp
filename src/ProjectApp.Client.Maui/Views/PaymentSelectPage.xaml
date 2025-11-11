@@ -8,7 +8,7 @@
   <ContentPage.ToolbarItems>
     <ToolbarItem Text="Выход" Clicked="OnLogoutClicked" />
   </ContentPage.ToolbarItems>
-  <ScrollView>
+  <ScrollView VerticalScrollBarVisibility="Always">
     <VerticalStackLayout Padding="24" Spacing="16">
       <Label Text="Выберите вид продажи" FontAttributes="Bold" FontSize="24"/>
       <Grid ColumnDefinitions="*,*,*"
@@ -16,21 +16,21 @@
             ColumnSpacing="16"
             RowSpacing="16">
         <!-- 1 ряд -->
-        <Button Text="Наличными с чеком"
+        <Button Text="Наличными с чеком" Style="{StaticResource Button.Primary}"
                 Grid.Row="0"
                 Grid.Column="0"
                 HeightRequest="80"
                 FontSize="18"
                 Command="{Binding SelectCommand}"
                 CommandParameter="CashWithReceipt"/>
-        <Button Text="Наличными без чека"
+        <Button Text="Наличными без чека" Style="{StaticResource Button.Primary}"
                 Grid.Row="0"
                 Grid.Column="1"
                 HeightRequest="80"
                 FontSize="18"
                 Command="{Binding SelectCommand}"
                 CommandParameter="CashNoReceipt"/>
-        <Button Text="Картой с чеком"
+        <Button Text="Картой с чеком" Style="{StaticResource Button.Primary}"
                 Grid.Row="0"
                 Grid.Column="2"
                 HeightRequest="80"
@@ -39,21 +39,21 @@
                 CommandParameter="CardWithReceipt"/>
 
         <!-- 2 ряд -->
-        <Button Text="Click с чеком"
+        <Button Text="Click с чеком" Style="{StaticResource Button.Primary}"
                 Grid.Row="1"
                 Grid.Column="0"
                 HeightRequest="80"
                 FontSize="18"
                 Command="{Binding SelectCommand}"
                 CommandParameter="ClickWithReceipt"/>
-        <Button Text="Click без чека"
+        <Button Text="Click без чека" Style="{StaticResource Button.Primary}"
                 Grid.Row="1"
                 Grid.Column="1"
                 HeightRequest="80"
                 FontSize="18"
                 Command="{Binding SelectCommand}"
                 CommandParameter="ClickNoReceipt"/>
-        <Button Text="Сайт"
+        <Button Text="Сайт" Style="{StaticResource Button.Primary}"
                 Grid.Row="1"
                 Grid.Column="2"
                 HeightRequest="80"
@@ -62,21 +62,21 @@
                 CommandParameter="Site"/>
 
         <!-- 3 ряд -->
-        <Button Text="Возврат"
+        <Button Text="Возврат" Style="{StaticResource Button.Primary}"
                 Grid.Row="2"
                 Grid.Column="0"
                 HeightRequest="80"
                 FontSize="18"
                 Command="{Binding SelectCommand}"
                 CommandParameter="Return"/>
-        <Button Text="Бронь"
+        <Button Text="Бронь" Style="{StaticResource Button.Primary}"
                 Grid.Row="2"
                 Grid.Column="1"
                 HeightRequest="80"
                 FontSize="18"
                 Command="{Binding SelectCommand}"
                 CommandParameter="Reservation"/>
-        <Button Text="Payme"
+        <Button Text="Payme" Style="{StaticResource Button.Primary}"
                 Grid.Row="2"
                 Grid.Column="2"
                 HeightRequest="80"
@@ -85,14 +85,14 @@
                 CommandParameter="Payme"/>
 
         <!-- 4 ряд -->
-        <Button Text="Договор"
+        <Button Text="Договор" Style="{StaticResource Button.Primary}"
                 Grid.Row="3"
                 Grid.Column="0"
                 HeightRequest="80"
                 FontSize="18"
                 Command="{Binding SelectCommand}"
                 CommandParameter="Contract"/>
-        <Button Text="Долг"
+        <Button Text="Долг" Style="{StaticResource Button.Primary}"
                 Grid.Row="3"
                 Grid.Column="1"
                 HeightRequest="80"

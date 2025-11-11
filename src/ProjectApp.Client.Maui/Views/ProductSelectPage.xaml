@@ -34,7 +34,7 @@
         <!-- Поиск -->
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="12">
           <Entry Grid.Column="0" Placeholder="Поиск товаров..." Text="{Binding Query}" ReturnCommand="{Binding SearchAsyncCommand}" BackgroundColor="{DynamicResource Color.Surface}" TextColor="{DynamicResource Color.Text.Primary}" PlaceholderColor="{DynamicResource Color.Text.Secondary}" HeightRequest="56" FontSize="18"/>
-          <Button Grid.Column="1" Text="Поиск" Command="{Binding SearchAsyncCommand}" WidthRequest="130" HeightRequest="56" FontSize="17"/>
+          <Button Grid.Column="1" Text="Поиск" Command="{Binding SearchAsyncCommand}" WidthRequest="130" HeightRequest="56" FontSize="17" Style="{StaticResource Button.Primary}"/>
         </Grid>
       </Grid>
 
@@ -54,8 +54,8 @@
                 <Label Grid.Row="1" Text="{Binding Sku}" FontSize="13" TextColor="{DynamicResource Color.Text.Secondary}"/>
                 <Label Grid.Row="2" Text="{Binding TotalQty, StringFormat='📦 {0:N0} шт'}" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" Margin="0,4,0,0"/>
                 <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,8,0,0">
-                  <Button Grid.Column="0" Text="Выбрать" CommandParameter="{Binding .}" Clicked="OnPickClicked" HeightRequest="44" FontSize="15" Padding="0" IsVisible="{Binding Source={x:Reference Root}, Path=IsPicker}"/>
-                  <Button Grid.Column="1" Text="Добавить" CommandParameter="{Binding .}" Clicked="OnAddToCart" HeightRequest="44" FontSize="15" Padding="0" IsVisible="{Binding Source={x:Reference Root}, Path=IsPicker, Converter={StaticResource InverseBoolConverter}}"/>
+                  <Button Grid.Column="0" Text="Выбрать" CommandParameter="{Binding .}" Clicked="OnPickClicked" HeightRequest="44" FontSize="15" Padding="0" IsVisible="{Binding Source={x:Reference Root}, Path=IsPicker}" Style="{StaticResource Button.Secondary}"/>
+                  <Button Grid.Column="1" Text="Добавить" CommandParameter="{Binding .}" Clicked="OnAddToCart" HeightRequest="44" FontSize="15" Padding="0" IsVisible="{Binding Source={x:Reference Root}, Path=IsPicker, Converter={StaticResource InverseBoolConverter}}" Style="{StaticResource CtaPrimary}"/>
                 </Grid>
               </Grid>
             </Border>
@@ -72,11 +72,11 @@
     
     <!-- ПРАВАЯ ПАНЕЛЬ: Корзина -->
     <Border Grid.Column="1" StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" Padding="16" StrokeShape="RoundRectangle 12" IsVisible="{Binding Source={x:Reference Root}, Path=IsPicker, Converter={StaticResource InverseBoolConverter}}">
-      <Grid RowDefinitions="Auto,*,Auto,Auto,Auto">
+      <Grid RowDefinitions="Auto,*,Auto,Auto,Auto,Auto">
         <Label Grid.Row="0" Text="🛒 Корзина" FontSize="20" FontAttributes="Bold" Margin="0,0,0,16"/>
         
         <!-- Список товаров в корзине -->
-        <ScrollView Grid.Row="1">
+        <ScrollView Grid.Row="1" VerticalScrollBarVisibility="Always">
           <VerticalStackLayout BindableLayout.ItemsSource="{Binding CartItems}" Spacing="12">
             <BindableLayout.EmptyView>
               <Label Text="Корзина пуста" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" HorizontalTextAlignment="Center" Margin="0,32,0,0"/>
@@ -127,9 +127,24 @@
             <Label Text="{Binding SelectedClientName}" FontSize="15" TextColor="{DynamicResource Color.Text.Primary}" VerticalTextAlignment="Center"/>
           </Border>
         </VerticalStackLayout>
-        
+
+        <!-- Партнер и ставка комиссии -->
+        <VerticalStackLayout Grid.Row="4" Spacing="8" Margin="0,8,0,0">
+          <Label Text="Партнер (необязательно)" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" FontAttributes="Bold"/>
+          <Border StrokeThickness="1" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Background}" Padding="14" StrokeShape="RoundRectangle 8">
+            <Border.GestureRecognizers>
+              <TapGestureRecognizer Tapped="OnSelectCommissionAgentClicked"/>
+            </Border.GestureRecognizers>
+            <Label Text="{Binding CommissionAgentName}" FontSize="15" TextColor="{DynamicResource Color.Text.Primary}" VerticalTextAlignment="Center"/>
+          </Border>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+            <Label Grid.Column="0" Text="Ставка, %" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" VerticalTextAlignment="Center"/>
+            <Entry Grid.Column="1" Keyboard="Numeric" Text="{Binding CommissionRate}" Placeholder="Например, 5" HeightRequest="44"/>
+          </Grid>
+        </VerticalStackLayout>
+
         <!-- Кнопка оформления -->
-        <Button Grid.Row="4" Text="Оформить продажу" Command="{Binding CheckoutCommand}" HeightRequest="52" FontSize="17" FontAttributes="Bold" Margin="0,12,0,0"/>
+        <Button Grid.Row="5" Text="Оформить продажу" Command="{Binding CheckoutCommand}" HeightRequest="52" FontSize="17" FontAttributes="Bold" Margin="0,12,0,0" Style="{StaticResource CtaPrimary}"/>
       </Grid>
     </Border>
   </Grid>

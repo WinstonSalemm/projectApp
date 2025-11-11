@@ -57,6 +57,10 @@ public partial class ProductSelectViewModel : ObservableObject
     [ObservableProperty] private decimal cartTotal;
     [ObservableProperty] private int? selectedClientId;
     [ObservableProperty] private string selectedClientName = "Выберите клиента...";
+    // Commission (partner program)
+    [ObservableProperty] private int? commissionAgentId;
+    [ObservableProperty] private string commissionAgentName = "Выберите партнера...";
+    [ObservableProperty] private decimal? commissionRate;
 
     [ObservableProperty] private bool isBusy;
 
@@ -211,6 +215,12 @@ public partial class ProductSelectViewModel : ObservableObject
         SelectedClientName = string.IsNullOrWhiteSpace(clientName) ? "Выберите клиента..." : clientName;
     }
 
+    public void SetCommissionAgent(int? agentId, string agentName)
+    {
+        CommissionAgentId = agentId;
+        CommissionAgentName = string.IsNullOrWhiteSpace(agentName) ? "Выберите партнера..." : agentName;
+    }
+
     [RelayCommand]
     public async Task Checkout()
     {
@@ -230,6 +240,8 @@ public partial class ProductSelectViewModel : ObservableObject
                 ClientId = SelectedClientId,
                 ClientName = SelectedClientId.HasValue ? SelectedClientName : string.Empty,
                 PaymentType = _session.PaymentType,
+                CommissionAgentId = CommissionAgentId,
+                CommissionRate = CommissionRate,
                 Items = CartItems.Select(item => new SaleDraftItem
                 {
                     ProductId = item.ProductId,
@@ -250,6 +262,9 @@ public partial class ProductSelectViewModel : ObservableObject
                 RecalculateTotal();
                 SelectedClientId = null;
                 SelectedClientName = "Выберите клиента...";
+                CommissionAgentId = null;
+                CommissionAgentName = "Выберите партнера...";
+                CommissionRate = null;
                 
                 // Navigate back to payment select
                 await NavigationHelper.PopAsync();

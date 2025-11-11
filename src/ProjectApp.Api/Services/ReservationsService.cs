@@ -64,7 +64,7 @@ public class ReservationsService
             var resItem = new ReservationItem
             {
                 ProductId = p.Id,
-                Register = StockRegister.ND40, // По умолчанию будем пытаться взять с ND-40
+                Register = StockRegister.IM40, // По умолчанию считаем IM-40, скорректируем ниже при отсутствии IM-40
                 Qty = it.Qty,
                 Sku = p.Sku,
                 Name = p.Name,
@@ -72,46 +72,49 @@ public class ReservationsService
             };
             res.Items.Add(resItem);
 
-            // Списываем товар: сначала с ND-40, потом с IM-40
+            // Списываем товар: сначала с IM-40, потом с ND-40
             var consumptions = new List<(int batchId, StockRegister register, decimal qty, decimal unitCost)>();
             
-            // 1) Пытаемся взять с ND-40
-            var stockNd = await _db.Stocks.FirstOrDefaultAsync(
-                s => s.ProductId == p.Id && s.Register == StockRegister.ND40, ct);
-            var availableNd = stockNd?.Qty ?? 0m;
-            var takeNd = Math.Min(availableNd, it.Qty);
+            // 1) Пытаемся взять с IM-40
+            var stockIm = await _db.Stocks.FirstOrDefaultAsync(
+                s => s.ProductId == p.Id && s.Register == StockRegister.IM40, ct);
+            var availableIm = stockIm?.Qty ?? 0m;
+            var takeIm = Math.Min(availableIm, it.Qty);
 
-            if (takeNd > 0)
+            if (takeIm > 0)
             {
-                var (batches, _) = await DeductFromBatchesAsync(p.Id, StockRegister.ND40, takeNd, ct);
-                foreach (var b in batches)
-                {
-                    consumptions.Add((b.batchId, StockRegister.ND40, b.qty, b.unitCost));
-                }
-                stockNd!.Qty -= takeNd;
-            }
-
-            // 2) Остаток берем с IM-40
-            var remain = it.Qty - takeNd;
-            if (remain > 0)
-            {
-                var stockIm = await _db.Stocks.FirstOrDefaultAsync(
-                    s => s.ProductId == p.Id && s.Register == StockRegister.IM40, ct);
-                
-                if (stockIm == null || stockIm.Qty < remain)
-                {
-                    var available = stockIm?.Qty ?? 0m;
-                    throw new InvalidOperationException(
-                        $"Недостаточно товара '{p.Name}' на складе. Требуется {remain}, доступно {available} в IM-40");
-                }
-
-                var (batches, _) = await DeductFromBatchesAsync(p.Id, StockRegister.IM40, remain, ct);
+                var (batches, _) = await DeductFromBatchesAsync(p.Id, StockRegister.IM40, takeIm, ct);
                 foreach (var b in batches)
                 {
                     consumptions.Add((b.batchId, StockRegister.IM40, b.qty, b.unitCost));
                 }
-                stockIm.Qty -= remain;
+                stockIm!.Qty -= takeIm;
             }
+
+            // 2) Остаток берем с ND-40
+            var remain = it.Qty - takeIm;
+            if (remain > 0)
+            {
+                var stockNd = await _db.Stocks.FirstOrDefaultAsync(
+                    s => s.ProductId == p.Id && s.Register == StockRegister.ND40, ct);
+
+                if (stockNd == null || stockNd.Qty < remain)
+                {
+                    var available = stockNd?.Qty ?? 0m;
+                    throw new InvalidOperationException(
+                        $"Недостаточно товара '{p.Name}' на складе. Требуется {remain}, доступно {available} в ND-40");
+                }
+
+                var (batches, _) = await DeductFromBatchesAsync(p.Id, StockRegister.ND40, remain, ct);
+                foreach (var b in batches)
+                {
+                    consumptions.Add((b.batchId, StockRegister.ND40, b.qty, b.unitCost));
+                }
+                stockNd.Qty -= remain;
+            }
+
+            // Отразим основной регистр позиции: если есть любая часть из IM-40 — IM-40, иначе ND-40
+            resItem.Register = takeIm > 0 ? StockRegister.IM40 : StockRegister.ND40;
 
             batchConsumptions[resItem] = consumptions;
         }
@@ -241,6 +244,203 @@ public class ReservationsService
 
         await LogAsync(res.Id, "PhotoAttached", userName, null, ct);
         await NotifyWithPhotoAsync(res, ct);
+        return true;
+    }
+
+    public async Task<bool> FulfillAsync(int reservationId, string userName, CancellationToken ct = default)
+    {
+        var res = await _db.Reservations
+            .FirstOrDefaultAsync(r => r.Id == reservationId, ct);
+        if (res == null) return false;
+        if (res.Status != ReservationStatus.Active) return false;
+
+        // Меняем только статус без движения по складу (списание уже было при создании)
+        res.Status = ReservationStatus.Fulfilled;
+        res.ReservedUntil = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        await LogAsync(res.Id, "Fulfilled", userName, null, ct);
+
+        // Уведомление текстом
+        _ = NotifyTextOnlyAsync(res.Id, CancellationToken.None);
+        return true;
+    }
+
+    public class ReservationUpdateItemDto
+    {
+        public int ProductId { get; set; }
+        public decimal Qty { get; set; }
+    }
+
+    public async Task<bool> UpdateAsync(int reservationId, List<ReservationUpdateItemDto> items, string userName, CancellationToken ct = default)
+    {
+        var res = await _db.Reservations
+            .Include(r => r.Items)
+            .FirstOrDefaultAsync(r => r.Id == reservationId, ct);
+        if (res == null) return false;
+        if (res.Status != ReservationStatus.Active) return false;
+
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+        // Map current by product
+        var currentByProduct = res.Items.ToDictionary(i => i.ProductId, i => i);
+        var desiredByProduct = items.GroupBy(i => i.ProductId).ToDictionary(g => g.Key, g => g.Sum(x => x.Qty));
+
+        // Helper to recalc Register flag per item
+        async Task RecalcRegisterAsync(ReservationItem it, CancellationToken ctoken)
+        {
+            var anyIm = await _db.ReservationItemBatches.AsNoTracking()
+                .AnyAsync(b => b.ReservationItemId == it.Id && b.RegisterAtReservation == StockRegister.IM40, ctoken);
+            it.Register = anyIm ? StockRegister.IM40 : StockRegister.ND40;
+        }
+
+        // Remove items not present anymore or reduce qty
+        foreach (var cur in res.Items.ToList())
+        {
+            desiredByProduct.TryGetValue(cur.ProductId, out var newQty);
+            var oldQty = cur.Qty;
+
+            if (!desiredByProduct.ContainsKey(cur.ProductId) || newQty <= 0)
+            {
+                // Return all batches
+                var batches = await _db.ReservationItemBatches.Where(b => b.ReservationItemId == cur.Id).ToListAsync(ct);
+                foreach (var itemBatch in batches)
+                {
+                    var batch = await _db.Batches.FirstOrDefaultAsync(b => b.Id == itemBatch.BatchId, ct);
+                    if (batch != null) batch.Qty += itemBatch.Qty;
+                    var stock = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == cur.ProductId && s.Register == itemBatch.RegisterAtReservation, ct);
+                    if (stock != null) stock.Qty += itemBatch.Qty; else _db.Stocks.Add(new Stock { ProductId = cur.ProductId, Register = itemBatch.RegisterAtReservation, Qty = itemBatch.Qty });
+                    _db.InventoryTransactions.Add(new InventoryTransaction
+                    {
+                        ProductId = cur.ProductId,
+                        Register = itemBatch.RegisterAtReservation,
+                        Type = InventoryTransactionType.ReservationCancelled,
+                        Qty = itemBatch.Qty,
+                        UnitCost = itemBatch.UnitCost,
+                        BatchId = itemBatch.BatchId,
+                        ReservationId = res.Id,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = userName,
+                        Note = $"reservation #{res.Id} edit remove"
+                    });
+                }
+                _db.ReservationItemBatches.RemoveRange(batches);
+                _db.ReservationItems.Remove(cur);
+            }
+            else if (newQty < oldQty)
+            {
+                // Return part of qty from batches FIFO (oldest first recorded)
+                var needReturn = oldQty - newQty;
+                var batches = await _db.ReservationItemBatches.Where(b => b.ReservationItemId == cur.Id).OrderBy(b => b.Id).ToListAsync(ct);
+                foreach (var ib in batches)
+                {
+                    if (needReturn <= 0) break;
+                    var take = Math.Min(ib.Qty, needReturn);
+                    if (take > 0)
+                    {
+                        ib.Qty -= take;
+                        needReturn -= take;
+                        var batch = await _db.Batches.FirstOrDefaultAsync(b => b.Id == ib.BatchId, ct);
+                        if (batch != null) batch.Qty += take;
+                        var stock = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == cur.ProductId && s.Register == ib.RegisterAtReservation, ct);
+                        if (stock != null) stock.Qty += take; else _db.Stocks.Add(new Stock { ProductId = cur.ProductId, Register = ib.RegisterAtReservation, Qty = take });
+                        _db.InventoryTransactions.Add(new InventoryTransaction
+                        {
+                            ProductId = cur.ProductId,
+                            Register = ib.RegisterAtReservation,
+                            Type = InventoryTransactionType.ReservationCancelled,
+                            Qty = take,
+                            UnitCost = ib.UnitCost,
+                            BatchId = ib.BatchId,
+                            ReservationId = res.Id,
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = userName,
+                            Note = $"reservation #{res.Id} edit reduce"
+                        });
+                    }
+                }
+                // Remove zero qty links
+                var zeros = batches.Where(b => b.Qty <= 0).ToList();
+                if (zeros.Count > 0) _db.ReservationItemBatches.RemoveRange(zeros);
+                cur.Qty = newQty;
+                await RecalcRegisterAsync(cur, ct);
+            }
+        }
+
+        // Add or increase items
+        var productIds = desiredByProduct.Keys.ToArray();
+        var products = await _db.Products.Where(p => productIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, ct);
+        foreach (var kv in desiredByProduct)
+        {
+            var pid = kv.Key; var wantQty = kv.Value;
+            currentByProduct.TryGetValue(pid, out var curItem);
+            var curQty = curItem?.Qty ?? 0m;
+            if (wantQty > curQty)
+            {
+                var add = wantQty - curQty;
+                if (!products.TryGetValue(pid, out var p)) throw new InvalidOperationException($"Product not found: {pid}");
+                if (curItem == null)
+                {
+                    curItem = new ReservationItem { ProductId = p.Id, Qty = 0, Register = StockRegister.IM40, Sku = p.Sku, Name = p.Name, UnitPrice = p.Price };
+                    res.Items.Add(curItem);
+                    await _db.SaveChangesAsync(ct); // get Id for batches
+                }
+                // Deduct IM-40 then ND-40
+                var consumptions = new List<(int batchId, StockRegister register, decimal qty, decimal unitCost)>();
+                var stockIm = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == p.Id && s.Register == StockRegister.IM40, ct);
+                var takeIm = Math.Min(stockIm?.Qty ?? 0m, add);
+                if (takeIm > 0)
+                {
+                    var (batches, _) = await DeductFromBatchesAsync(p.Id, StockRegister.IM40, takeIm, ct);
+                    foreach (var b in batches) consumptions.Add((b.batchId, StockRegister.IM40, b.qty, b.unitCost));
+                    if (stockIm != null) stockIm.Qty -= takeIm;
+                }
+                var remain = add - takeIm;
+                if (remain > 0)
+                {
+                    var stockNd = await _db.Stocks.FirstOrDefaultAsync(s => s.ProductId == p.Id && s.Register == StockRegister.ND40, ct);
+                    if (stockNd == null || stockNd.Qty < remain)
+                    {
+                        var available = stockNd?.Qty ?? 0m;
+                        throw new InvalidOperationException($"Недостаточно товара '{p.Name}' на складе. Требуется {remain}, доступно {available} в ND-40");
+                    }
+                    var (batches, _) = await DeductFromBatchesAsync(p.Id, StockRegister.ND40, remain, ct);
+                    foreach (var b in batches) consumptions.Add((b.batchId, StockRegister.ND40, b.qty, b.unitCost));
+                    stockNd.Qty -= remain;
+                }
+                foreach (var (batchId, reg, qty, unitCost) in consumptions)
+                {
+                    _db.ReservationItemBatches.Add(new ReservationItemBatch
+                    {
+                        ReservationItemId = curItem.Id,
+                        BatchId = batchId,
+                        RegisterAtReservation = reg,
+                        Qty = qty,
+                        UnitCost = unitCost
+                    });
+                    _db.InventoryTransactions.Add(new InventoryTransaction
+                    {
+                        ProductId = curItem.ProductId,
+                        Register = reg,
+                        Type = InventoryTransactionType.Reservation,
+                        Qty = -qty,
+                        UnitCost = unitCost,
+                        BatchId = batchId,
+                        ReservationId = res.Id,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = userName,
+                        Note = $"reservation #{res.Id} edit add"
+                    });
+                }
+                curItem.Qty += add;
+                await RecalcRegisterAsync(curItem, ct);
+            }
+        }
+
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        await LogAsync(res.Id, "Edited", userName, null, ct);
+        _ = NotifyTextOnlyAsync(res.Id, CancellationToken.None);
         return true;
     }
 

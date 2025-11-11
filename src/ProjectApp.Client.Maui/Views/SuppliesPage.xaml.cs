@@ -102,7 +102,7 @@ public partial class SuppliesPage : ContentPage
                 return;
             }
             
-            if (sender is Button button)
+            if (sender is Microsoft.Maui.Controls.Button button)
             {
                 System.Diagnostics.Debug.WriteLine($"button.BindingContext is null: {button.BindingContext == null}");
                 System.Diagnostics.Debug.WriteLine($"button.BindingContext type: {button.BindingContext?.GetType()}");
@@ -168,7 +168,7 @@ public partial class SuppliesPage : ContentPage
     {
         try
         {
-            if (sender is Button button && button.BindingContext is SupplyDto supply)
+            if (sender is Microsoft.Maui.Controls.Button button && button.BindingContext is SupplyDto supply)
             {
                 System.Diagnostics.Debug.WriteLine($"=== OnDeleteSupplyClicked: {supply.Code}");
                 
@@ -208,7 +208,7 @@ public partial class SuppliesPage : ContentPage
     {
         try
         {
-            if (sender is Button button && button.BindingContext is SupplyDto supply)
+            if (sender is Microsoft.Maui.Controls.Button button && button.BindingContext is SupplyDto supply)
             {
                 System.Diagnostics.Debug.WriteLine($"=== OnTransferToIm40Clicked: {supply.Code}");
                 
@@ -243,7 +243,7 @@ public partial class SuppliesPage : ContentPage
     {
         try
         {
-            if (sender is Button button && button.BindingContext is SupplyDto supply)
+            if (sender is Microsoft.Maui.Controls.Button button && button.BindingContext is SupplyDto supply)
             {
                 System.Diagnostics.Debug.WriteLine($"=== OnOpenCostingClicked: {supply.Code}");
                 await Shell.Current.GoToAsync($"costing?supplyId={supply.Id}");

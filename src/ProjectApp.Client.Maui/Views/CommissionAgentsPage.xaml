@@ -3,43 +3,44 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.CommissionAgentsPage"
-             Title="Партнеры">
+             Title="Партнеры"
+             BackgroundColor="{DynamicResource Color.Background}">
   <Grid RowDefinitions="Auto,*" Padding="16">
     <VerticalStackLayout Spacing="8">
-      <Label Text="💼 Партнеры (Агенты)" FontSize="24" FontAttributes="Bold" />
+      <Label Text="💼 Партнеры (Агенты)" FontSize="24" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Primary}" />
       <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,8,0,0">
-        <Frame Padding="12" CornerRadius="8" BackgroundColor="#E3F2FD">
+        <Frame Padding="12" Style="{StaticResource Card}">
           <VerticalStackLayout Spacing="4">
-            <Label Text="ПАРТНЕРОВ" FontSize="10" TextColor="Gray" />
-            <Label Text="{Binding TotalAgents}" FontSize="24" FontAttributes="Bold" TextColor="#1976D2" />
+            <Label Text="ПАРТНЕРОВ" FontSize="10" TextColor="{DynamicResource Color.Text.Secondary}" />
+            <Label Text="{Binding TotalAgents}" FontSize="24" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}" />
           </VerticalStackLayout>
         </Frame>
-        <Frame Grid.Column="1" Padding="12" CornerRadius="8" BackgroundColor="#FFEBEE">
+        <Frame Grid.Column="1" Padding="12" Style="{StaticResource Card}">
           <VerticalStackLayout Spacing="4">
-            <Label Text="ОБЩИЙ ДОЛГ" FontSize="10" TextColor="Gray" />
-            <Label Text="{Binding TotalBalance, StringFormat='{0:N0}'}" FontSize="20" FontAttributes="Bold" TextColor="#F44336" />
+            <Label Text="ОБЩИЙ ДОЛГ" FontSize="10" TextColor="{DynamicResource Color.Text.Secondary}" />
+            <Label Text="{Binding TotalBalance, StringFormat='{0:N0}'}" FontSize="20" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}" />
           </VerticalStackLayout>
         </Frame>
       </Grid>
     </VerticalStackLayout>
-    <ScrollView Grid.Row="1">
-      <CollectionView ItemsSource="{Binding Agents}">
+    <ScrollView Grid.Row="1" VerticalScrollBarVisibility="Always">
+      <CollectionView ItemsSource="{Binding Agents}" Margin="0,0,12,0" SelectionMode="Single" SelectionChanged="OnSelectionChanged">
         <CollectionView.ItemTemplate>
           <DataTemplate>
-            <Frame Padding="16" Margin="0,8,0,0" CornerRadius="8" BackgroundColor="White" HasShadow="True">
+            <Frame Padding="16" Margin="0,8,0,0" Style="{StaticResource CardFrame}">
               <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
-                <Label Text="{Binding ClientName, FallbackValue='Клиент'}" FontSize="18" FontAttributes="Bold" />
-                <Frame Grid.Column="1" Grid.RowSpan="2" Padding="10" CornerRadius="16" BackgroundColor="#FFEBEE" HasShadow="False">
-                  <Label Text="{Binding CommissionBalance, StringFormat='{0:N0}'}" FontSize="16" FontAttributes="Bold" TextColor="#F44336" />
+                <Label Text="{Binding ClientName, FallbackValue='Клиент'}" FontSize="18" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Primary}" />
+                <Frame Grid.Column="1" Grid.RowSpan="2" Padding="10" CornerRadius="16" HasShadow="False" BackgroundColor="{DynamicResource Color.Surface.Muted}">
+                  <Label Text="{Binding CommissionBalance, StringFormat='{0:N0}'}" FontSize="16" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}" />
                 </Frame>
-                <Label Grid.Row="1" Text="{Binding Phone}" FontSize="14" TextColor="Gray" />
-                <Label Grid.Row="2" Text="{Binding CommissionAgentSince, StringFormat='🕒 С {0:dd.MM.yyyy}'}" FontSize="12" TextColor="Gray" />
+                <Label Grid.Row="1" Text="{Binding Phone}" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" />
+                <Label Grid.Row="2" Text="{Binding CommissionAgentSince, StringFormat='🕒 С {0:dd.MM.yyyy}'}" FontSize="12" TextColor="{DynamicResource Color.Text.Tertiary}" />
               </Grid>
             </Frame>
           </DataTemplate>
         </CollectionView.ItemTemplate>
       </CollectionView>
     </ScrollView>
-    <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HorizontalOptions="Center" VerticalOptions="Center" />
+    <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{DynamicResource Color.Primary}" HorizontalOptions="Center" VerticalOptions="Center" />
   </Grid>
 </ContentPage>

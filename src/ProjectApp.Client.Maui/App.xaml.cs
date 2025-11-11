@@ -27,6 +27,8 @@ public partial class App : Application
 
         Console.WriteLine($"[APP] ctor: IsAuthenticated={_auth.IsAuthenticated}, Role={_auth.Role ?? "<null>"}");
         
+        // Force light theme for the whole app to ensure white background and #660000 accent
+        try { Application.Current!.UserAppTheme = AppTheme.Light; } catch { }
         ApplyAppThemePalette();
 
         // Start local reservation notifier (polls alerts and shows toast no more than once per 2 days per reservation)
@@ -95,13 +97,9 @@ public partial class App : Application
 
     private void ApplyAppThemePalette()
     {
-        ApplyPalette(RequestedTheme);
-        RequestedThemeChanged += OnRequestedThemeChanged;
-    }
-
-    private void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs args)
-    {
-        ApplyPalette(args.RequestedTheme);
+        // Lock to Light palette regardless of OS theme
+        ApplyPalette(AppTheme.Light);
+        RequestedThemeChanged += (_, __) => ApplyPalette(AppTheme.Light);
     }
 
     private void ApplyPalette(AppTheme theme)

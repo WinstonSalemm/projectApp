@@ -49,6 +49,9 @@ public class ApiSalesService : ISalesService
         public string PaymentType { get; set; } = "CashWithReceipt";
         public List<string>? ReservationNotes { get; set; }
         public bool? NotifyHold { get; set; }
+        // Commission (partner program)
+        public int? CommissionAgentId { get; set; }
+        public decimal? CommissionRate { get; set; }
     }
 
     private class ProblemDetails
@@ -78,7 +81,9 @@ public class ApiSalesService : ISalesService
             }).ToList(),
             PaymentType = draft.PaymentType.ToString(),
             ReservationNotes = draft.ReservationNotes,
-            NotifyHold = draft.NotifyHold
+            NotifyHold = draft.NotifyHold,
+            CommissionAgentId = draft.CommissionAgentId,
+            CommissionRate = draft.CommissionRate
         };
 
         var response = await client.PostAsJsonAsync("/api/sales", dto, ct);
@@ -159,6 +164,7 @@ public class ApiSalesService : ISalesService
         public string Sku { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public bool NdToImEligible { get; set; }
+        public string SourceRegister { get; set; } = string.Empty;
     }
     public class SaleDetailsDto
     {

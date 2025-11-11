@@ -1,4 +1,8 @@
 using ProjectApp.Client.Maui.ViewModels;
+#if WINDOWS
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+#endif
 
 namespace ProjectApp.Client.Maui.Views;
 
@@ -18,7 +22,37 @@ public partial class BatchCostCalculationPage : ContentPage
         {
             await vm.LoadDataAsync();
         }
+
+#if WINDOWS
+        TryEnableHorizontalWheel();
+#endif
     }
+
+#if WINDOWS
+    private bool _wheelHooked;
+    private void TryEnableHorizontalWheel()
+    {
+        if (_wheelHooked) return;
+        var platformView = TableScroll?.Handler?.PlatformView as ScrollViewer;
+        if (platformView is null) return;
+
+        _wheelHooked = true;
+        platformView.PointerWheelChanged += OnScrollViewerPointerWheelChanged;
+    }
+
+    private void OnScrollViewerPointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is not ScrollViewer sv) return;
+        var point = e.GetCurrentPoint(sv);
+        var delta = point.Properties.MouseWheelDelta; // positive: wheel up
+        const double step = 80; // px per notch
+
+        var newOffset = sv.HorizontalOffset - Math.Sign(delta) * step;
+        if (newOffset < 0) newOffset = 0;
+        sv.ChangeView(newOffset, null, null);
+        e.Handled = true;
+    }
+#endif
 
     private async void OnAddItemClicked(object sender, EventArgs e)
     {
@@ -73,7 +107,7 @@ public partial class BatchCostCalculationPage : ContentPage
 
     private async void OnEditItemClicked(object sender, EventArgs e)
     {
-        if (sender is Button button && button.CommandParameter is BatchCostItemDto item)
+        if (sender is Microsoft.Maui.Controls.Button button && button.CommandParameter is BatchCostItemDto item)
         {
             await DisplayAlert("Редактирование", "Функция в разработке", "ОК");
         }
@@ -81,7 +115,7 @@ public partial class BatchCostCalculationPage : ContentPage
 
     private async void OnDeleteItemClicked(object sender, EventArgs e)
     {
-        if (sender is Button button && button.CommandParameter is BatchCostItemDto item)
+        if (sender is Microsoft.Maui.Controls.Button button && button.CommandParameter is BatchCostItemDto item)
         {
             var confirm = await DisplayAlert(
                 "Удалить товар?",
@@ -98,7 +132,7 @@ public partial class BatchCostCalculationPage : ContentPage
 
     private async void OnViewDetailsClicked(object sender, EventArgs e)
     {
-        if (sender is Button button && button.CommandParameter is BatchCostItemDto item)
+        if (sender is Microsoft.Maui.Controls.Button button && button.CommandParameter is BatchCostItemDto item)
         {
             var details = $"Наименование: {item.ProductName}\n" +
                          $"Количество: {item.Quantity}\n" +

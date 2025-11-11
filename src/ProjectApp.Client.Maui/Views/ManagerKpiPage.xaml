@@ -3,26 +3,27 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.ManagerKpiPage"
-             Title="KPI Менеджеров">
+             Title="KPI Менеджеров"
+             BackgroundColor="{DynamicResource Color.Background}">
   <Grid RowDefinitions="Auto,*" Padding="16">
-    <Label Text="🏆 Рейтинг менеджеров" FontSize="24" FontAttributes="Bold" />
-    <ScrollView Grid.Row="1">
-      <CollectionView ItemsSource="{Binding Managers}">
+    <Label Text="🏆 Рейтинг менеджеров" FontSize="24" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Primary}" />
+    <ScrollView Grid.Row="1" VerticalScrollBarVisibility="Always">
+      <CollectionView ItemsSource="{Binding Managers}" Margin="0,0,12,0">
         <CollectionView.ItemTemplate>
           <DataTemplate>
-            <Frame Padding="16" Margin="0,8,0,0" CornerRadius="8" BackgroundColor="White" HasShadow="True">
+            <Frame Padding="16" Margin="0,8,0,0" Style="{StaticResource CardFrame}">
               <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
                 <Label Grid.RowSpan="3" Text="{Binding RankEmoji, FallbackValue='👤'}" FontSize="40" VerticalOptions="Center" Margin="0,0,12,0" />
-                <Label Grid.Column="1" Text="{Binding FullName}" FontSize="18" FontAttributes="Bold" />
-                <Label Grid.Column="2" Grid.RowSpan="2" Text="{Binding EfficiencyScore, StringFormat='{0:F1}'}" FontSize="24" FontAttributes="Bold" TextColor="#4CAF50" VerticalOptions="Center" />
-                <Label Grid.Column="1" Grid.Row="1" Text="{Binding SalesCount, StringFormat='💼 {0} продаж'}" FontSize="14" TextColor="Gray" />
-                <Label Grid.Column="1" Grid.Row="2" Text="{Binding TotalRevenue, StringFormat='💰 {0:N0} сум'}" FontSize="14" TextColor="#1976D2" />
+                <Label Grid.Column="1" Text="{Binding FullName}" FontSize="18" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Primary}" />
+                <Label Grid.Column="2" Grid.RowSpan="2" Text="{Binding EfficiencyScore, StringFormat='{0:F1}'}" FontSize="24" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}" VerticalOptions="Center" />
+                <Label Grid.Column="1" Grid.Row="1" Text="{Binding SalesCount, StringFormat='💼 {0} продаж'}" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}" />
+                <Label Grid.Column="1" Grid.Row="2" Text="{Binding TotalRevenue, StringFormat='💰 {0:N0} сум'}" FontSize="14" TextColor="{DynamicResource Color.Primary}" />
               </Grid>
             </Frame>
           </DataTemplate>
         </CollectionView.ItemTemplate>
       </CollectionView>
     </ScrollView>
-    <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HorizontalOptions="Center" VerticalOptions="Center" />
+    <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{DynamicResource Color.Primary}" HorizontalOptions="Center" VerticalOptions="Center" />
   </Grid>
 </ContentPage>

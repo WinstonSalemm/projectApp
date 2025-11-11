@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.ExpensesPage"
-             Title="Расходы">
+             Title="Расходы"
+             BackgroundColor="{DynamicResource Color.Background}">
   
   <Grid RowDefinitions="Auto,*" Padding="16">
     
@@ -11,45 +12,46 @@
     <VerticalStackLayout Spacing="8">
       <Label Text="📊 Операционные расходы" 
              FontSize="24" 
-             FontAttributes="Bold" />
+             FontAttributes="Bold"
+             TextColor="{DynamicResource Color.Text.Primary}" />
       
       <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,8,0,0">
-        <Frame Grid.Column="0" Padding="12" CornerRadius="8" BackgroundColor="#FFEBEE">
+        <Frame Grid.Column="0" Padding="12" Style="{StaticResource Card}">
           <VerticalStackLayout Spacing="4">
-            <Label Text="ВСЕГО РАСХОДОВ" FontSize="10" TextColor="Gray" />
-            <Label Text="{Binding TotalCount}" FontSize="24" FontAttributes="Bold" TextColor="#F44336" />
+            <Label Text="ВСЕГО РАСХОДОВ" FontSize="10" TextColor="{DynamicResource Color.Text.Secondary}" />
+            <Label Text="{Binding TotalCount}" FontSize="24" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}" />
           </VerticalStackLayout>
         </Frame>
-        <Frame Grid.Column="1" Padding="12" CornerRadius="8" BackgroundColor="#FFEBEE">
+        <Frame Grid.Column="1" Padding="12" Style="{StaticResource Card}">
           <VerticalStackLayout Spacing="4">
-            <Label Text="СУММА" FontSize="10" TextColor="Gray" />
-            <Label Text="{Binding TotalAmount, StringFormat='{0:N0} сум'}" FontSize="20" FontAttributes="Bold" TextColor="#F44336" />
+            <Label Text="СУММА" FontSize="10" TextColor="{DynamicResource Color.Text.Secondary}" />
+            <Label Text="{Binding TotalAmount, StringFormat='{0:N0} сум'}" FontSize="20" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}" />
           </VerticalStackLayout>
         </Frame>
       </Grid>
     </VerticalStackLayout>
 
     <!-- Expenses List -->
-    <ScrollView Grid.Row="1">
-      <CollectionView ItemsSource="{Binding Expenses}">
+    <ScrollView Grid.Row="1" VerticalScrollBarVisibility="Always">
+      <CollectionView ItemsSource="{Binding Expenses}" Margin="0,0,12,0">
         <CollectionView.ItemTemplate>
           <DataTemplate>
-            <Frame Padding="16" Margin="0,8,0,0" CornerRadius="8" BackgroundColor="White" HasShadow="True">
+            <Frame Padding="16" Margin="0,8,0,0" Style="{StaticResource CardFrame}">
               <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
                 
                 <Label Grid.Column="0" Grid.RowSpan="3" Text="{Binding Icon, FallbackValue='💰'}" FontSize="32" VerticalOptions="Center" Margin="0,0,12,0" />
                 
-                <Label Grid.Column="1" Text="{Binding Type}" FontSize="16" FontAttributes="Bold" />
+                <Label Grid.Column="1" Text="{Binding Type}" FontSize="16" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Primary}" />
                 
                 <Frame Grid.Column="2" Grid.RowSpan="2" Padding="8,4" CornerRadius="12" BackgroundColor="{Binding StatusColor}" HasShadow="False">
                   <Label Text="{Binding Status}" FontSize="12" TextColor="White" />
                 </Frame>
                 
-                <Label Grid.Column="1" Grid.Row="1" Text="{Binding Description}" FontSize="12" TextColor="Gray" />
+                <Label Grid.Column="1" Grid.Row="1" Text="{Binding Description}" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}" />
                 
                 <Grid Grid.Column="1" Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,4,0,0">
-                  <Label Text="{Binding ExpenseDate, StringFormat='{0:dd.MM.yyyy}'}" FontSize="12" TextColor="Gray" />
-                  <Label Grid.Column="1" Text="{Binding Amount, StringFormat='{0:N0} сум'}" FontSize="16" FontAttributes="Bold" TextColor="#F44336" />
+                  <Label Text="{Binding ExpenseDate, StringFormat='{0:dd.MM.yyyy}'}" FontSize="12" TextColor="{DynamicResource Color.Text.Tertiary}" />
+                  <Label Grid.Column="1" Text="{Binding Amount, StringFormat='{0:N0} сум'}" FontSize="16" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}" />
                 </Grid>
                 
               </Grid>
@@ -59,7 +61,7 @@
       </CollectionView>
     </ScrollView>
     
-    <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HorizontalOptions="Center" VerticalOptions="Center" />
+    <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{DynamicResource Color.Primary}" HorizontalOptions="Center" VerticalOptions="Center" />
     
   </Grid>
   

@@ -6,7 +6,8 @@
              xmlns:controls="clr-namespace:ProjectApp.Client.Maui.Controls"
              x:Class="ProjectApp.Client.Maui.Views.ClientsListPage"
              x:Name="Page"
-             Title="Клиенты">
+             Title="Клиенты"
+             BackgroundColor="{DynamicResource Color.Background}">
   <ContentPage.Resources>
     <ResourceDictionary>
       <GridItemsLayout x:Key="ItemsLayout.Compact"
@@ -82,12 +83,7 @@
     </Grid>
 
     <!-- Фильтры -->
-    <Border Grid.Row="1"
-            StrokeThickness="1"
-            Stroke="{DynamicResource Color.Border}"
-            BackgroundColor="{DynamicResource Color.Surface}"
-            StrokeShape="RoundRectangle 8"
-            Padding="16">
+    <Frame Grid.Row="1" Style="{StaticResource Card}" Padding="16">
       <Grid ColumnDefinitions="Auto,200,Auto,200,Auto,Auto" ColumnSpacing="16" RowSpacing="0">
         <!-- Тип -->
         <Label Grid.Column="0" 
@@ -141,24 +137,21 @@
                 FontSize="15"
                 Padding="16,0"/>
       </Grid>
-    </Border>
+    </Frame>
 
     <CollectionView x:Name="ClientsCollection"
                     Grid.Row="2"
-                    Margin="0,0,0,24"
+                    Margin="0,0,12,24"
                     ItemsSource="{Binding Items}"
                     SelectionMode="None">
       <CollectionView.ItemTemplate>
         <DataTemplate>
-          <Border StrokeThickness="1"
-                  Stroke="{DynamicResource Color.Border}"
-                  BackgroundColor="{DynamicResource Color.Surface}"
-                  StrokeShape="RoundRectangle 8"
-                  Padding="16"
-                  Margin="0,0,0,12">
-            <Border.GestureRecognizers>
+          <Frame Style="{StaticResource CardFrame}"
+                 Padding="16"
+                 Margin="0,0,0,12">
+            <Frame.GestureRecognizers>
               <TapGestureRecognizer Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenDetailCommand}" CommandParameter="{Binding .}" />
-            </Border.GestureRecognizers>
+            </Frame.GestureRecognizers>
             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
               <!-- Имя и тип -->
               <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
@@ -193,7 +186,7 @@
                      TextColor="{DynamicResource Color.Text.Secondary}"
                      IsVisible="{Binding HasOwner}"/>
             </Grid>
-          </Border>
+          </Frame>
         </DataTemplate>
       </CollectionView.ItemTemplate>
       <CollectionView.EmptyView>

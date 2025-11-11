@@ -4,14 +4,15 @@
              xmlns:vm="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.CashCollectionPage"
              x:DataType="vm:CashCollectionViewModel"
-             Title="💵 К инкассации">
+             Title="💵 К инкассации"
+             BackgroundColor="{DynamicResource Color.Background}">
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Обновить" Command="{Binding LoadDataCommand}" />
         <ToolbarItem Text="Удалить последнюю" Command="{Binding DeleteLastCommand}" />
     </ContentPage.ToolbarItems>
 
-    <ScrollView>
+    <ScrollView VerticalScrollBarVisibility="Always">
         <VerticalStackLayout Padding="16" Spacing="20">
 
             <!-- Индикатор загрузки -->
@@ -21,118 +22,99 @@
 
             <!-- Ошибка -->
             <Frame IsVisible="{Binding HasError}"
-                   BackgroundColor="#FFE5E5"
-                   BorderColor="#FF0000"
-                   CornerRadius="8"
-                   Padding="12">
+                   BackgroundColor="{DynamicResource Color.Error}"
+                   Padding="12"
+                   HasShadow="False">
                 <Label Text="{Binding ErrorMessage}"
-                       TextColor="#CC0000"
+                       TextColor="{DynamicResource Color.OnPrimary}"
                        FontSize="14" />
             </Frame>
 
             <!-- НАКОПЛЕНО С ПОСЛЕДНЕЙ ИНКАССАЦИИ -->
-            <Frame BackgroundColor="#E3F2FD" 
-                   BorderColor="#2196F3"
-                   CornerRadius="12"
-                   Padding="20">
+            <Frame Style="{StaticResource Card}" Padding="20">
                 <VerticalStackLayout Spacing="8">
                     <Label Text="📈 Накоплено с последней инкассации:"
                            FontSize="14"
-                           TextColor="#1976D2"
+                           TextColor="{DynamicResource Color.Text.Secondary}"
                            FontFamily="InterSemiBold" />
                     
                     <Label Text="{Binding CurrentAccumulatedFormatted}"
                            FontSize="32"
-                           TextColor="#0D47A1"
+                           TextColor="{DynamicResource Color.Primary}"
                            FontFamily="InterBold"
                            HorizontalOptions="Center" />
                     
                     <Label Text="{Binding LastCollectionDateFormatted, StringFormat='С {0}'}"
                            FontSize="12"
-                           TextColor="#64B5F6"
+                           TextColor="{DynamicResource Color.Text.Tertiary}"
                            HorizontalOptions="Center" />
                 </VerticalStackLayout>
             </Frame>
 
             <!-- НЕИНКАССИРОВАННЫЙ ОСТАТОК -->
-            <Frame BackgroundColor="#FFF3E0" 
-                   BorderColor="#FF9800"
-                   CornerRadius="12"
-                   Padding="20">
+            <Frame Style="{StaticResource Card}" Padding="20">
                 <VerticalStackLayout Spacing="8">
                     <Label Text="💼 Неинкассированный остаток:"
                            FontSize="14"
-                           TextColor="#F57C00"
+                           TextColor="{DynamicResource Color.Text.Secondary}"
                            FontFamily="InterSemiBold" />
                     
                     <Label Text="{Binding TotalRemainingFormatted}"
                            FontSize="28"
-                           TextColor="#E65100"
+                           TextColor="{DynamicResource Color.Primary}"
                            FontFamily="InterBold"
                            HorizontalOptions="Center" />
                     
                     <Label Text="(Cash Flow на предприятии)"
                            FontSize="11"
-                           TextColor="#FFB74D"
+                           TextColor="{DynamicResource Color.Text.Tertiary}"
                            HorizontalOptions="Center"
                            FontAttributes="Italic" />
                 </VerticalStackLayout>
             </Frame>
 
             <!-- ФОРМА ИНКАССАЦИИ -->
-            <Frame BackgroundColor="White" 
-                   BorderColor="#BDBDBD"
-                   CornerRadius="12"
-                   Padding="20">
+            <Frame Style="{StaticResource Card}" Padding="20">
                 <VerticalStackLayout Spacing="16">
                     <Label Text="📤 Провести инкассацию"
                            FontSize="16"
-                           TextColor="#424242"
+                           TextColor="{DynamicResource Color.Text.Primary}"
                            FontFamily="InterBold" />
 
                     <!-- Сумма к сдаче -->
                     <VerticalStackLayout Spacing="4">
                         <Label Text="Сумма к сдаче (UZS):"
                                FontSize="13"
-                               TextColor="#757575" />
+                               TextColor="{DynamicResource Color.Text.Secondary}" />
                         <Entry Text="{Binding CollectedAmountText}"
                                Placeholder="Например: 180000000"
                                Keyboard="Numeric"
-                               FontSize="16"
-                               BackgroundColor="#F5F5F5"
-                               TextColor="#212121" />
+                               FontSize="16" />
                     </VerticalStackLayout>
 
                     <!-- Примечание -->
                     <VerticalStackLayout Spacing="4">
                         <Label Text="Примечание (опционально):"
                                FontSize="13"
-                               TextColor="#757575" />
+                               TextColor="{DynamicResource Color.Text.Secondary}" />
                         <Editor Text="{Binding Notes}"
                                 Placeholder="Например: 20М на дивиденды, 10М резерв"
                                 HeightRequest="80"
-                                FontSize="14"
-                                BackgroundColor="#F5F5F5"
-                                TextColor="#212121" />
+                                FontSize="14" />
                     </VerticalStackLayout>
 
                     <!-- Кнопка -->
                     <Button Text="📤 Провести инкассацию"
                             Command="{Binding SubmitCollectionCommand}"
                             IsEnabled="{Binding CanSubmit}"
-                            BackgroundColor="#4CAF50"
-                            TextColor="White"
-                            FontFamily="InterBold"
-                            FontSize="16"
-                            Padding="0,12"
-                            CornerRadius="8" />
+                            Style="{StaticResource CtaPrimary}" />
                 </VerticalStackLayout>
             </Frame>
 
             <!-- ИСТОРИЯ ИНКАССАЦИЙ -->
             <Label Text="📜 ИСТОРИЯ ИНКАССАЦИЙ"
                    FontSize="16"
-                   TextColor="#424242"
+                   TextColor="{DynamicResource Color.Text.Primary}"
                    FontFamily="InterBold"
                    Margin="0,12,0,0" />
 
@@ -142,9 +124,7 @@
                     <DataTemplate x:DataType="vm:CashCollectionHistoryRow">
                         <Frame Margin="0,0,0,12"
                                Padding="16"
-                               BackgroundColor="White"
-                               BorderColor="#E0E0E0"
-                               CornerRadius="8">
+                               Style="{StaticResource CardFrame}">
                             <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" 
                                   ColumnDefinitions="120,*"
                                   RowSpacing="8">
@@ -153,51 +133,51 @@
                                 <Label Grid.Row="0" Grid.Column="0"
                                        Text="📅 Дата:"
                                        FontSize="12"
-                                       TextColor="#757575" />
+                                       TextColor="{DynamicResource Color.Text.Secondary}" />
                                 <Label Grid.Row="0" Grid.Column="1"
                                        Text="{Binding Date}"
                                        FontSize="12"
-                                       TextColor="#212121"
+                                       TextColor="{DynamicResource Color.Text.Primary}"
                                        FontFamily="InterSemiBold" />
 
                                 <!-- Накоплено -->
                                 <Label Grid.Row="1" Grid.Column="0"
                                        Text="📊 Накоплено:"
                                        FontSize="12"
-                                       TextColor="#757575" />
+                                       TextColor="{DynamicResource Color.Text.Secondary}" />
                                 <Label Grid.Row="1" Grid.Column="1"
                                        Text="{Binding Accumulated}"
                                        FontSize="12"
-                                       TextColor="#2196F3"
+                                       TextColor="{DynamicResource Color.Primary}"
                                        FontFamily="InterSemiBold" />
 
                                 <!-- Сдано -->
                                 <Label Grid.Row="2" Grid.Column="0"
                                        Text="💵 Сдано:"
                                        FontSize="12"
-                                       TextColor="#757575" />
+                                       TextColor="{DynamicResource Color.Text.Secondary}" />
                                 <Label Grid.Row="2" Grid.Column="1"
                                        Text="{Binding Collected}"
                                        FontSize="12"
-                                       TextColor="#4CAF50"
+                                       TextColor="{DynamicResource Color.Text.Primary}"
                                        FontFamily="InterSemiBold" />
 
                                 <!-- Остаток -->
                                 <Label Grid.Row="3" Grid.Column="0"
                                        Text="💼 Остаток:"
                                        FontSize="12"
-                                       TextColor="#757575" />
+                                       TextColor="{DynamicResource Color.Text.Secondary}" />
                                 <Label Grid.Row="3" Grid.Column="1"
                                        Text="{Binding Remaining}"
                                        FontSize="12"
-                                       TextColor="#FF9800"
+                                       TextColor="{DynamicResource Color.Primary}"
                                        FontFamily="InterSemiBold" />
 
                                 <!-- Примечание -->
                                 <Label Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
                                        Text="{Binding Notes}"
                                        FontSize="11"
-                                       TextColor="#9E9E9E"
+                                       TextColor="{DynamicResource Color.Text.Tertiary}"
                                        FontAttributes="Italic"
                                        IsVisible="{Binding Notes, Converter={StaticResource IsNotNullOrEmptyConverter}}"
                                        LineBreakMode="WordWrap" />

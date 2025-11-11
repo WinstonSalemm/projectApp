@@ -5,7 +5,8 @@
              xmlns:conv="clr-namespace:ProjectApp.Client.Maui.Converters"
              x:Class="ProjectApp.Client.Maui.Views.SalesHistoryPage"
              x:Name="Page"
-             Title="История продаж">
+             Title="История продаж"
+             BackgroundColor="{DynamicResource Color.Background}">
   <ContentPage.Resources>
     <ResourceDictionary>
       <conv:BoolToColorConverter x:Key="BoolToErrorColor"/>
@@ -37,7 +38,7 @@
       </Grid>
     </Frame>
 
-    <CollectionView Grid.Row="1" ItemsSource="{Binding Items}">
+    <CollectionView Grid.Row="1" ItemsSource="{Binding Items}" Margin="0,0,12,0">
       <CollectionView.ItemsLayout>
         <GridItemsLayout Orientation="Vertical">
           <GridItemsLayout.Span>
@@ -70,7 +71,7 @@
                      Text="{Binding Id, StringFormat='Продажа #{0}'}"
                      FontAttributes="Bold"
                      TextColor="{Binding Nd40Transferred, Converter={StaticResource BoolToErrorColor}}"/>
-              <Label Grid.Row="1" Grid.Column="0" Text="{Binding CreatedAt, Converter={StaticResource DateTimeToRuConverter}}" FontSize="12" TextColor="Gray"/>
+              <Label Grid.Row="1" Grid.Column="0" Text="{Binding CreatedAt, Converter={StaticResource DateTimeToRuConverter}}" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
               <Button Grid.Row="1" Grid.Column="1" Text="Изменить" Command="{Binding Source={x:Reference Name=Page}, Path=BindingContext.OpenEditCommand}" CommandParameter="{Binding .}" Style="{StaticResource OutlinedButton}"/>
               <Label Grid.Row="2" Grid.Column="0" Text="{Binding ClientName}"/>
               <!-- Payment type badge -->
@@ -87,8 +88,8 @@
       </CollectionView.ItemTemplate>
       <CollectionView.EmptyView>
         <VerticalStackLayout Padding="12" Spacing="6">
-          <Label Text="Нет продаж за выбранный период" FontAttributes="Bold" TextColor="{StaticResource MutedTextColor}"/>
-          <Label Text="Измените даты или включите 'Все продажи'" FontSize="12" TextColor="{StaticResource MutedTextColor}"/>
+          <Label Text="Нет продаж за выбранный период" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Secondary}"/>
+          <Label Text="Измените даты или включите 'Все продажи'" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
         </VerticalStackLayout>
       </CollectionView.EmptyView>
     </CollectionView>

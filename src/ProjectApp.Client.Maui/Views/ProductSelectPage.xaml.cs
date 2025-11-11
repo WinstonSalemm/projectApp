@@ -136,5 +136,22 @@ public partial class ProductSelectPage : ContentPage
             await vm.SearchAsync();
         }
     }
+
+    private async void OnSelectCommissionAgentClicked(object? sender, EventArgs e)
+    {
+        if (BindingContext is not ProductSelectViewModel vm) return;
+        var page = _services.GetService<CommissionAgentsPage>();
+        if (page == null) return;
+
+        var tcs = new TaskCompletionSource<(int Id, string Name)>();
+        void Handler(object? s, (int Id, string Name) a) => tcs.TrySetResult(a);
+        page.CommissionAgentSelected += Handler;
+        await Navigation.PushAsync(page);
+        var selected = await tcs.Task;
+        page.CommissionAgentSelected -= Handler;
+        await Navigation.PopAsync();
+
+        vm.SetCommissionAgent(selected.Id, selected.Name);
+    }
 }
 

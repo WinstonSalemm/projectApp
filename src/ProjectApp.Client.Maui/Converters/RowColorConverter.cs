@@ -8,7 +8,7 @@ public class RowColorConverter : IValueConverter
     {
         if (value is int rowNumber)
         {
-            return rowNumber % 2 == 0 ? Colors.White : Color.FromArgb("#f8f9fa");
+            return rowNumber % 2 == 0 ? Colors.White : Color.FromArgb("#F6F1E7");
         }
         return Colors.White;
     }

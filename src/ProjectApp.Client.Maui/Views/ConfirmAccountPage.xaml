@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ProjectApp.Client.Maui.Views.ConfirmAccountPage"
-             BackgroundColor="White"
+             BackgroundColor="{DynamicResource Color.Background}"
              Title="Подтверждение"
              NavigationPage.HasNavigationBar="False">
   <Grid RowDefinitions="*,Auto,Auto" Padding="24">
@@ -11,19 +11,18 @@
              Text="ВЫ ТОЧНО"
              FontAttributes="Bold"
              FontSize="28"
-             TextColor="#111111"
+             TextColor="{DynamicResource Color.Text.Primary}"
              HorizontalTextAlignment="Center"/>
       <Label x:Name="SubtitleLabel"
              Text="..."
              FontSize="22"
-             TextColor="#333333"
+             TextColor="{DynamicResource Color.Text.Secondary}"
              HorizontalTextAlignment="Center"/>
     </VerticalStackLayout>
 
     <Button Grid.Row="1"
             Text="ДА"
-            BackgroundColor="#660000"
-            TextColor="White"
+            Style="{StaticResource ActionButton}"
             FontAttributes="Bold"
             HeightRequest="64"
             Margin="0,24,0,12"
@@ -31,8 +30,7 @@
 
     <Button Grid.Row="2"
             Text="НЕТ"
-            BackgroundColor="#EEEEEE"
-            TextColor="#333333"
+            Style="{StaticResource Button.Secondary}"
             HeightRequest="64"
             Clicked="OnNoClicked"/>
   </Grid>

@@ -4,9 +4,10 @@
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              xmlns:svc="clr-namespace:ProjectApp.Client.Maui.Services"
              x:Class="ProjectApp.Client.Maui.Views.ReservationDetailsPage"
+             x:Name="Page"
              x:DataType="viewModels:ReservationDetailsViewModel"
              Title="Детали брони">
-  <ScrollView>
+  <ScrollView VerticalScrollBarVisibility="Always">
     <VerticalStackLayout Padding="16" Spacing="12">
       <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
         <Label Grid.Row="0" Grid.ColumnSpan="2" Text="Детали брони" FontSize="20" FontAttributes="Bold" />
@@ -20,7 +21,7 @@
         <Label Grid.Row="4" Grid.Column="1" Text="{Binding ReservedUntil, StringFormat='{0:dd.MM.yyyy HH:mm}'}" />
       </Grid>
 
-      <Border StrokeThickness="1" Padding="12">
+      <Border StrokeThickness="1" Padding="12" Stroke="{DynamicResource Color.Border}" BackgroundColor="{DynamicResource Color.Surface}" StrokeShape="RoundRectangle 8">
         <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto">
           <Label Grid.Column="0" Text="Итого" />
           <Label Grid.Column="1" Text="Оплачено" />
@@ -31,17 +32,25 @@
         </Grid>
       </Border>
 
-      <Label Text="Позиции" FontAttributes="Bold" />
+      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto">
+        <Label Grid.Column="0" Text="Позиции" FontAttributes="Bold" />
+        <Button Grid.Column="1" Text="Добавить товар" Clicked="OnAddProductClicked" Style="{StaticResource Button.Secondary}" />
+      </Grid>
       <CollectionView ItemsSource="{Binding Items}">
         <CollectionView.ItemTemplate>
           <DataTemplate>
-            <Grid Padding="8" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto"
+            <Grid Padding="8" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto"
                   xmlns:svc="clr-namespace:ProjectApp.Client.Maui.Services"
                   x:DataType="svc:ReservationItemRow">
               <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontAttributes="Bold" />
               <Label Grid.Row="0" Grid.Column="1" Text="{Binding UnitPrice, StringFormat='{0:N0} UZS'}" />
               <Label Grid.Row="1" Grid.Column="0" Text="{Binding Sku}" TextColor="Gray" />
               <Label Grid.Row="1" Grid.Column="1" Text="{Binding Qty, StringFormat='x {0:0.###}'}" />
+              <HorizontalStackLayout Grid.Row="2" Grid.ColumnSpan="2" Spacing="8">
+                <Button Text="+" Command="{Binding Source={x:Reference Name=Page}, Path=BindingContext.IncreaseQtyCommand}" CommandParameter="{Binding .}"/>
+                <Button Text="-" Command="{Binding Source={x:Reference Name=Page}, Path=BindingContext.DecreaseQtyCommand}" CommandParameter="{Binding .}"/>
+                <Button Text="Удалить" Command="{Binding Source={x:Reference Name=Page}, Path=BindingContext.RemoveItemCommand}" CommandParameter="{Binding .}"/>
+              </HorizontalStackLayout>
             </Grid>
           </DataTemplate>
         </CollectionView.ItemTemplate>
@@ -77,9 +86,17 @@
           </Picker.ItemsSource>
         </Picker>
         <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="8">
-          <Button Text="Внести" Command="{Binding PayPartialCommand}" />
-          <Button Text="Оплатить 100%" Command="{Binding PayFullCommand}" />
+          <Button Text="Внести" Command="{Binding PayPartialCommand}" Style="{StaticResource Button.Secondary}" />
+          <Button Text="Оплатить 100%" Command="{Binding PayFullCommand}" Style="{StaticResource Button.Primary}" />
         </HorizontalStackLayout>
+      </Grid>
+
+      <!-- Действия с бронью -->
+      <Label Text="Действия" FontAttributes="Bold" />
+      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="8">
+        <Entry Grid.Row="0" Grid.ColumnSpan="2" Placeholder="Причина снятия (необязательно)" Text="{Binding ReleaseReason}" />
+        <Button Grid.Row="1" Grid.Column="0" Text="Снять бронь" Command="{Binding ReleaseCommand}" Style="{StaticResource Button.Secondary}" />
+        <Button Grid.Row="1" Grid.Column="1" Text="Закрыть (отгрузить)" Command="{Binding FulfillCommand}" Style="{StaticResource Button.Primary}" />
       </Grid>
     </VerticalStackLayout>
   </ScrollView>

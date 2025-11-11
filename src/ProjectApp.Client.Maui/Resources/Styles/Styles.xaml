@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+  <!-- Typography fallback: Inter/Segoe UI -->
+  <x:String x:Key="FontFamily.Primary">InterRegular, Segoe UI</x:String>
+  <x:String x:Key="FontFamily.Primary.Bold">InterBold, Segoe UI Semibold</x:String>
+
+  <!-- Radii -->
+  <x:Double x:Key="Radius">8</x:Double>
+
+  <!-- Shadows -->
+  <Shadow x:Key="Shadow.Soft" Offset="0,4" Radius="12" Opacity="0.15" />
+
+  <!-- Base controls -->
+  <Style TargetType="ContentPage">
+    <Setter Property="BackgroundColor" Value="{DynamicResource Color.Background}" />
+  </Style>
+  <Style TargetType="Button">
+    <Setter Property="CornerRadius" Value="{StaticResource Radius}" />
+    <Setter Property="HeightRequest" Value="44" />
+    <Setter Property="FontFamily" Value="{StaticResource FontFamily.Primary}" />
+  </Style>
+
+  <Style TargetType="Frame" x:Key="Card">
+    <Setter Property="Padding" Value="16" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius}" />
+    <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface}" />
+    <Setter Property="BorderColor" Value="{DynamicResource Color.Border}" />
+    <Setter Property="HasShadow" Value="True" />
+    <Setter Property="Shadow" Value="{StaticResource Shadow.Soft}" />
+  </Style>
+
+  <Style TargetType="Label" x:Key="Label.Body">
+    <Setter Property="TextColor" Value="{DynamicResource Color.Text.Primary}" />
+    <Setter Property="FontFamily" Value="{StaticResource FontFamily.Primary}" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+  <Style TargetType="Label" x:Key="Label.Field" BasedOn="{StaticResource Label.Body}">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="TextColor" Value="{DynamicResource Color.Text.Accent}" />
+  </Style>
+  <Style TargetType="Label" x:Key="Label.Muted" BasedOn="{StaticResource Label.Body}">
+    <Setter Property="TextColor" Value="{DynamicResource Color.Text.Secondary}" />
+  </Style>
+  <Style TargetType="Label" x:Key="Label.H1" BasedOn="{StaticResource Label.Body}">
+    <Setter Property="FontSize" Value="20" />
+    <Setter Property="FontAttributes" Value="Bold" />
+  </Style>
+
+  <!-- Apply Label.Body to all Labels -->
+  <Style TargetType="Label" BasedOn="{StaticResource Label.Body}" />
+
+  <Style TargetType="Entry" x:Key="Entry.Base">
+    <Setter Property="TextColor" Value="{DynamicResource Color.Text.Primary}" />
+    <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface.Muted}" />
+    <Setter Property="HeightRequest" Value="44" />
+    <Setter Property="Margin" Value="0,4,0,0" />
+    <Setter Property="VisualStateManager.VisualStateGroups">
+      <VisualStateGroupList>
+        <VisualStateGroup x:Name="CommonStates">
+          <VisualState x:Name="Normal" />
+          <VisualState x:Name="Focused">
+            <VisualState.Setters>
+              <Setter Property="BackgroundColor" Value="#FFF5F5" />
+            </VisualState.Setters>
+          </VisualState>
+        </VisualStateGroup>
+      </VisualStateGroupList>
+    </Setter>
+  </Style>
+
+  <!-- Compact table entry based on Entry.Base -->
+  <Style TargetType="Entry" x:Key="Entry.TableCell" BasedOn="{StaticResource Entry.Base}">
+    <Setter Property="HeightRequest" Value="32" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface}" />
+    <Setter Property="Margin" Value="2" />
+  </Style>
+
+  <!-- Apply Entry.Base to all Entries -->
+  <Style TargetType="Entry" BasedOn="{StaticResource Entry.Base}" />
+  <Style TargetType="Border" x:Key="Field.Border">
+    <Setter Property="Stroke" Value="{DynamicResource Color.Border}" />
+    <Setter Property="StrokeThickness" Value="1.5" />
+    <Setter Property="StrokeShape">
+      <Setter.Value>
+        <RoundRectangle CornerRadius="{StaticResource Radius}" />
+      </Setter.Value>
+    </Setter>
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface}" />
+  </Style>
+
+  <Style TargetType="Button" x:Key="Button.Primary">
+    <Setter Property="BackgroundColor" Value="{DynamicResource Color.Primary}" />
+    <Setter Property="TextColor" Value="{DynamicResource Color.OnPrimary}" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius}" />
+    <Setter Property="HeightRequest" Value="44" />
+  </Style>
+  <!-- Aliases for pages that referenced local keys -->
+  <Style TargetType="Button" x:Key="TypeButton" BasedOn="{StaticResource Button.Primary}">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontAttributes" Value="Bold" />
+    <Setter Property="MinimumWidthRequest" Value="180" />
+    <Setter Property="HeightRequest" Value="56" />
+    <Setter Property="Padding" Value="24,0" />
+  </Style>
+  <Style TargetType="Button" x:Key="ActionButton" BasedOn="{StaticResource Button.Primary}">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontAttributes" Value="Bold" />
+    <Setter Property="HeightRequest" Value="44" />
+    <Setter Property="Padding" Value="20,0" />
+  </Style>
+  <Style TargetType="Button" x:Key="Button.Danger" BasedOn="{StaticResource Button.Primary}">
+    <Setter Property="BackgroundColor" Value="#B00020" />
+  </Style>
+  <Style TargetType="Button" x:Key="Button.Secondary" BasedOn="{StaticResource Button.Primary}">
+    <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface}" />
+    <Setter Property="TextColor" Value="{DynamicResource Color.Text.Primary}" />
+    <Setter Property="BorderColor" Value="{DynamicResource Color.Border}" />
+    <Setter Property="BorderWidth" Value="1.5" />
+  </Style>
+  <Style TargetType="Button" x:Key="Button.Tertiary">
+    <Setter Property="BackgroundColor" Value="Transparent" />
+    <Setter Property="TextColor" Value="{DynamicResource Color.Primary}" />
+    <Setter Property="HeightRequest" Value="44" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius}" />
+  </Style>
+  <Style TargetType="Button" x:Key="OutlinedButton" BasedOn="{StaticResource Button.Tertiary}">
+    <Setter Property="BorderColor" Value="{DynamicResource Color.Border}" />
+    <Setter Property="BorderWidth" Value="1.5" />
+  </Style>
+  <Style TargetType="Button" x:Key="CtaPrimary" BasedOn="{StaticResource Button.Primary}">
+    <Setter Property="HeightRequest" Value="52" />
+    <Setter Property="FontAttributes" Value="Bold" />
+    <Setter Property="FontSize" Value="17" />
+  </Style>
+  <Style TargetType="Frame" x:Key="CardFrame" BasedOn="{StaticResource Card}" />
+
+  <!-- Table -->
+  <Style TargetType="Border" x:Key="Table.ThCell">
+    <Setter Property="Stroke" Value="{DynamicResource Color.Border}" />
+    <Setter Property="StrokeThickness" Value="1" />
+    <Setter Property="BackgroundColor" Value="{DynamicResource Color.Surface.Alt}" />
+    <Setter Property="Padding" Value="10,10" />
+  </Style>
+  <Style TargetType="Label" x:Key="Table.ThText">
+    <Setter Property="TextColor" Value="{DynamicResource Color.Text.Accent}" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontAttributes" Value="Bold" />
+    <Setter Property="HorizontalTextAlignment" Value="Center" />
+    <Setter Property="VerticalTextAlignment" Value="Center" />
+    <Setter Property="TextTransform" Value="Uppercase" />
+    <Setter Property="CharacterSpacing" Value="0.25" />
+  </Style>
+  <Style TargetType="Border" x:Key="Table.CellBorder">
+    <Setter Property="Stroke" Value="{DynamicResource Color.Border}" />
+    <Setter Property="StrokeThickness" Value="1.5" />
+  </Style>
+  <Style TargetType="Label" x:Key="Table.CellText" BasedOn="{StaticResource Label.Body}">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="VerticalTextAlignment" Value="Center" />
+    <Setter Property="Padding" Value="8,6" />
+  </Style>
+  <Style TargetType="Label" x:Key="Table.CellText.Num" BasedOn="{StaticResource Table.CellText}">
+    <Setter Property="HorizontalTextAlignment" Value="End" />
+  </Style>
+</ResourceDictionary>

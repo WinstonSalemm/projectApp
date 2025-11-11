@@ -3,19 +3,19 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ProjectApp.Client.Maui.Views.SimpleAdminPage"
              Title="Админ-панель">
-  <ScrollView>
+  <ScrollView VerticalScrollBarVisibility="Always">
     <VerticalStackLayout Padding="24" Spacing="16">
       <Label Text="Админ-панель" FontSize="32" FontAttributes="Bold"/>
       <Label Text="Добро пожаловать, администратор!" FontSize="18"/>
       
-      <Button Text="История" HeightRequest="64" FontSize="18" Clicked="OnHistoryClicked"/>
-      <Button Text="Склад" HeightRequest="64" FontSize="18" Margin="0,32,0,0" Clicked="OnStocksClicked"/>
-      <Button Text="Поставки" HeightRequest="64" FontSize="18" Clicked="OnSuppliesClicked"/>
-      <Button Text="Клиенты" HeightRequest="64" FontSize="18" Clicked="OnClientsClicked"/>
-      <Button Text="💰 Финансы" HeightRequest="64" FontSize="18" Clicked="OnFinancesClicked"/>
-      <Button Text="Аналитика" HeightRequest="64" FontSize="18" Clicked="OnAnalyticsClicked"/>
-      <Button Text="Настройки" HeightRequest="64" FontSize="18" Clicked="OnSettingsClicked"/>
-      <Button Text="Выход" HeightRequest="64" FontSize="18" BackgroundColor="Red" TextColor="White" Clicked="OnLogoutClicked" Margin="0,32,0,0"/>
+      <Button Text="История" HeightRequest="64" FontSize="18" Style="{StaticResource Button.Primary}" Clicked="OnHistoryClicked"/>
+      <Button Text="Склад" HeightRequest="64" FontSize="18" Style="{StaticResource Button.Primary}" Margin="0,32,0,0" Clicked="OnStocksClicked"/>
+      <Button Text="Поставки" HeightRequest="64" FontSize="18" Style="{StaticResource Button.Primary}" Clicked="OnSuppliesClicked"/>
+      <Button Text="Клиенты" HeightRequest="64" FontSize="18" Style="{StaticResource Button.Primary}" Clicked="OnClientsClicked"/>
+      <Button Text="💰 Финансы" HeightRequest="64" FontSize="18" Style="{StaticResource Button.Primary}" Clicked="OnFinancesClicked"/>
+      <Button Text="Аналитика" HeightRequest="64" FontSize="18" Style="{StaticResource Button.Primary}" Clicked="OnAnalyticsClicked"/>
+      <Button Text="Настройки" HeightRequest="64" FontSize="18" Style="{StaticResource Button.Primary}" Clicked="OnSettingsClicked"/>
+      <Button Text="Выход" HeightRequest="64" FontSize="18" Style="{StaticResource Button.Danger}" Clicked="OnLogoutClicked" Margin="0,32,0,0"/>
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>

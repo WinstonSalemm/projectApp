@@ -12,7 +12,7 @@
       <conv:CurrencyConverter x:Key="CurrencyConverter" />
     </ResourceDictionary>
   </ContentPage.Resources>
-  <ScrollView>
+  <ScrollView VerticalScrollBarVisibility="Always">
     <VerticalStackLayout Padding="20" Spacing="16">
       <Label Text="Продажа #{Binding Id}" FontSize="20" FontAttributes="Bold"/>
       <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
@@ -50,9 +50,14 @@
                        HorizontalTextAlignment="End"
                        Placeholder="{Binding OldUnitPrice, Converter={StaticResource CurrencyConverter}, StringFormat='старая цена — {0}'}"/>
               </VerticalStackLayout>
-              <Label Grid.Row="1" Grid.ColumnSpan="3" 
-                     Text="{Binding DeltaCashFlow, Converter={StaticResource CurrencyConverter}, StringFormat='CASH FLOW: {0}'}"
-                     TextColor="{DynamicResource Color.Error}" FontSize="12" IsVisible="{Binding NdToImEligible}"/>
+              <Grid Grid.Row="1" Grid.ColumnSpan="3" ColumnDefinitions="*,Auto" >
+                <Label Grid.Column="0"
+                       Text="{Binding DeltaCashFlow, Converter={StaticResource CurrencyConverter}, StringFormat='CASH FLOW: {0}'}"
+                       TextColor="{DynamicResource Color.Error}" FontSize="12" IsVisible="{Binding NdToImEligible}"/>
+                <Frame Grid.Column="1" Padding="6,2" CornerRadius="10" HasShadow="False" BackgroundColor="{DynamicResource Color.Surface.Muted}">
+                  <Label Text="{Binding SourceRegister}" FontSize="11"/>
+                </Frame>
+              </Grid>
             </Grid>
           </DataTemplate>
         </CollectionView.ItemTemplate>
@@ -60,8 +65,8 @@
       <Grid ColumnDefinitions="*,Auto,Auto" Padding="0,8,0,0" VerticalOptions="End">
         <Label Grid.Column="0" Text="{Binding TotalCashFlow, Converter={StaticResource CurrencyConverter}, StringFormat='Итого CASH FLOW: {0}'}" 
                FontAttributes="Bold" TextColor="{DynamicResource Color.Error}"/>
-        <Button Grid.Column="1" Text="Отмена" Command="{Binding CancelCommand}"/>
-        <Button Grid.Column="2" Text="Сохранить" Command="{Binding SaveCommand}" IsEnabled="{Binding HasChanges}"/>
+        <Button Grid.Column="1" Text="Отмена" Command="{Binding CancelCommand}" Style="{StaticResource Button.Secondary}"/>
+        <Button Grid.Column="2" Text="Сохранить" Command="{Binding SaveCommand}" IsEnabled="{Binding HasChanges}" Style="{StaticResource Button.Primary}"/>
       </Grid>
 
       <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"/>

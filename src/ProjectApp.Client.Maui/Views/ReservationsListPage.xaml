@@ -16,6 +16,23 @@
         <Button Grid.Column="1" Text="Обновить" Command="{Binding LoadCommand}" />
       </Grid>
 
+      <!-- Фильтр по датам -->
+      <Grid ColumnDefinitions="Auto,*,*,*" RowDefinitions="Auto" ColumnSpacing="8">
+        <Label Grid.Column="0" Text="Период:" VerticalTextAlignment="Center"/>
+        <Picker Grid.Column="1" Title="Период" SelectedItem="{Binding DateFilter}">
+          <Picker.ItemsSource>
+            <x:Array Type="{x:Type viewModels:ReservationsListViewModel+DateFilterMode}">
+              <viewModels:ReservationsListViewModel.DateFilterMode>Today</viewModels:ReservationsListViewModel.DateFilterMode>
+              <viewModels:ReservationsListViewModel.DateFilterMode>Week</viewModels:ReservationsListViewModel.DateFilterMode>
+              <viewModels:ReservationsListViewModel.DateFilterMode>Month</viewModels:ReservationsListViewModel.DateFilterMode>
+              <viewModels:ReservationsListViewModel.DateFilterMode>Custom</viewModels:ReservationsListViewModel.DateFilterMode>
+            </x:Array>
+          </Picker.ItemsSource>
+        </Picker>
+        <DatePicker Grid.Column="2" Date="{Binding DateFrom}"/>
+        <DatePicker Grid.Column="3" Date="{Binding DateTo}"/>
+      </Grid>
+
       <CollectionView ItemsSource="{Binding Items}" SelectionMode="Single" SelectionChanged="OnSelectionChanged">
         <CollectionView.ItemTemplate>
           <DataTemplate>

@@ -2,9 +2,10 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ProjectApp.Client.Maui.Views.FinancesMenuPage"
-             Title="Финансы">
+             Title="Финансы"
+             BackgroundColor="{DynamicResource Color.Background}">
   
-  <ScrollView>
+  <ScrollView VerticalScrollBarVisibility="Always">
     <VerticalStackLayout Padding="20" Spacing="20">
       
       <!-- Header -->
@@ -21,27 +22,22 @@
              Margin="0,0,0,16" />
       
       <!-- Cash Summary Card -->
-      <Border StrokeThickness="0"
-              BackgroundColor="{DynamicResource Color.Primary}"
-              StrokeShape="RoundRectangle 12"
-              Padding="24"
-              Opacity="0.95">
+      <Frame Style="{StaticResource Card}" Padding="24">
         <VerticalStackLayout Spacing="8">
           <Label Text="💳 ОСТАТКИ В КАССАХ" 
                  FontSize="15" 
                  FontAttributes="Bold"
-                 TextColor="White" />
+                 TextColor="{DynamicResource Color.Text.Secondary}" />
           <Label Text="Загрузка..." 
                  x:Name="TotalBalanceLabel"
                  FontSize="36" 
                  FontAttributes="Bold" 
-                 TextColor="White" />
+                 TextColor="{DynamicResource Color.Primary}" />
           <Label Text="Обновлено только что" 
                  FontSize="13" 
-                 TextColor="White"
-                 Opacity="0.8" />
+                 TextColor="{DynamicResource Color.Text.Tertiary}" />
         </VerticalStackLayout>
-      </Border>
+      </Frame>
       
       <!-- Menu Items -->
       <Label Text="УПРАВЛЕНИЕ" 
@@ -51,14 +47,10 @@
              Margin="0,8,0,0" />
       
       <!-- Cashboxes -->
-      <Border StrokeThickness="1" 
-              Stroke="{DynamicResource Color.Border}"
-              BackgroundColor="{DynamicResource Color.Surface}"
-              StrokeShape="RoundRectangle 10"
-              Padding="18">
-        <Border.GestureRecognizers>
+      <Frame Style="{StaticResource Card}" Padding="18">
+        <Frame.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnCashboxesClicked" />
-        </Border.GestureRecognizers>
+        </Frame.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto">
           <Label Grid.Column="0" 
                  Text="💼" 
@@ -79,17 +71,13 @@
                  TextColor="{DynamicResource Color.Text.Secondary}" 
                  VerticalOptions="Center" />
         </Grid>
-      </Border>
+      </Frame>
       
       <!-- Transactions -->
-      <Border StrokeThickness="1" 
-              Stroke="{DynamicResource Color.Border}"
-              BackgroundColor="{DynamicResource Color.Surface}"
-              StrokeShape="RoundRectangle 10"
-              Padding="18">
-        <Border.GestureRecognizers>
+      <Frame Style="{StaticResource Card}" Padding="18">
+        <Frame.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnTransactionsClicked" />
-        </Border.GestureRecognizers>
+        </Frame.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto">
           <Label Grid.Column="0" 
                  Text="🔄" 
@@ -110,17 +98,13 @@
                  TextColor="{DynamicResource Color.Text.Secondary}" 
                  VerticalOptions="Center" />
         </Grid>
-      </Border>
+      </Frame>
       
       <!-- Operating Expenses -->
-      <Border StrokeThickness="1" 
-              Stroke="{DynamicResource Color.Border}"
-              BackgroundColor="{DynamicResource Color.Surface}"
-              StrokeShape="RoundRectangle 10"
-              Padding="18">
-        <Border.GestureRecognizers>
+      <Frame Style="{StaticResource Card}" Padding="18">
+        <Frame.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnExpensesClicked" />
-        </Border.GestureRecognizers>
+        </Frame.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto">
           <Label Grid.Column="0" 
                  Text="📊" 
@@ -141,7 +125,7 @@
                  TextColor="{DynamicResource Color.Text.Secondary}" 
                  VerticalOptions="Center" />
         </Grid>
-      </Border>
+      </Frame>
       
       <!-- Reports Section -->
       <Label Text="ОТЧЕТЫ" 
@@ -151,15 +135,10 @@
              Margin="0,16,0,0" />
       
       <!-- P&L Report -->
-      <Border StrokeThickness="1" 
-              Stroke="{DynamicResource Color.Border}"
-              BackgroundColor="{DynamicResource Color.Surface}"
-              StrokeShape="RoundRectangle 10"
-              Padding="18"
-              Opacity="0.9">
-        <Border.GestureRecognizers>
+      <Frame Style="{StaticResource Card}" Padding="18">
+        <Frame.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnPLReportClicked" />
-        </Border.GestureRecognizers>
+        </Frame.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto">
           <Label Grid.Column="0" 
                  Text="📈" 
@@ -180,18 +159,13 @@
                  TextColor="{DynamicResource Color.Text.Secondary}" 
                  VerticalOptions="Center" />
         </Grid>
-      </Border>
+      </Frame>
       
       <!-- Cash Flow Report -->
-      <Border StrokeThickness="1" 
-              Stroke="{DynamicResource Color.Border}"
-              BackgroundColor="{DynamicResource Color.Surface}"
-              StrokeShape="RoundRectangle 10"
-              Padding="18"
-              Opacity="0.9">
-        <Border.GestureRecognizers>
+      <Frame Style="{StaticResource Card}" Padding="18">
+        <Frame.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnCashFlowClicked" />
-        </Border.GestureRecognizers>
+        </Frame.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto">
           <Label Grid.Column="0" 
                  Text="💸" 
@@ -212,18 +186,15 @@
                  TextColor="{DynamicResource Color.Text.Secondary}" 
                  VerticalOptions="Center" />
         </Grid>
-      </Border>
+      </Frame>
       
       <!-- Cash Collection (ТОЛЬКО для OWNER) -->
-      <Border x:Name="CashCollectionFrame"
-              StrokeThickness="2" 
-              Stroke="#FF9800"
-              BackgroundColor="#FFF3E0"
-              StrokeShape="RoundRectangle 10"
-              Padding="18">
-        <Border.GestureRecognizers>
+      <Frame x:Name="CashCollectionFrame"
+             Style="{StaticResource Card}"
+             Padding="18">
+        <Frame.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnCashCollectionClicked" />
-        </Border.GestureRecognizers>
+        </Frame.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto">
           <Label Grid.Column="0" 
                  Text="💵" 
@@ -233,18 +204,18 @@
             <Label Text="К инкассации" 
                    FontSize="18" 
                    FontAttributes="Bold"
-                   TextColor="#E65100" />
+                   TextColor="{DynamicResource Color.Text.Primary}" />
             <Label Text="Серые деньги (нал без чека)" 
                    FontSize="14" 
-                   TextColor="#F57C00" />
+                   TextColor="{DynamicResource Color.Text.Secondary}" />
           </VerticalStackLayout>
           <Label Grid.Column="2" 
                  Text="›" 
                  FontSize="32" 
-                 TextColor="#FF9800" 
+                 TextColor="{DynamicResource Color.Text.Secondary}" 
                  VerticalOptions="Center" />
         </Grid>
-      </Border>
+      </Frame>
       
     </VerticalStackLayout>
   </ScrollView>

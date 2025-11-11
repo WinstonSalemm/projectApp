@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
@@ -7,7 +7,8 @@
              x:Class="ProjectApp.Client.Maui.Views.QuickSalePage"
              x:Name="RootPage"
              x:DataType="viewModels:QuickSaleViewModel"
-             Title="Быстрая продажа">
+             Title="Быстрая продажа"
+             BackgroundColor="{DynamicResource Color.Background}">
   <ContentPage.Resources>
     <ResourceDictionary>
       <converters:PaymentTypeToRuConverter x:Key="PaymentTypeToRuConverter" />
@@ -22,13 +23,14 @@
 
   <Grid RowDefinitions="Auto,*" Padding="24" RowSpacing="16">
     <Frame Grid.Row="0"
-           BackgroundColor="#FFCC00"
+           BackgroundColor="{DynamicResource Color.Error}"
            Padding="12"
            HasShadow="False"
            IsVisible="{Binding IsOffline}">
       <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
         <Label Text="Нет связи с сервером"
                FontAttributes="Bold"
+               TextColor="{DynamicResource Color.OnPrimary}"
                VerticalOptions="Center" />
         <Button Text="Повторить"
                 Command="{Binding RetryCommand}"
@@ -49,7 +51,7 @@
                   WidthRequest="220" />
         </Grid>
 
-        <Border Grid.Row="1" Style="{StaticResource Card.Container}">
+        <Frame Grid.Row="1" Style="{StaticResource Card}">
           <VerticalStackLayout Spacing="4">
             <Label Text="Результаты поиска"
                    FontAttributes="Bold"
@@ -57,15 +59,15 @@
             <Label Text="Добавьте товары в корзину кнопкой справа."
                    TextColor="{DynamicResource Color.Text.Secondary}" />
           </VerticalStackLayout>
-        </Border>
+        </Frame>
 
         <CollectionView Grid.Row="2"
                         ItemsSource="{Binding SearchResults}"
                         SelectionMode="None"
-                        Margin="0,0,0,16">
+                        Margin="0,0,12,16">
           <CollectionView.ItemTemplate>
             <DataTemplate x:DataType="viewModels:QuickSaleViewModel+QuickProductRow">
-              <Border Style="{StaticResource Card.Container}">
+              <Frame Style="{StaticResource CardFrame}">
                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12">
                   <Label Grid.Row="0"
                          Grid.Column="0"
@@ -88,7 +90,7 @@
                           Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.AddToCartCommand}"
                           CommandParameter="{Binding .}" />
                 </Grid>
-              </Border>
+              </Frame>
             </DataTemplate>
           </CollectionView.ItemTemplate>
         </CollectionView>
@@ -96,7 +98,7 @@
 
       <!-- Правая колонка: корзина -->
       <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto,Auto,Auto" RowSpacing="16">
-        <Border Grid.Row="0" Style="{StaticResource Card.Container}">
+        <Frame Grid.Row="0" Style="{StaticResource Card}">
           <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
             <Label Text="Тип оплаты:" FontAttributes="Bold" />
             <Label Text="{Binding SelectedPaymentType, Converter={StaticResource PaymentTypeToRuConverter}}" />
@@ -104,14 +106,15 @@
                     Command="{Binding ChangePaymentTypeCommand}"
                     Style="{StaticResource Button.Tertiary}" />
           </HorizontalStackLayout>
-        </Border>
+        </Frame>
 
         <CollectionView Grid.Row="1"
                         ItemsSource="{Binding Cart}"
-                        SelectionMode="None">
+                        SelectionMode="None"
+                        Margin="0,0,12,0">
           <CollectionView.ItemTemplate>
             <DataTemplate x:DataType="models:CartItemModel">
-              <Border Style="{StaticResource Card.Container}">
+              <Frame Style="{StaticResource CardFrame}">
                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12">
                   <Label Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontAttributes="Bold" />
                   <Label Grid.Row="1" Grid.Column="0" Text="{Binding UnitPrice, Converter={StaticResource CurrencyConverter}}" TextColor="{DynamicResource Color.Text.Secondary}" />
@@ -131,7 +134,7 @@
                           CommandParameter="{Binding .}"
                           Style="{StaticResource Button.Secondary}" />
                 </Grid>
-              </Border>
+              </Frame>
             </DataTemplate>
           </CollectionView.ItemTemplate>
           <CollectionView.EmptyView>
@@ -139,14 +142,14 @@
           </CollectionView.EmptyView>
         </CollectionView>
 
-        <Border Grid.Row="2" Style="{StaticResource Card.Container}">
+        <Frame Grid.Row="2" Style="{StaticResource Card}">
           <HorizontalStackLayout Spacing="12">
             <Label Text="Клиент:" VerticalOptions="Center" />
             <Entry Text="{Binding ClientName}" Placeholder="Введите имя клиента" />
           </HorizontalStackLayout>
-        </Border>
+        </Frame>
 
-        <Border Grid.Row="3" Style="{StaticResource Card.Container}" IsVisible="{Binding IsReservation}">
+        <Frame Grid.Row="3" Style="{StaticResource Card}" IsVisible="{Binding IsReservation}">
           <VerticalStackLayout Spacing="8">
             <HorizontalStackLayout Spacing="8">
               <Label Text="Оплата получена:" VerticalOptions="Center" />
@@ -160,7 +163,7 @@
                       Command="{Binding AddReservationNoteCommand}"
                       Style="{StaticResource Button.Secondary}" />
             </HorizontalStackLayout>
-            <CollectionView ItemsSource="{Binding ReservationNotes}" SelectionMode="None">
+            <CollectionView ItemsSource="{Binding ReservationNotes}" SelectionMode="None" Margin="0,0,12,0">
               <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="x:String">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -174,7 +177,7 @@
               </CollectionView.ItemTemplate>
             </CollectionView>
           </VerticalStackLayout>
-        </Border>
+        </Frame>
 
         <Grid Grid.Row="4" ColumnDefinitions="*,Auto" ColumnSpacing="12">
           <StackLayout Orientation="Horizontal" Spacing="12" VerticalOptions="Center">

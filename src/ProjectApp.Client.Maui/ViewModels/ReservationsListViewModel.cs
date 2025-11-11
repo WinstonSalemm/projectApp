@@ -12,12 +12,22 @@ public partial class ReservationsListViewModel : ObservableObject
     [ObservableProperty] private bool isLoading;
     [ObservableProperty] private string? statusFilter;
     [ObservableProperty] private string? search;
+    [ObservableProperty] private DateTime? dateFrom;
+    [ObservableProperty] private DateTime? dateTo;
+
+    public enum DateFilterMode { Today, Week, Month, Custom }
+    [ObservableProperty] private DateFilterMode dateFilter = DateFilterMode.Month;
 
     public ObservableCollection<ReservationListItem> Items { get; } = new();
 
     public ReservationsListViewModel(IReservationsService reservations)
     {
         _reservations = reservations;
+        // Default to current month
+        var now = DateTime.UtcNow;
+        var startOfMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        DateFrom = startOfMonth;
+        DateTo = startOfMonth.AddMonths(1);
     }
 
     [RelayCommand]
@@ -28,7 +38,8 @@ public partial class ReservationsListViewModel : ObservableObject
         {
             IsLoading = true;
             Items.Clear();
-            var list = await _reservations.GetReservationsAsync(status: StatusFilter, clientId: null, mine: null);
+            var (from, to) = GetEffectiveRange();
+            var list = await _reservations.GetReservationsAsync(status: StatusFilter, clientId: null, mine: null, dateFrom: from, dateTo: to);
             // simple search by client name or id
             if (!string.IsNullOrWhiteSpace(Search))
             {
@@ -42,5 +53,18 @@ public partial class ReservationsListViewModel : ObservableObject
         {
             IsLoading = false;
         }
+    }
+
+    private (DateTime?, DateTime?) GetEffectiveRange()
+    {
+        var now = DateTime.UtcNow;
+        return DateFilter switch
+        {
+            DateFilterMode.Today => (now.Date, now.Date.AddDays(1)),
+            DateFilterMode.Week => (now.Date.AddDays(-6), now.Date.AddDays(1)), // последние 7 дней
+            DateFilterMode.Month => (new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1)),
+            DateFilterMode.Custom => (DateFrom, DateTo),
+            _ => (DateFrom, DateTo)
+        };
     }
 }

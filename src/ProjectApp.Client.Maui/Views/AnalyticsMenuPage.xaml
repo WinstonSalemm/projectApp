@@ -5,96 +5,87 @@
              Title="Аналитика"
              BackgroundColor="{DynamicResource Color.Background}">
   
-  <ScrollView Padding="24">
+  <ScrollView Padding="24" VerticalScrollBarVisibility="Always">
     <VerticalStackLayout Spacing="20">
       <Label Text="📊 Аналитика" FontSize="32" FontAttributes="Bold" Margin="0,8,0,32"/>
       
       <!-- Финансовая аналитика -->
-      <Border x:Name="FinanceCard" 
-              StrokeThickness="0" 
-              BackgroundColor="#6366F1" 
-              Padding="24" 
-              StrokeShape="RoundRectangle 16"
-              Shadow="{Shadow Brush=Black, Opacity=0.1, Radius=8, Offset='0,4'}">
-        <Border.GestureRecognizers>
+      <Frame x:Name="FinanceCard" 
+             Style="{StaticResource Card}"
+             Padding="24">
+        <Frame.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnFinancesTapped"/>
           <PointerGestureRecognizer PointerEntered="OnCardPointerEntered" PointerExited="OnCardPointerExited"/>
-        </Border.GestureRecognizers>
+        </Frame.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20">
           <Border Grid.Column="0" 
                   WidthRequest="64" 
                   HeightRequest="64" 
-                  BackgroundColor="#FFFFFF20" 
+                  BackgroundColor="{DynamicResource Color.Surface.Muted}" 
                   StrokeThickness="0" 
                   StrokeShape="RoundRectangle 12"
                   VerticalOptions="Center">
             <Label Text="💰" FontSize="36" HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
           </Border>
           <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
-            <Label Text="Финансовая аналитика" FontSize="20" FontAttributes="Bold" TextColor="White"/>
-            <Label Text="Выручка, прибыль, маржинальность" FontSize="14" TextColor="White" Opacity="0.85"/>
+            <Label Text="Финансовая аналитика" FontSize="20" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Primary}"/>
+            <Label Text="Выручка, прибыль, маржинальность" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
           </VerticalStackLayout>
-          <Label Grid.Column="2" Text="›" FontSize="40" TextColor="White" VerticalOptions="Center" Opacity="0.7"/>
+          <Label Grid.Column="2" Text="›" FontSize="40" TextColor="{DynamicResource Color.Text.Secondary}" VerticalOptions="Center"/>
         </Grid>
-      </Border>
+      </Frame>
       
       <!-- Аналитика по менеджерам -->
-      <Border x:Name="ManagersCard"
-              StrokeThickness="0" 
-              BackgroundColor="#10B981" 
-              Padding="24" 
-              StrokeShape="RoundRectangle 16"
-              Shadow="{Shadow Brush=Black, Opacity=0.1, Radius=8, Offset='0,4'}">
-        <Border.GestureRecognizers>
+      <Frame x:Name="ManagersCard"
+             Style="{StaticResource Card}"
+             Padding="24">
+        <Frame.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnManagersTapped"/>
           <PointerGestureRecognizer PointerEntered="OnCardPointerEntered" PointerExited="OnCardPointerExited"/>
-        </Border.GestureRecognizers>
+        </Frame.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20">
           <Border Grid.Column="0" 
                   WidthRequest="64" 
                   HeightRequest="64" 
-                  BackgroundColor="#FFFFFF20" 
+                  BackgroundColor="{DynamicResource Color.Surface.Muted}" 
                   StrokeThickness="0" 
                   StrokeShape="RoundRectangle 12"
                   VerticalOptions="Center">
             <Label Text="👥" FontSize="36" HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
           </Border>
           <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
-            <Label Text="Аналитика по менеджерам" FontSize="20" FontAttributes="Bold" TextColor="White"/>
-            <Label Text="Обороты, клиенты, график продаж" FontSize="14" TextColor="White" Opacity="0.85"/>
+            <Label Text="Аналитика по менеджерам" FontSize="20" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Primary}"/>
+            <Label Text="Обороты, клиенты, график продаж" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
           </VerticalStackLayout>
-          <Label Grid.Column="2" Text="›" FontSize="40" TextColor="White" VerticalOptions="Center" Opacity="0.7"/>
+          <Label Grid.Column="2" Text="›" FontSize="40" TextColor="{DynamicResource Color.Text.Secondary}" VerticalOptions="Center"/>
         </Grid>
-      </Border>
+      </Frame>
       
       <!-- Управление себестоимостью -->
-      <Border x:Name="ProductsCard"
-              StrokeThickness="0" 
-              BackgroundColor="#F59E0B" 
-              Padding="24" 
-              StrokeShape="RoundRectangle 16"
-              Shadow="{Shadow Brush=Black, Opacity=0.1, Radius=8, Offset='0,4'}">
-        <Border.GestureRecognizers>
+      <Frame x:Name="ProductsCard"
+             Style="{StaticResource Card}"
+             Padding="24">
+        <Frame.GestureRecognizers>
           <TapGestureRecognizer Tapped="OnProductCostsTapped"/>
           <PointerGestureRecognizer PointerEntered="OnCardPointerEntered" PointerExited="OnCardPointerExited"/>
-        </Border.GestureRecognizers>
+        </Frame.GestureRecognizers>
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20">
           <Border Grid.Column="0" 
                   WidthRequest="64" 
                   HeightRequest="64" 
-                  BackgroundColor="#FFFFFF20" 
+                  BackgroundColor="{DynamicResource Color.Surface.Muted}" 
                   StrokeThickness="0" 
                   StrokeShape="RoundRectangle 12"
                   VerticalOptions="Center">
             <Label Text="📦" FontSize="36" HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
           </Border>
           <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
-            <Label Text="Управление себестоимостью" FontSize="20" FontAttributes="Bold" TextColor="White"/>
-            <Label Text="Себестоимость товаров, маржа" FontSize="14" TextColor="White" Opacity="0.85"/>
+            <Label Text="Управление себестоимостью" FontSize="20" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Primary}"/>
+            <Label Text="Себестоимость товаров, маржа" FontSize="14" TextColor="{DynamicResource Color.Text.Secondary}"/>
           </VerticalStackLayout>
-          <Label Grid.Column="2" Text="›" FontSize="40" TextColor="White" VerticalOptions="Center" Opacity="0.7"/>
+          <Label Grid.Column="2" Text="›" FontSize="40" TextColor="{DynamicResource Color.Text.Secondary}" VerticalOptions="Center"/>
         </Grid>
-      </Border>
+      </Frame>
       
     </VerticalStackLayout>
   </ScrollView>

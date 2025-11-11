@@ -1,14 +1,14 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              x:Class="ProjectApp.Client.Maui.Views.SettingsPage"
              Title="РќР°СЃС‚СЂРѕР№РєРё">
   <ContentPage.Content>
-    <ScrollView>
+    <ScrollView VerticalScrollBarVisibility="Always">
       <VerticalStackLayout Padding="16" Spacing="16">
-        <Label Text="РџРѕРґРєР»СЋС‡РµРЅРёРµ" FontAttributes="Bold" FontSize="20"/>
-        <Frame>
+        <Label Text="РџРѕРґРєР»С‡РµРЅРёРµ" FontAttributes="Bold" FontSize="20"/>
+        <Frame Style="{StaticResource Card}">
           <VerticalStackLayout Spacing="12">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
               <Label Text="РСЃРїРѕР»СЊР·РѕРІР°С‚СЊ API" VerticalOptions="Center"/>
@@ -21,10 +21,8 @@
           </VerticalStackLayout>
         </Frame>
 
-        <Button Text="РЎРѕС…СЂР°РЅРёС‚СЊ" Command="{Binding SaveCommand}"/>
+        <Button Text="РЎРѕС…СЂР°РЅРёС‚СЊ" Command="{Binding SaveCommand}" Style="{StaticResource Button.Primary}"/>
       </VerticalStackLayout>
     </ScrollView>
   </ContentPage.Content>
 </ContentPage>
-
-

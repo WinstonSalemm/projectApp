@@ -8,6 +8,10 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Maui.ApplicationModel;
 using System.Linq;
+#if WINDOWS
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+#endif
 
 namespace ProjectApp.Client.Maui.Views;
 
@@ -61,6 +65,11 @@ public partial class SupplyEditPage : ContentPage
                 await Task.Delay(50);
                 if (TableScroll is not null)
                     await TableScroll.ScrollToAsync(0, 0, false);
+
+#if WINDOWS
+                // enable horizontal scrolling by mouse wheel on Windows (UI-only behavior)
+                TryEnableHorizontalWheel();
+#endif
             }
         }
         catch (Exception ex)
@@ -68,6 +77,32 @@ public partial class SupplyEditPage : ContentPage
             await DisplayAlert("Ошибка", ex.Message, "OK");
         }
     }
+
+#if WINDOWS
+    private bool _wheelHooked;
+    private void TryEnableHorizontalWheel()
+    {
+        if (_wheelHooked) return;
+        var platformView = TableScroll?.Handler?.PlatformView as ScrollViewer;
+        if (platformView is null) return;
+
+        _wheelHooked = true;
+        platformView.PointerWheelChanged += OnScrollViewerPointerWheelChanged;
+    }
+
+    private void OnScrollViewerPointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is not ScrollViewer sv) return;
+        var point = e.GetCurrentPoint(sv);
+        var delta = point.Properties.MouseWheelDelta; // positive: wheel up
+        const double step = 80; // px per notch
+
+        var newOffset = sv.HorizontalOffset - Math.Sign(delta) * step;
+        if (newOffset < 0) newOffset = 0;
+        sv.ChangeView(newOffset, null, null);
+        e.Handled = true;
+    }
+#endif
 
     private async void OnAddProductClicked(object sender, EventArgs e)
     {
@@ -129,7 +164,7 @@ public partial class SupplyEditPage : ContentPage
 
     private async void OnRemoveProductClicked(object sender, EventArgs e)
     {
-        if (sender is not Button b || BindingContext is not SupplyEditViewModel vm) return;
+        if (sender is not Microsoft.Maui.Controls.Button b || BindingContext is not SupplyEditViewModel vm) return;
         if (!await DisplayAlert("Удалить товар?", "Вы уверены?", "Да", "Нет")) return;
 
         var param = b.CommandParameter;
@@ -204,14 +239,15 @@ public partial class SupplyEditPage : ContentPage
 
         var totalQty = CostingVm.Rows.Sum(r => r.Quantity);
         if (totalQty <= 0) totalQty = 1;
+        var totalBaseSum = CostingVm.Rows.Sum(r => r.LineBaseTotalUzs);
+        if (totalBaseSum <= 0) totalBaseSum = 1;
 
         var fee10Party = ParseUzs(CustomsFee10Entry?.Text);
         var fee12Party = 0m;
         var loadingParty = ParseUzs(LoadingPartyEntry?.Text);
+        var logisticsParty = ParseUzs(LogisticsPartyEntry?.Text);
 
-        var fee10PerUnit = fee10Party / totalQty;
-        var fee12PerUnit = fee12Party / totalQty;
-        var loadingPerUnit = loadingParty / totalQty;
+        var fee12PerUnit = fee12Party / totalQty; // reserved, not used now
 
         var previous = DisplayedRows.ToDictionary(x => x.SkuOrName, x => x.PriceRub);
         DisplayedRows.Clear();
@@ -230,10 +266,14 @@ public partial class SupplyEditPage : ContentPage
                 Quantity = r.Quantity,
                 PriceRub = priceRub,
                 VmCustomsUzsPerUnit = r.CustomsUzsPerUnit,
-                Fee10UzsPerUnit = fee10PerUnit,
                 Fee12UzsPerUnit = fee12PerUnit,
-                LoadingUzsPerUnit = loadingPerUnit,
             };
+
+            dr.WeightShare = r.LineBaseTotalUzs / totalBaseSum;
+            var qty = dr.Quantity > 0 ? dr.Quantity : 1m;
+            dr.Fee10UzsPerUnit = (fee10Party * dr.WeightShare) / qty;
+            dr.LoadingUzsPerUnit = (loadingParty * dr.WeightShare) / qty;
+            dr.LogisticsUzsPerUnit = (logisticsParty * dr.WeightShare) / qty;
 
             var idx = -1;
             if (svm != null && svm.SupplyItems.Count > 0)
@@ -288,8 +328,8 @@ public partial class SupplyEditPage : ContentPage
         var baseUzsUnit = Math.Round(dr.PriceRub * fx, 2, MidpointRounding.AwayFromZero);
         dr.BasePriceUzs = baseUzsUnit;
 
-        var vatUzs = baseUzsUnit * vatPct;
-        var logisticsUzs = baseUzsUnit * logisticsPct;
+        var vatUzs = 0m;
+        var logisticsUzs = dr.LogisticsUzsPerUnit;
         var wareUzs = baseUzsUnit * warehousePct;
         var declUzs = baseUzsUnit * declarationPct;
         var certUzs = baseUzsUnit * certificationPct;
@@ -324,7 +364,7 @@ public partial class SupplyEditPage : ContentPage
     private static decimal ParseUzs(string? s)
         => decimal.TryParse(N(s), NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0m;
 
-    private void OnPriceRubChanged(object? sender, TextChangedEventArgs e)
+    private void OnPriceRubChanged(object? sender, Microsoft.Maui.Controls.TextChangedEventArgs e)
     {
         if (sender is not Entry entry) return;
         if (entry.BindingContext is not DisplayedRow row) return;
@@ -364,6 +404,64 @@ public partial class SupplyEditPage : ContentPage
         }, token);
     }
 
+    private void OnQuantityChanged(object? sender, Microsoft.Maui.Controls.TextChangedEventArgs e)
+    {
+        if (sender is not Entry entry) return;
+        if (entry.BindingContext is not DisplayedRow row) return;
+
+        if (decimal.TryParse(N(entry.Text), NumberStyles.Any, CultureInfo.InvariantCulture, out var qty))
+        {
+            if (qty < 0) qty = 0;
+            row.Quantity = qty;
+            RecalculateAllDisplayedRows();
+        }
+    }
+
+    private void RecalculateAllDisplayedRows()
+    {
+        if (CostingVm == null) { RecalculateTotals(); return; }
+
+        var fx = CostingVm.RubToUzs;
+        if (fx <= 0 && !string.IsNullOrWhiteSpace(AnyFxEntry?.Text) && decimal.TryParse(N(AnyFxEntry.Text), NumberStyles.Any, CultureInfo.InvariantCulture, out var manualFx))
+            fx = manualFx;
+
+        var fee10Party = ParseUzs(CustomsFee10Entry?.Text);
+        var loadingParty = ParseUzs(LoadingPartyEntry?.Text);
+        var logisticsParty = ParseUzs(LogisticsPartyEntry?.Text);
+
+        // total base sum across displayed rows using current quantities
+        decimal TotalBaseForAll()
+        {
+            decimal sum = 0;
+            foreach (var dr in DisplayedRows)
+            {
+                var unitBase = dr.BasePriceUzs > 0 ? dr.BasePriceUzs : Math.Round(dr.PriceRub * fx, 2, MidpointRounding.AwayFromZero);
+                sum += unitBase * (dr.Quantity > 0 ? dr.Quantity : 1);
+            }
+            return sum > 0 ? sum : 1;
+        }
+
+        var totalBase = TotalBaseForAll();
+
+        foreach (var dr in DisplayedRows)
+        {
+            var unitBase = dr.BasePriceUzs > 0 ? dr.BasePriceUzs : Math.Round(dr.PriceRub * fx, 2, MidpointRounding.AwayFromZero);
+            dr.BasePriceUzs = unitBase;
+            dr.WeightShare = (unitBase * (dr.Quantity > 0 ? dr.Quantity : 1)) / totalBase;
+            var qty = dr.Quantity > 0 ? dr.Quantity : 1m;
+            dr.Fee10UzsPerUnit = (fee10Party * dr.WeightShare) / qty;
+            dr.LoadingUzsPerUnit = (loadingParty * dr.WeightShare) / qty;
+            dr.LogisticsUzsPerUnit = (logisticsParty * dr.WeightShare) / qty;
+
+            RecalculateRow(dr, fx,
+                CostingVm.VatPct, CostingVm.LogisticsPct, CostingVm.WarehousePct,
+                CostingVm.DeclarationPct, CostingVm.CertificationPct, CostingVm.McsPct,
+                CostingVm.DeviationPct);
+        }
+
+        RecalculateTotals();
+    }
+
     public sealed class DisplayedRow : INotifyPropertyChanged
     {
         private decimal _priceRub;
@@ -381,11 +479,13 @@ public partial class SupplyEditPage : ContentPage
         private decimal _lineCostUzs;
         private decimal _percentHint;
         private decimal _lineBaseTotalUzs;
+        private decimal _weightShare;
 
         public int RowNo { get; set; }
         public string SkuOrName { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
         public int SupplyItemIndex { get; set; } = -1;
+        public decimal WeightShare { get => _weightShare; set { if (_weightShare != value) { _weightShare = value; OnPropertyChanged(); } } }
 
         public decimal PriceRub { get => _priceRub; set { if (_priceRub != value) { _priceRub = value; OnPropertyChanged(); } } }
 

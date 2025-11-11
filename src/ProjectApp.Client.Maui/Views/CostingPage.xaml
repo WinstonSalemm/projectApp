@@ -238,7 +238,8 @@
                            FontAttributes="Bold"
                            Padding="15,10,15,0"/>
 
-                    <ScrollView Orientation="Both" HeightRequest="260" Margin="15,5,15,10">
+                    <ScrollView x:Name="DetailScroll" Orientation="Both" HeightRequest="260" Margin="15,5,15,10"
+                                HorizontalScrollBarVisibility="Always" VerticalScrollBarVisibility="Always">
                         <VerticalStackLayout>
                             <Grid ColumnDefinitions="260,110,90,140,140,140,140,140,140,140,140,140,140,160"
                                   Padding="6" BackgroundColor="#ecf0f1" ColumnSpacing="12">

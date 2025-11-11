@@ -8,14 +8,14 @@
   <ContentPage.ToolbarItems>
     <ToolbarItem Text="Оформить" Priority="0" Order="Primary" Command="{Binding SubmitCommand}" />
   </ContentPage.ToolbarItems>
-  <ScrollView>
+  <ScrollView VerticalScrollBarVisibility="Always">
     <VerticalStackLayout Padding="16" Spacing="12">
       <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto">
         <Label Text="{Binding ClientName}" FontAttributes="Bold" />
-        <Button Grid.Column="1" Text="Выбрать клиента" Clicked="OnSelectClientClicked" />
+        <Button Grid.Column="1" Text="Выбрать клиента" Clicked="OnSelectClientClicked" Style="{StaticResource Button.Secondary}" />
       </Grid>
 
-      <Button Text="Добавить товар" Clicked="OnAddProductClicked" />
+      <Button Text="Добавить товар" Clicked="OnAddProductClicked" Style="{StaticResource Button.Primary}" />
 
       <CollectionView ItemsSource="{Binding Items}">
         <CollectionView.ItemTemplate>
@@ -26,7 +26,7 @@
               <Label Grid.Row="0" Grid.ColumnSpan="3" Text="{Binding Name}" FontAttributes="Bold" />
               <Label Grid.Row="1" Grid.Column="0" Text="{Binding Sku}" TextColor="Gray" />
               <Entry Grid.Row="1" Grid.Column="1" WidthRequest="80" Keyboard="Numeric" Text="{Binding Qty}" />
-              <Button Grid.Row="1" Grid.Column="2" Text="Удалить" CommandParameter="{Binding .}" Clicked="OnRemoveClicked" />
+              <Button Grid.Row="1" Grid.Column="2" Text="Удалить" CommandParameter="{Binding .}" Clicked="OnRemoveClicked" Style="{StaticResource Button.Danger}" />
             </Grid>
           </DataTemplate>
         </CollectionView.ItemTemplate>

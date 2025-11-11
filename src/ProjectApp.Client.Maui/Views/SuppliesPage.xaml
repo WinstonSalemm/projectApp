@@ -5,7 +5,8 @@
              xmlns:services="clr-namespace:ProjectApp.Client.Maui.Services"
              x:Class="ProjectApp.Client.Maui.Views.SuppliesPage"
              Title="Поставки (ND-40 / IM-40)"
-             x:DataType="vm:SuppliesViewModel">
+             x:DataType="vm:SuppliesViewModel"
+             BackgroundColor="{DynamicResource Color.Background}">
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Создать поставку" 
@@ -43,16 +44,17 @@
         <CollectionView Grid.Row="1" 
                         ItemsSource="{Binding Nd40Supplies}"
                         SelectionMode="None"
-                        IsVisible="{Binding IsNd40Visible}">
+                        IsVisible="{Binding IsNd40Visible}"
+                        Margin="0,0,12,0">
             <CollectionView.EmptyView>
                 <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="20">
                     <Label Text="Нет поставок" 
                            FontSize="18" 
-                           TextColor="Gray" 
+                           TextColor="{DynamicResource Color.Text.Secondary}" 
                            HorizontalTextAlignment="Center"/>
                     <Label Text="Создайте первую поставку +" 
                            FontSize="14" 
-                           TextColor="LightGray" 
+                           TextColor="{DynamicResource Color.Text.Tertiary}" 
                            HorizontalTextAlignment="Center"
                            Margin="0,10,0,0"/>
                 </StackLayout>
@@ -62,9 +64,7 @@
                 <DataTemplate x:DataType="services:SupplyDto">
                     <Frame Margin="0,5" 
                            Padding="15" 
-                           CornerRadius="8" 
-                           HasShadow="True"
-                           BorderColor="LightGray">
+                           Style="{StaticResource CardFrame}">
                         <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto">
                             
                             <!-- Заголовок -->
@@ -84,13 +84,13 @@
                             <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                                    Text="{Binding RegisterType, StringFormat='Регистр: {0}'}"
                                    FontSize="14"
-                                   TextColor="Gray"
+                                   TextColor="{DynamicResource Color.Text.Secondary}"
                                    Margin="0,5,0,0"/>
 
                             <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
                                    Text="{Binding CreatedAt, StringFormat='Создано: {0:dd.MM.yyyy HH:mm}'}"
                                    FontSize="12"
-                                   TextColor="Gray"/>
+                                   TextColor="{DynamicResource Color.Text.Secondary}"/>
 
                             <!-- Кнопки действий -->
                             <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" 
@@ -105,8 +105,7 @@
                                         FontSize="12"
                                         Padding="5"
                                         Margin="0,0,2,0"
-                                        BackgroundColor="#3498db"
-                                        TextColor="White"/>
+                                        Style="{StaticResource Button.Secondary}"/>
 
                                 <!-- Удалить -->
                                 <Button Grid.Column="1" 
@@ -116,8 +115,7 @@
                                         FontSize="12"
                                         Padding="5"
                                         Margin="2,0"
-                                        BackgroundColor="#e74c3c"
-                                        TextColor="White"/>
+                                        Style="{StaticResource Button.Danger}"/>
 
                                 <!-- Перевести в IM-40 (только для ND-40) -->
                                 <Button Grid.Column="2" 
@@ -127,8 +125,7 @@
                                         FontSize="12"
                                         Padding="5"
                                         Margin="2,0"
-                                        BackgroundColor="#f39c12"
-                                        TextColor="White"
+                                        Style="{StaticResource Button.Secondary}"
                                         IsVisible="{Binding RegisterType, Converter={StaticResource IsNd40Converter}}"/>
 
                                 <!-- Расчёт себестоимости -->
@@ -139,8 +136,7 @@
                                         FontSize="12"
                                         Padding="5"
                                         Margin="2,0,0,0"
-                                        BackgroundColor="#27ae60"
-                                        TextColor="White"/>
+                                        Style="{StaticResource Button.Secondary}"/>
                             </Grid>
                         </Grid>
                     </Frame>
@@ -152,16 +148,17 @@
         <CollectionView Grid.Row="1" 
                         ItemsSource="{Binding Im40Supplies}"
                         SelectionMode="None"
-                        IsVisible="{Binding IsIm40Visible}">
+                        IsVisible="{Binding IsIm40Visible}"
+                        Margin="0,0,12,0">
             <CollectionView.EmptyView>
                 <StackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="20">
                     <Label Text="Нет поставок" 
                            FontSize="18" 
-                           TextColor="Gray" 
+                           TextColor="{DynamicResource Color.Text.Secondary}" 
                            HorizontalTextAlignment="Center"/>
                     <Label Text="Создайте первую поставку +" 
                            FontSize="14" 
-                           TextColor="LightGray" 
+                           TextColor="{DynamicResource Color.Text.Tertiary}" 
                            HorizontalTextAlignment="Center"
                            Margin="0,10,0,0"/>
                 </StackLayout>
@@ -171,9 +168,7 @@
                 <DataTemplate x:DataType="services:SupplyDto">
                     <Frame Margin="0,5" 
                            Padding="15" 
-                           CornerRadius="8" 
-                           HasShadow="True"
-                           BorderColor="LightGray">
+                           Style="{StaticResource CardFrame}">
                         <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto">
                             
                             <!-- Заголовок -->
@@ -214,8 +209,7 @@
                                         FontSize="12"
                                         Padding="5"
                                         Margin="0,0,2,0"
-                                        BackgroundColor="#3498db"
-                                        TextColor="White"/>
+                                        Style="{StaticResource Button.Secondary}"/>
 
                                 <!-- Удалить -->
                                 <Button Grid.Column="1" 
@@ -225,8 +219,7 @@
                                         FontSize="12"
                                         Padding="5"
                                         Margin="2,0"
-                                        BackgroundColor="#e74c3c"
-                                        TextColor="White"/>
+                                        Style="{StaticResource Button.Danger}"/>
 
                                 <!-- Расчёт себестоимости -->
                                 <Button Grid.Column="2" 
@@ -236,8 +229,7 @@
                                         FontSize="12"
                                         Padding="5"
                                         Margin="2,0,0,0"
-                                        BackgroundColor="#27ae60"
-                                        TextColor="White"/>
+                                        Style="{StaticResource Button.Secondary}"/>
                             </Grid>
                         </Grid>
                     </Frame>
@@ -249,7 +241,7 @@
         <ActivityIndicator Grid.Row="1" 
                           IsRunning="{Binding IsBusy}" 
                           IsVisible="{Binding IsBusy}"
-                          Color="Blue"
+                          Color="{DynamicResource Color.Primary}"
                           VerticalOptions="Center"
                           HorizontalOptions="Center"/>
     </Grid>

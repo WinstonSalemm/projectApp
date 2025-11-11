@@ -78,6 +78,34 @@ public class ReservationsController : ControllerBase
         }
     }
 
+    public class ReservationItemsUpdateDto
+    {
+        public List<ItemDto> Items { get; set; } = new();
+        public class ItemDto { public int ProductId { get; set; } public decimal Qty { get; set; } }
+    }
+
+    [HttpPatch("{id:int}/items")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateItems([FromRoute] int id, [FromBody] ReservationItemsUpdateDto dto, CancellationToken ct)
+    {
+        if (dto == null || dto.Items == null) return ValidationProblem(detail: "Items are required");
+        var user = User?.Identity?.Name ?? "unknown";
+        try
+        {
+            var ok = await _svc.UpdateAsync(id, dto.Items.Select(x => new ReservationsService.ReservationUpdateItemDto { ProductId = x.ProductId, Qty = x.Qty }).ToList(), user, ct);
+            if (!ok) return ValidationProblem(detail: $"Reservation not found or inactive: {id}");
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            _logger.LogError(ex, "Error updating reservation {Id}", id);
+            return ValidationProblem(detail: msg);
+        }
+    }
+
     [HttpPatch("{id:int}/pay")]
     [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -128,7 +156,7 @@ public class ReservationsController : ControllerBase
     [HttpGet]
     [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> List([FromQuery] string? status, [FromQuery] int? clientId, [FromQuery] bool? mine, CancellationToken ct)
+    public async Task<IActionResult> List([FromQuery] string? status, [FromQuery] int? clientId, [FromQuery] bool? mine, [FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo, CancellationToken ct)
     {
         var q = _db.Reservations.AsNoTracking().AsQueryable();
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ReservationStatus>(status, true, out var st))
@@ -139,8 +167,9 @@ public class ReservationsController : ControllerBase
             var user = User?.Identity?.Name ?? "unknown";
             q = q.Where(r => r.CreatedBy == user);
         }
-
-        var list = await q.OrderByDescending(r => r.Id)
+        if (dateFrom.HasValue) q = q.Where(r => r.CreatedAt >= dateFrom.Value);
+        if (dateTo.HasValue) q = q.Where(r => r.CreatedAt < dateTo.Value);
+        var raw = await q
             .Select(r => new
             {
                 r.Id,
@@ -158,6 +187,11 @@ public class ReservationsController : ControllerBase
                 r.Note
             })
             .ToListAsync(ct);
+        // Незакрытые (Active/Expired) сверху, затем остальные, далее по убыванию Id
+        var list = raw
+            .OrderBy(x => (x.Status == ReservationStatus.Active || x.Status == ReservationStatus.Expired) ? 0 : 1)
+            .ThenByDescending(x => x.Id)
+            .ToList();
         return Ok(list);
     }
 
@@ -252,6 +286,27 @@ public class ReservationsController : ControllerBase
         {
             var msg = ex.InnerException?.Message ?? ex.Message;
             _logger.LogError(ex, "Error releasing reservation {Id}", id);
+            return ValidationProblem(detail: msg);
+        }
+    }
+
+    [HttpPost("{id:int}/fulfill")]
+    [Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Fulfill([FromRoute] int id, CancellationToken ct)
+    {
+        var user = User?.Identity?.Name ?? "unknown";
+        try
+        {
+            var ok = await _svc.FulfillAsync(id, user, ct);
+            if (!ok) return ValidationProblem(detail: $"Reservation not found or inactive: {id}");
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            _logger.LogError(ex, "Error fulfilling reservation {Id}", id);
             return ValidationProblem(detail: msg);
         }
     }

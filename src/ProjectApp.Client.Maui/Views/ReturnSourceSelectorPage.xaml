@@ -10,8 +10,7 @@
   
   <Grid RowDefinitions="Auto,*">
     <!-- Фильтры -->
-    <Border Grid.Row="0" Padding="16" BackgroundColor="{DynamicResource Color.Surface}" 
-            StrokeThickness="0,0,0,1" Stroke="{DynamicResource Color.Border}">
+    <Frame Grid.Row="0" Style="{StaticResource Card}" Padding="16">
       <VerticalStackLayout Spacing="12">
         <Label Text="📋 Выберите продажу или договор для возврата" FontSize="16" FontAttributes="Bold"/>
         
@@ -32,13 +31,12 @@
         </Grid>
         
         <Button Text="🔍 Загрузить" Command="{Binding LoadCommand}" 
-                BackgroundColor="{DynamicResource Color.Primary}" 
-                TextColor="White" CornerRadius="8"/>
+                Style="{StaticResource Button.Primary}" />
       </VerticalStackLayout>
-    </Border>
+    </Frame>
 
     <!-- Список операций -->
-    <ScrollView Grid.Row="1">
+    <ScrollView Grid.Row="1" VerticalScrollBarVisibility="Always">
       <VerticalStackLayout Padding="16" Spacing="12">
         <!-- Индикатор загрузки -->
         <ActivityIndicator IsRunning="{Binding IsLoading}" 

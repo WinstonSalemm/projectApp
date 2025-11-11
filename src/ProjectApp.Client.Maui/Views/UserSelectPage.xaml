@@ -8,19 +8,19 @@
   <ContentPage.ToolbarItems>
     <ToolbarItem Text="Настройки" Clicked="OnSettingsClicked" />
   </ContentPage.ToolbarItems>
-  <ScrollView>
+  <ScrollView VerticalScrollBarVisibility="Always">
     <VerticalStackLayout Padding="24" Spacing="24">
       <!-- POJ PRO Branding -->
       <VerticalStackLayout Spacing="8" HorizontalOptions="Center" Margin="0,20,0,0">
         <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
-          <Frame Padding="12,6" CornerRadius="8" BackgroundColor="#1565C0" HasShadow="True">
-            <Label Text="POJ" FontSize="32" FontAttributes="Bold" TextColor="White" />
+          <Frame Padding="12,6" CornerRadius="8" BackgroundColor="{DynamicResource Color.Primary}" HasShadow="True">
+            <Label Text="POJ" FontSize="32" FontAttributes="Bold" TextColor="{DynamicResource Color.OnPrimary}" />
           </Frame>
-          <Label Text="PRO" FontSize="36" FontAttributes="Bold" TextColor="#1976D2" VerticalOptions="Center" />
+          <Label Text="PRO" FontSize="36" FontAttributes="Bold" TextColor="{DynamicResource Color.Primary}" VerticalOptions="Center" />
         </HorizontalStackLayout>
         <Label Text="Профессиональная система управления" 
                FontSize="12" 
-               TextColor="Gray" 
+               TextColor="{DynamicResource Color.Text.Secondary}" 
                HorizontalOptions="Center"/>
       </VerticalStackLayout>
       
@@ -30,51 +30,51 @@
             RowDefinitions="Auto,Auto,Auto,Auto"
             ColumnSpacing="16"
             RowSpacing="16">
-        <Button Text="Лилия"
+        <Button Text="Лилия" Style="{StaticResource Button.Primary}"
                 Grid.Row="0" Grid.Column="0"
                 Command="{Binding LoginManagerCommand}"
                 CommandParameter="liliya"
                 HeightRequest="64"
                 FontSize="18" />
-        <Button Text="Тимур"
+        <Button Text="Тимур" Style="{StaticResource Button.Primary}"
                 Grid.Row="0" Grid.Column="1"
                 Command="{Binding LoginManagerCommand}"
                 CommandParameter="timur"
                 HeightRequest="64"
                 FontSize="18" />
 
-        <Button Text="Валерий"
+        <Button Text="Валерий" Style="{StaticResource Button.Primary}"
                 Grid.Row="1" Grid.Column="0"
                 Command="{Binding LoginManagerCommand}"
                 CommandParameter="valeriy"
                 HeightRequest="64"
                 FontSize="18" />
-        <Button Text="Альберт"
+        <Button Text="Альберт" Style="{StaticResource Button.Primary}"
                 Grid.Row="1" Grid.Column="1"
                 Command="{Binding LoginManagerCommand}"
                 CommandParameter="albert"
                 HeightRequest="64"
                 FontSize="18" />
 
-        <Button Text="Расим"
+        <Button Text="Расим" Style="{StaticResource Button.Primary}"
                 Grid.Row="2" Grid.Column="0"
                 Command="{Binding LoginManagerCommand}"
                 CommandParameter="rasim"
                 HeightRequest="64"
                 FontSize="18" />
-        <Button Text="Алишер"
+        <Button Text="Алишер" Style="{StaticResource Button.Primary}"
                 Grid.Row="2" Grid.Column="1"
                 Command="{Binding LoginManagerCommand}"
                 CommandParameter="alisher"
                 HeightRequest="64"
                 FontSize="18" />
 
-        <Button Text="Магазин"
+        <Button Text="Магазин" Style="{StaticResource Button.Primary}"
                 Grid.Row="3" Grid.Column="0"
                 Command="{Binding LoginShopCommand}"
                 HeightRequest="84"
                 FontSize="22" />
-        <Button Text="Администратор"
+        <Button Text="Администратор" Style="{StaticResource Button.Primary}"
                 Grid.Row="3" Grid.Column="1"
                 Command="{Binding LoginAdminCommand}"
                 HeightRequest="84"

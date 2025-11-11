@@ -8,7 +8,8 @@
              x:Class="ProjectApp.Client.Maui.Views.SaleStartPage"
              x:Name="Root"
              x:DataType="viewModels:SaleStartViewModel"
-             Title="Начало продажи">
+             Title="Начало продажи"
+             BackgroundColor="{DynamicResource Color.Background}">
   <ContentPage.Resources>
     <ResourceDictionary>
       <GridItemsLayout x:Key="SaleMethodLayout.Compact" Orientation="Vertical" Span="1" HorizontalItemSpacing="12" VerticalItemSpacing="12" />
@@ -21,7 +22,7 @@
     </ResourceDictionary>
   </ContentPage.Resources>
 
-  <ScrollView>
+  <ScrollView VerticalScrollBarVisibility="Always">
     <Grid Padding="24" RowSpacing="24" ColumnSpacing="24">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
@@ -34,7 +35,7 @@
       </Grid.ColumnDefinitions>
 
       <VerticalStackLayout x:Name="StepSection" Grid.Row="0" Grid.Column="0" Spacing="16">
-        <Border Style="{StaticResource Card.Container}">
+        <Frame Style="{StaticResource Card}">
           <VerticalStackLayout Spacing="12">
             <Label Text="Назначьте менеджера" FontAttributes="Bold" FontSize="{StaticResource Font.Size.H3}" />
             <Grid>
@@ -98,25 +99,25 @@
                                  HorizontalOptions="Center" />
             </Grid>
           </VerticalStackLayout>
-        </Border>
+        </Frame>
 
-        <Border Style="{StaticResource Card.Container}">
+        <Frame Style="{StaticResource Card}">
           <VerticalStackLayout Spacing="12">
             <Label Text="Выберите точку продаж" FontAttributes="Bold" FontSize="{StaticResource Font.Size.H3}" />
             <Picker ItemsSource="{Binding Stores}" SelectedItem="{Binding SelectedStore}" ItemDisplayBinding="{Binding Name}" IsEnabled="{Binding IsStoresLoading, Converter={StaticResource InverseBoolConverter}}" />
             <ActivityIndicator IsRunning="True" IsVisible="{Binding IsStoresLoading}" />
             <Label Text="{Binding StepValidationMessage}" TextColor="{DynamicResource Color.Error}" FontSize="{StaticResource Font.Size.Body.Small}" IsVisible="{Binding HasStepValidationMessage}" />
           </VerticalStackLayout>
-        </Border>
+        </Frame>
       </VerticalStackLayout>
 
       <VerticalStackLayout x:Name="MethodsSection" Grid.Row="0" Grid.Column="1" Spacing="16">
-        <Border Style="{StaticResource Card.Container}">
+        <Frame Style="{StaticResource Card}">
           <VerticalStackLayout Spacing="8">
             <Label Text="Выберите тип продажи" FontAttributes="Bold" FontSize="{StaticResource Font.Size.H2}" />
             <Label Text="Доступны быстрые продажи, возвраты, брони и дополнительные сценарии." TextColor="{DynamicResource Color.Text.Secondary}" />
           </VerticalStackLayout>
-        </Border>
+        </Frame>
 
         <CollectionView x:Name="SaleMethodsCollection"
                         ItemsSource="{Binding SaleMethods}"
@@ -154,12 +155,12 @@
                            Grid.ColumnSpan="2"
                            Spacing="16"
                            IsVisible="{Binding ShowCategoriesSection}">
-        <Border Style="{StaticResource Card.Container}">
+        <Frame Style="{StaticResource Card}">
           <VerticalStackLayout Spacing="8">
             <Label Text="Быстрый выбор категории" FontAttributes="Bold" FontSize="{StaticResource Font.Size.H3}" />
             <Label Text="Необязательно: выберите категорию, чтобы предзаполнить быстрый заказ." TextColor="{DynamicResource Color.Text.Secondary}" />
           </VerticalStackLayout>
-        </Border>
+        </Frame>
 
         <Border BackgroundColor="{DynamicResource Color.Error}" Padding="12" IsVisible="{Binding IsCategoriesError}">
           <Label Text="{Binding CategoriesErrorMessage, TargetNullValue=Не удалось загрузить категории.}"
@@ -173,12 +174,12 @@
                           SelectionMode="None">
             <CollectionView.ItemTemplate>
               <DataTemplate x:DataType="models:CategoryDto">
-                <Border Style="{StaticResource Card.Container}">
+                <Frame Style="{StaticResource CardFrame}">
                   <Button Text="{Binding Name}"
                           Style="{StaticResource Button.Primary}"
                           HeightRequest="64"
                           Clicked="OnCategoryClicked" />
-                </Border>
+                </Frame>
               </DataTemplate>
             </CollectionView.ItemTemplate>
           </CollectionView>

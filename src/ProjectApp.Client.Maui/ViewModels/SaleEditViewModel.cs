@@ -20,6 +20,7 @@ public partial class EditableSaleItem : ObservableObject
     [ObservableProperty] private decimal oldUnitPrice;
     [ObservableProperty] private decimal newUnitPrice;
     [ObservableProperty] private bool ndToImEligible;
+    [ObservableProperty] private string sourceRegister = string.Empty;
 
     public decimal DeltaCashFlow => (OldUnitPrice - NewUnitPrice) * Qty;
     public bool HasDelta => NdToImEligible && NewUnitPrice != OldUnitPrice;
@@ -80,7 +81,8 @@ public partial class SaleEditViewModel : ObservableObject
                         Qty = it.Qty,
                         OldUnitPrice = it.UnitPrice,
                         NewUnitPrice = it.UnitPrice,
-                        NdToImEligible = it.NdToImEligible
+                        NdToImEligible = it.NdToImEligible,
+                        SourceRegister = it.SourceRegister ?? string.Empty
                     };
                     e.PropertyChanged += OnItemChanged;
                     Items.Add(e);

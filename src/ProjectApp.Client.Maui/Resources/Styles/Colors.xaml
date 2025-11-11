@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+  <!-- Core palette (dynamic) -->
+  <Color x:Key="Color.Background">#FFFFFF</Color>
+  <Color x:Key="Color.Surface">#FFFFFF</Color>
+  <Color x:Key="Color.Surface.Alt">#F3EEE2</Color>
+  <Color x:Key="Color.Surface.Muted">#F6F1E7</Color>
+
+  <Color x:Key="Color.Border">#E5E1D6</Color>
+  <Color x:Key="Color.BorderStrong">#CFC7B8</Color>
+  <Color x:Key="Color.Outline">#E5E1D6</Color>
+
+  <Color x:Key="Color.Primary">#660000</Color>
+  <Color x:Key="Color.OnPrimary">#FFFFFF</Color>
+
+  <Color x:Key="Color.Text.Primary">#660000</Color>
+  <Color x:Key="Color.Text.Secondary">#660000</Color>
+  <Color x:Key="Color.Text.Accent">#660000</Color>
+  <Color x:Key="Color.Text.Inverse">#FFFFFF</Color>
+
+  <!-- Feedback -->
+  <Color x:Key="Color.Success">#16A249</Color>
+  <Color x:Key="Color.Warning">#F59E0B</Color>
+  <Color x:Key="Color.Error">#DC2626</Color>
+</ResourceDictionary>
