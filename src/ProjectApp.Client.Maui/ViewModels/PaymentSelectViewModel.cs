@@ -33,9 +33,10 @@ public partial class PaymentSelectViewModel : ObservableObject
             {
                 vm.OnlyAgents = true;
                 vm.ShowOnlyMine = true;
-                if (vm.LoadCommand is IAsyncRelayCommand load)
+                // LoadCommand ожидает параметр int (номер страницы)
+                if (vm.LoadCommand.CanExecute(1))
                 {
-                    await load.ExecuteAsync(null);
+                    await vm.LoadCommand.ExecuteAsync(1);
                 }
             }
             await NavigationHelper.PushAsync(page);
