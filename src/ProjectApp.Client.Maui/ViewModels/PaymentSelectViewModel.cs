@@ -25,6 +25,23 @@ public partial class PaymentSelectViewModel : ObservableObject
     [RelayCommand]
     private async Task SelectAsync(string paymentType)
     {
+        // Комиссионные клиенты: переход на список клиентов (только свои по умолчанию)
+        if (paymentType == "CommissionClients")
+        {
+            var page = _services.GetRequiredService<ClientsListPage>();
+            if (page.BindingContext is ClientsListViewModel vm)
+            {
+                vm.OnlyAgents = true;
+                vm.ShowOnlyMine = true;
+                if (vm.LoadCommand is IAsyncRelayCommand load)
+                {
+                    await load.ExecuteAsync(null);
+                }
+            }
+            await NavigationHelper.PushAsync(page);
+            return;
+        }
+
         // Специальная обработка для договоров
         if (paymentType == "Contract")
         {

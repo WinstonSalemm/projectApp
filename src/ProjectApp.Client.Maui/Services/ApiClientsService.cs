@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using ProjectApp.Client.Maui.Models;
 
 namespace ProjectApp.Client.Maui.Services;
@@ -56,6 +56,13 @@ public class ApiClientsService
         var url = "/api/clients" + (qs.Count > 0 ? ("?" + string.Join("&", qs)) : string.Empty);
         var resp = await client.GetFromJsonAsync<Paged<ClientDto>>(url, ct) ?? new Paged<ClientDto>();
         return (resp.Items.Select(Map).ToList(), resp.Total);
+    }
+
+    public async Task<IEnumerable<ClientListItem>> GetCommissionAgentsAsync(CancellationToken ct = default)
+    {
+        var client = CreateClient();
+        var list = await client.GetFromJsonAsync<List<ClientDto>>("/api/commissions/agents", ct) ?? new List<ClientDto>();
+        return list.Select(Map);
     }
 
     public async Task<ClientListItem?> GetAsync(int id, CancellationToken ct = default)

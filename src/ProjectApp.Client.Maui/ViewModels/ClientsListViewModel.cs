@@ -31,6 +31,9 @@ public partial class ClientsListViewModel : ObservableObject
     private bool showOnlyMine = true;
 
     [ObservableProperty]
+    private bool onlyAgents = false;
+
+    [ObservableProperty]
     private bool isLoading;
 
     public ClientsListViewModel(ApiClientsService clients, AuthService auth, IServiceProvider services)
@@ -101,19 +104,40 @@ public partial class ClientsListViewModel : ObservableObject
             IsLoading = true;
             string? owner = null;
             var isAdmin = string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
-            
+
             // Фильтр по менеджеру (если выбран конкретный)
             if (!string.IsNullOrWhiteSpace(SelectedManager) && SelectedManager != "Все менеджеры")
             {
-                // Конвертируем DisplayName обратно в UserName для фильтрации
                 owner = _managerDisplayToUserName.TryGetValue(SelectedManager, out var userName) ? userName : SelectedManager;
             }
             else if (!isAdmin || ShowOnlyMine)
             {
                 owner = _auth.UserName;
             }
-            
-            var (items, total) = await _clients.ListAsync(string.IsNullOrWhiteSpace(Query) ? null : Query, SelectedType, owner, page, 50);
+
+            IEnumerable<ClientListItem> items;
+            int total;
+
+            if (OnlyAgents)
+            {
+                // Грузим только партнёров через отдельную ручку
+                var list = await _clients.GetCommissionAgentsAsync();
+                // Локальная фильтрация по владельцу
+                if (!string.IsNullOrWhiteSpace(owner)) list = list.Where(c => string.Equals(c.OwnerUserName, owner, StringComparison.OrdinalIgnoreCase));
+                // Поиск
+                var q = string.IsNullOrWhiteSpace(Query) ? null : Query.Trim().ToLowerInvariant();
+                if (!string.IsNullOrWhiteSpace(q))
+                {
+                    list = list.Where(c => (c.Name ?? string.Empty).ToLower().Contains(q!) || (c.Phone ?? string.Empty).ToLower().Contains(q!) || c.Id.ToString().Contains(q!));
+                }
+                items = list.ToList();
+                total = items.Count();
+            }
+            else
+            {
+                (items, total) = await _clients.ListAsync(string.IsNullOrWhiteSpace(Query) ? null : Query, SelectedType, owner, page, 50);
+            }
+
             await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
             {
                 Items.Clear();

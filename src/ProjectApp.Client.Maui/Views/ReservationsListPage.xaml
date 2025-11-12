@@ -22,10 +22,10 @@
         <Picker Grid.Column="1" Title="Период" SelectedItem="{Binding DateFilter}">
           <Picker.ItemsSource>
             <x:Array Type="{x:Type viewModels:ReservationsListViewModel+DateFilterMode}">
-              <viewModels:ReservationsListViewModel.DateFilterMode>Today</viewModels:ReservationsListViewModel.DateFilterMode>
-              <viewModels:ReservationsListViewModel.DateFilterMode>Week</viewModels:ReservationsListViewModel.DateFilterMode>
-              <viewModels:ReservationsListViewModel.DateFilterMode>Month</viewModels:ReservationsListViewModel.DateFilterMode>
-              <viewModels:ReservationsListViewModel.DateFilterMode>Custom</viewModels:ReservationsListViewModel.DateFilterMode>
+              <x:Static Member="viewModels:ReservationsListViewModel+DateFilterMode.Today" />
+              <x:Static Member="viewModels:ReservationsListViewModel+DateFilterMode.Week" />
+              <x:Static Member="viewModels:ReservationsListViewModel+DateFilterMode.Month" />
+              <x:Static Member="viewModels:ReservationsListViewModel+DateFilterMode.Custom" />
             </x:Array>
           </Picker.ItemsSource>
         </Picker>

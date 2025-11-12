@@ -99,6 +99,13 @@
                 FontSize="18"
                 Command="{Binding SelectCommand}"
                 CommandParameter="Debt"/>
+        <Button Text="Комиссионные клиенты" Style="{StaticResource Button.Primary}"
+                Grid.Row="3"
+                Grid.Column="2"
+                HeightRequest="80"
+                FontSize="18"
+                Command="{Binding SelectCommand}"
+                CommandParameter="CommissionClients"/>
       </Grid>
     </VerticalStackLayout>
   </ScrollView>
