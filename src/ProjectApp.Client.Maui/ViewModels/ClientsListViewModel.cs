@@ -43,7 +43,6 @@ public partial class ClientsListViewModel : ObservableObject
         _services = services;
         showOnlyMine = !string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
         _ = LoadManagersAsync();
-        _ = LoadAsync();
     }
 
     private async Task LoadManagersAsync()

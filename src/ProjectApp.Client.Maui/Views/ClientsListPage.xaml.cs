@@ -1,4 +1,5 @@
 using Microsoft.Maui.Controls;
+using CommunityToolkit.Mvvm.Input;
 using ProjectApp.Client.Maui.ViewModels;
 
 namespace ProjectApp.Client.Maui.Views;
@@ -10,6 +11,18 @@ public partial class ClientsListPage : ContentPage
         InitializeComponent();
         BindingContext = vm;
         SizeChanged += OnSizeChanged;
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        if (BindingContext is ClientsListViewModel vm)
+        {
+            if (vm.Items.Count == 0 && vm.LoadCommand is IAsyncRelayCommand load)
+            {
+                _ = load.ExecuteAsync(1);
+            }
+        }
     }
 
     private void OnSizeChanged(object? sender, EventArgs e)

@@ -1,28 +1,208 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
              xmlns:models="clr-namespace:ProjectApp.Client.Maui.Models"
              x:Class="ProjectApp.Client.Maui.Views.ClientCreatePage"
-             Title="РќРѕРІС‹Р№ РєР»РёРµРЅС‚">
-  <ScrollView>
-    <VerticalStackLayout Padding="16" Spacing="12">
-      <Picker Title="РўРёРї РєР»РёРµРЅС‚Р°" SelectedItem="{Binding Type}">
-        <Picker.ItemsSource>
-          <x:Array Type="{x:Type models:ClientType}">
-            <x:Static Member="models:ClientType.Individual" />
-            <x:Static Member="models:ClientType.Company" />
-          </x:Array>
-        </Picker.ItemsSource>
-      </Picker>
-
-      <Entry Placeholder="РРјСЏ/РљРѕРјРїР°РЅРёСЏ" Text="{Binding Name}"/>
-      <Entry Placeholder="РўРµР»РµС„РѕРЅ" Text="{Binding Phone}"/>
-      <Entry Placeholder="РРќРќ (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)" Text="{Binding Inn}"/>
-
-      <Button Text="РЎРѕС…СЂР°РЅРёС‚СЊ" Command="{Binding SaveCommand}"/>
-    </VerticalStackLayout>
-  </ScrollView>
+             Title="Новый клиент"
+             BackgroundColor="Transparent">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <Color x:Key="PageBackground">Transparent</Color>
+            <Color x:Key="CardBackground">White</Color>
+            <Color x:Key="PrimaryText">Black</Color>
+            <Color x:Key="Placeholder">#808080</Color>
+            <Color x:Key="AccentBorder">#660000</Color>
+            <Style x:Key="LabelStyle"
+                   TargetType="Label">
+                <Setter Property="FontSize"
+                        Value="14" />
+                <Setter Property="TextColor"
+                        Value="{StaticResource PrimaryText}" />
+                <Setter Property="Margin"
+                        Value="6,0,0,0" />
+            </Style>
+            <Style x:Key="InputFrame"
+                   TargetType="Frame">
+                <Setter Property="CornerRadius"
+                        Value="8" />
+                <Setter Property="HasShadow"
+                        Value="False" />
+                <Setter Property="Padding"
+                        Value="6" />
+                <Setter Property="BackgroundColor"
+                        Value="{StaticResource CardBackground}" />
+                <Setter Property="BorderColor"
+                        Value="{StaticResource AccentBorder}" />
+                <Setter Property="Margin"
+                        Value="0" />
+            </Style>
+            <Style x:Key="EntryStyle"
+                   TargetType="Entry">
+                <Setter Property="BackgroundColor"
+                        Value="Transparent" />
+                <Setter Property="TextColor"
+                        Value="{StaticResource PrimaryText}" />
+                <Setter Property="PlaceholderColor"
+                        Value="{StaticResource Placeholder}" />
+                <Setter Property="HeightRequest"
+                        Value="44" />
+                <Setter Property="HorizontalOptions"
+                        Value="FillAndExpand" />
+                <Setter Property="FontSize"
+                        Value="16" />
+            </Style>
+            <Style x:Key="PickerStyle"
+                   TargetType="Picker">
+                <Setter Property="BackgroundColor"
+                        Value="Transparent" />
+                <Setter Property="HeightRequest"
+                        Value="48" />
+                <Setter Property="HorizontalOptions"
+                        Value="FillAndExpand" />
+                <Setter Property="FontSize"
+                        Value="16" />
+            </Style>
+            <Style x:Key="CardFrame"
+                   TargetType="Frame">
+                <Setter Property="CornerRadius"
+                        Value="12" />
+                <Setter Property="HasShadow"
+                        Value="True" />
+                <Setter Property="Padding"
+                        Value="12" />
+                <Setter Property="BackgroundColor"
+                        Value="{StaticResource CardBackground}" />
+                <Setter Property="Margin"
+                        Value="0,6" />
+            </Style>
+            <Style x:Key="PrimaryButton"
+                   TargetType="Button">
+                <Setter Property="CornerRadius"
+                        Value="10" />
+                <Setter Property="HeightRequest"
+                        Value="48" />
+                <Setter Property="HorizontalOptions"
+                        Value="FillAndExpand" />
+            </Style>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Сохранить"
+                     Command="{Binding SaveCommand}"
+                     Priority="0"
+                     Order="Primary" />
+    </ContentPage.ToolbarItems>
+    <ScrollView>
+        <VerticalStackLayout Padding="16"
+                             Spacing="12">
+            <Label Text="Новый клиент"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource PrimaryText}" />
+            <Label Text="Заполни поля — без воды, по делу."
+                   FontSize="12"
+                   TextColor="{StaticResource Placeholder}" />
+            <Frame Style="{StaticResource CardFrame}">
+                <VerticalStackLayout Spacing="10">
+                    <!-- Client Type: сегменты вместо Picker -->
+                    <Label Text="Тип клиента"
+                           Style="{StaticResource LabelStyle}" />
+                    <Frame Style="{StaticResource InputFrame}"
+                           BorderColor="{StaticResource AccentBorder}">
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <Button Text="Физлицо"
+                                    Command="{Binding SetTypeCommand}"
+                                    CommandParameter="Individual"
+                                    CornerRadius="10"
+                                    HeightRequest="40">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button"
+                                                 Binding="{Binding Type}"
+                                                 Value="{x:Static models:ClientType.Individual}">
+                                        <Setter Property="BackgroundColor" Value="#660000" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Button"
+                                                 Binding="{Binding Type}"
+                                                 Value="{x:Static models:ClientType.Company}">
+                                        <Setter Property="BackgroundColor" Value="Transparent" />
+                                        <Setter Property="TextColor" Value="{StaticResource PrimaryText}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                            <Button Grid.Column="1"
+                                    Text="Юрлицо"
+                                    Command="{Binding SetTypeCommand}"
+                                    CommandParameter="Company"
+                                    CornerRadius="10"
+                                    HeightRequest="40">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button"
+                                                 Binding="{Binding Type}"
+                                                 Value="{x:Static models:ClientType.Company}">
+                                        <Setter Property="BackgroundColor" Value="#660000" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Button"
+                                                 Binding="{Binding Type}"
+                                                 Value="{x:Static models:ClientType.Individual}">
+                                        <Setter Property="BackgroundColor" Value="Transparent" />
+                                        <Setter Property="TextColor" Value="{StaticResource PrimaryText}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                        </Grid>
+                    </Frame>
+                    <!-- Name / Company -->
+                    <Label Text="Имя / Компания"
+                           Style="{StaticResource LabelStyle}" />
+                    <Frame Style="{StaticResource InputFrame}"
+                           BorderColor="{StaticResource AccentBorder}">
+                        <Entry x:Name="NameEntry"
+                               Placeholder="Имя или название компании"
+                               Text="{Binding Name}"
+                               Style="{StaticResource EntryStyle}" />
+                    </Frame>
+                    <!-- Phone -->
+                    <Label Text="Телефон"
+                           Style="{StaticResource LabelStyle}" />
+                    <Frame Style="{StaticResource InputFrame}"
+                           BorderColor="{StaticResource AccentBorder}">
+                        <Entry Placeholder="+998 99 123 45 67"
+                               Text="{Binding Phone}"
+                               Keyboard="Telephone"
+                               Style="{StaticResource EntryStyle}" />
+                    </Frame>
+                    <!-- INN optional -->
+                    <Label Text="ИНН (необязательно)"
+                           Style="{StaticResource LabelStyle}" />
+                    <Frame Style="{StaticResource InputFrame}"
+                           BorderColor="{StaticResource AccentBorder}">
+                        <Entry Placeholder="ИНН"
+                               Text="{Binding Inn}"
+                               Keyboard="Numeric"
+                               Style="{StaticResource EntryStyle}" />
+                    </Frame>
+                </VerticalStackLayout>
+            </Frame>
+            <HorizontalStackLayout Spacing="12"
+                                   HorizontalOptions="FillAndExpand">
+                <Button Text="Сохранить"
+                        Command="{Binding SaveCommand}"
+                        Style="{StaticResource PrimaryButton}" />
+                <Button Text="Отменить"
+                        Command="{Binding CancelCommand}"
+                        CornerRadius="10"
+                        HeightRequest="48"
+                        HorizontalOptions="Start"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Placeholder}" />
+            </HorizontalStackLayout>
+            <Label Text="Поля помеченные * обязательны"
+                   FontSize="12"
+                   TextColor="{StaticResource Placeholder}"
+                   HorizontalOptions="Start" />
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>
-
-

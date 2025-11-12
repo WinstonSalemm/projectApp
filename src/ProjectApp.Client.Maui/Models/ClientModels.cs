@@ -3,7 +3,10 @@ namespace ProjectApp.Client.Maui.Models;
 public enum ClientType
 {
     Individual = 1,
-    Company = 2
+    Company = 2,
+    Retail = 3,
+    Wholesale = 4,
+    LargeWholesale = 5
 }
 
 public class ClientListItem

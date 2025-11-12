@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using ProjectApp.Client.Maui.Models;
 
 namespace ProjectApp.Client.Maui.Services;
@@ -15,6 +17,11 @@ public class ApiClientsService
         _settings = settings;
         _auth = auth;
     }
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     private HttpClient CreateClient()
     {
@@ -54,21 +61,21 @@ public class ApiClientsService
         qs.Add($"page={page}");
         qs.Add($"size={size}");
         var url = "/api/clients" + (qs.Count > 0 ? ("?" + string.Join("&", qs)) : string.Empty);
-        var resp = await client.GetFromJsonAsync<Paged<ClientDto>>(url, ct) ?? new Paged<ClientDto>();
+        var resp = await client.GetFromJsonAsync<Paged<ClientDto>>(url, JsonOptions, ct) ?? new Paged<ClientDto>();
         return (resp.Items.Select(Map).ToList(), resp.Total);
     }
 
     public async Task<IEnumerable<ClientListItem>> GetCommissionAgentsAsync(CancellationToken ct = default)
     {
         var client = CreateClient();
-        var list = await client.GetFromJsonAsync<List<ClientDto>>("/api/commissions/agents", ct) ?? new List<ClientDto>();
+        var list = await client.GetFromJsonAsync<List<ClientDto>>("/api/commissions/agents", JsonOptions, ct) ?? new List<ClientDto>();
         return list.Select(Map);
     }
 
     public async Task<ClientListItem?> GetAsync(int id, CancellationToken ct = default)
     {
         var client = CreateClient();
-        var dto = await client.GetFromJsonAsync<ClientDto>($"/api/clients/{id}", ct);
+        var dto = await client.GetFromJsonAsync<ClientDto>($"/api/clients/{id}", JsonOptions, ct);
         return dto == null ? null : Map(dto);
     }
 
@@ -83,9 +90,10 @@ public class ApiClientsService
         };
         var resp = await client.PostAsJsonAsync("/api/clients", body, ct);
         resp.EnsureSuccessStatusCode();
-        var dto = await resp.Content.ReadFromJsonAsync<ClientDto>(cancellationToken: ct);
-        if (dto == null) throw new InvalidOperationException("Empty response");
-        return dto.Id;
+        var root = await resp.Content.ReadFromJsonAsync<JsonElement>(JsonOptions, ct);
+        if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("id", out var idProp) && idProp.TryGetInt32(out var id))
+            return id;
+        throw new InvalidOperationException("API вернул неожиданный ответ при создании клиента");
     }
 
     public async Task<bool> UpdateAsync(int id, ClientUpdateDraft draft, CancellationToken ct = default)

@@ -13,6 +13,7 @@ public partial class ClientCreateViewModel : ObservableObject
     private readonly ApiClientsService _clients;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
     private string name = string.Empty;
 
     [ObservableProperty]
@@ -32,7 +33,9 @@ public partial class ClientCreateViewModel : ObservableObject
         _clients = clients;
     }
 
-    [RelayCommand]
+    private bool CanSave => !string.IsNullOrWhiteSpace(Name) && !IsBusy;
+
+    [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync()
     {
         if (IsBusy)
@@ -55,6 +58,22 @@ public partial class ClientCreateViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task CancelAsync()
+    {
+        await NavigationHelper.PopAsync();
+    }
+
+    [RelayCommand]
+    private void SetType(string? param)
+    {
+        if (string.IsNullOrWhiteSpace(param)) return;
+        if (Enum.TryParse<ClientType>(param, out var t))
+        {
+            Type = t;
         }
     }
 }

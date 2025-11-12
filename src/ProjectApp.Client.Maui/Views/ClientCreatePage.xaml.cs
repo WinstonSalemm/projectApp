@@ -10,5 +10,11 @@ public partial class ClientCreatePage : ContentPage
         InitializeComponent();
         BindingContext = vm;
     }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        try { NameEntry?.Focus(); } catch { }
+    }
 }
 
