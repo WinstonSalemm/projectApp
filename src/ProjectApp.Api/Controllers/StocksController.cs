@@ -132,7 +132,9 @@ public class StocksController : ControllerBase
             Nd40Qty = grouped.TryGetValue(p.Id, out var agg) ? agg.Nd40 : 0m,
             Im40Qty = grouped.TryGetValue(p.Id, out var agg2) ? agg2.Im40 : 0m,
             TotalQty = grouped.TryGetValue(p.Id, out var agg3) ? agg3.Total : 0m
-        }).ToList();
+        })
+        .Where(x => x.TotalQty > 0) // скрываем товары с нулевым общим остатком
+        .ToList();
 
             _logger.LogInformation("[StocksController] Get: returning {Count} items", result.Count);
             return Ok(result);
@@ -206,5 +208,31 @@ public class StocksController : ControllerBase
                    .ToList();
 
         return Ok(list);
+    }
+
+    /// <summary>
+    /// Удалить из таблицы Stocks все строки по товарам, у которых общий остаток по всем регистрам равен 0
+    /// </summary>
+    [HttpPost("cleanup-zero")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CleanupZeroAsync(CancellationToken ct)
+    {
+        // Находим товары, у которых сумма остатков по всем регистрам равна 0
+        var zeroProductIds = await _db.Stocks
+            .GroupBy(s => s.ProductId)
+            .Where(g => g.Sum(x => x.Qty) == 0)
+            .Select(g => g.Key)
+            .ToListAsync(ct);
+
+        if (zeroProductIds.Count == 0)
+        {
+            return Ok(new { deletedProducts = 0, deletedRows = 0, productIds = Array.Empty<int>() });
+        }
+
+        var rows = await _db.Stocks.Where(s => zeroProductIds.Contains(s.ProductId)).ToListAsync(ct);
+        _db.Stocks.RemoveRange(rows);
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new { deletedProducts = zeroProductIds.Count, deletedRows = rows.Count, productIds = zeroProductIds });
     }
 }

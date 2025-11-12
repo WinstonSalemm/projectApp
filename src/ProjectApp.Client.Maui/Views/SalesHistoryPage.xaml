@@ -14,7 +14,7 @@
   </ContentPage.Resources>
   <Grid RowDefinitions="Auto,*">
     <Frame Grid.Row="0" Style="{StaticResource CardFrame}">
-      <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+      <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
         <HorizontalStackLayout Grid.Column="0" Spacing="8">
           <Label Text="От:" VerticalTextAlignment="Center"/>
           <DatePicker Date="{Binding DateFrom, Mode=TwoWay}"/>
@@ -34,7 +34,11 @@
             <Switch IsToggled="{Binding NdImOnly}"/>
           </HorizontalStackLayout>
         </VerticalStackLayout>
-        <ActivityIndicator Grid.Row="1" Grid.ColumnSpan="4" IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"/>
+        <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="4" Spacing="8">
+          <Label Text="Период:" VerticalTextAlignment="Center" TextColor="{DynamicResource Color.Text.Secondary}"/>
+          <Label Text="{Binding PeriodText}" VerticalTextAlignment="Center" TextColor="{DynamicResource Color.Text.Secondary}"/>
+        </HorizontalStackLayout>
+        <ActivityIndicator Grid.Row="2" Grid.ColumnSpan="4" IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"/>
       </Grid>
     </Frame>
 
@@ -88,7 +92,8 @@
       </CollectionView.ItemTemplate>
       <CollectionView.EmptyView>
         <VerticalStackLayout Padding="12" Spacing="6">
-          <Label Text="Нет продаж за выбранный период" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Secondary}"/>
+          <Label Text="Нет продаж" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Secondary}"/>
+          <Label Text="{Binding PeriodText, StringFormat='Период: {0}'}" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
           <Label Text="Измените даты или включите 'Все продажи'" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
         </VerticalStackLayout>
       </CollectionView.EmptyView>

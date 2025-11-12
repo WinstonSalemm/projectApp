@@ -32,7 +32,6 @@ public partial class PaymentSelectViewModel : ObservableObject
             if (page.BindingContext is ClientsListViewModel vm)
             {
                 vm.OnlyAgents = true;
-                vm.ShowOnlyMine = true;
                 // LoadCommand ожидает параметр int (номер страницы)
                 if (vm.LoadCommand.CanExecute(1))
                 {

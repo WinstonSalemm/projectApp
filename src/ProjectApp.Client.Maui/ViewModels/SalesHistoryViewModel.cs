@@ -23,6 +23,23 @@ public partial class SalesHistoryViewModel : ObservableObject
     [ObservableProperty]
     private DateTime? dateTo = DateTime.UtcNow.Date.AddDays(1);
 
+    // Выбранный период в виде строки для отображения в UI
+    public string PeriodText => $"{FormatDate(DateFrom)} — {FormatDate(DateTo)}";
+
+    private static string FormatDate(DateTime? dt)
+    {
+        if (dt is null) return "-";
+        try
+        {
+            // Показываем локальную дату в формате dd.MM.yyyy
+            return dt.Value.ToLocalTime().ToString("dd.MM.yyyy");
+        }
+        catch
+        {
+            return dt.Value.ToString("dd.MM.yyyy");
+        }
+    }
+
     [ObservableProperty]
     private bool showAll;
 
@@ -37,6 +54,17 @@ public partial class SalesHistoryViewModel : ObservableObject
         // НЕ загружаем автоматически - загрузка будет вызвана вручную из SaleStartPage
     }
 
+    // Обновляем текст периода при изменении дат
+    partial void OnDateFromChanged(DateTime? value)
+    {
+        OnPropertyChanged(nameof(PeriodText));
+    }
+
+    partial void OnDateToChanged(DateTime? value)
+    {
+        OnPropertyChanged(nameof(PeriodText));
+    }
+
     [RelayCommand]
     private async Task LoadAsync()
     {
@@ -48,8 +76,25 @@ public partial class SalesHistoryViewModel : ObservableObject
             System.Diagnostics.Debug.WriteLine("[SalesHistoryViewModel] Checking auth...");
             var isAdmin = string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
             var createdBy = (ShowAll || isAdmin) ? null : _auth.UserName;
-            System.Diagnostics.Debug.WriteLine($"[SalesHistoryViewModel] Calling API GetSalesAsync (ShowAll={ShowAll}, createdBy={createdBy ?? "null"}, nd40Transferred={(NdImOnly ? "true" : "null")})...");
-            var list = await _sales.GetSalesAsync(DateFrom, DateTo, createdBy: createdBy, all: ShowAll, nd40Transferred: (NdImOnly ? true : (bool?)null));
+
+            // Интерпретируем выбранные даты как локальные дни: [from 00:00 local, to+1 00:00 local) и конвертируем в UTC
+            DateTime? fromUtc = null;
+            DateTime? toUtc = null;
+            if (DateFrom.HasValue)
+            {
+                var fLocal = DateFrom.Value.Date;
+                if (fLocal.Kind == DateTimeKind.Unspecified) fLocal = DateTime.SpecifyKind(fLocal, DateTimeKind.Local);
+                fromUtc = fLocal.ToUniversalTime();
+            }
+            if (DateTo.HasValue)
+            {
+                var tLocal = DateTo.Value.Date.AddDays(1); // эксклюзивная верхняя граница — следующий день 00:00
+                if (tLocal.Kind == DateTimeKind.Unspecified) tLocal = DateTime.SpecifyKind(tLocal, DateTimeKind.Local);
+                toUtc = tLocal.ToUniversalTime();
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[SalesHistoryViewModel] Calling API GetSalesAsync (ShowAll={ShowAll}, createdBy={createdBy ?? "null"}, fromUtc={fromUtc:o}, toUtc={toUtc:o}, nd40Transferred={(NdImOnly ? "true" : "null")})...");
+            var list = await _sales.GetSalesAsync(fromUtc, toUtc, createdBy: createdBy, all: ShowAll, nd40Transferred: (NdImOnly ? true : (bool?)null));
             int count = list == null ? 0 : list.Count();
             System.Diagnostics.Debug.WriteLine($"[SalesHistoryViewModel] API returned {count} sales");
             await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(() =>
