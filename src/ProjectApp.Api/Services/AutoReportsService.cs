@@ -4,6 +4,8 @@ using ProjectApp.Api.Integrations.Email;
 using ProjectApp.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using ClosedXML.Excel;
+using System.IO;
 
 namespace ProjectApp.Api.Services;
 
@@ -33,6 +35,96 @@ public class AutoReportsService
         _dashboardService = dashboardService;
         _logger = logger;
         _tgSettings = tgOptions.Value;
+    }
+
+    /// <summary>
+    /// Отправить развернутый отчёт за произвольный период (продукты и менеджеры)
+    /// </summary>
+    public async Task SendDetailedPeriodReportAsync(DateTime fromUtc, DateTime toUtc, long chatId)
+    {
+        try
+        {
+            // Итоги периода
+            var saleRows = await _db.Sales
+                .AsNoTracking()
+                .Where(s => s.CreatedAt >= fromUtc && s.CreatedAt < toUtc)
+                .Select(s => new { s.Id, s.Total, Qty = s.Items.Sum(i => i.Qty) })
+                .ToListAsync();
+
+            if (saleRows.Count == 0)
+            {
+                await _telegram.SendMessageAsync(chatId, "📊 Развернутый отчёт: за период продаж нет");
+                return;
+            }
+
+            var totalAmount = saleRows.Sum(r => r.Total);
+            var totalQty = saleRows.Sum(r => r.Qty);
+            var count = saleRows.Count;
+            var header = $"📊 Развернутый отчёт\nПериод: {fromUtc:yyyy-MM-dd}..{toUtc:yyyy-MM-dd}\nОборот: {totalAmount:N0} UZS\nШтук: {totalQty:N0}\nЧеки: {count}";
+            await _telegram.SendMessageAsync(chatId, header);
+
+            // Разбивка по товарам
+            var productAgg = await (from s in _db.Sales
+                                    where s.CreatedAt >= fromUtc && s.CreatedAt < toUtc
+                                    join si in _db.SaleItems on s.Id equals si.SaleId
+                                    join p in _db.Products on si.ProductId equals p.Id
+                                    group new { si, p } by new { si.ProductId, p.Name } into g
+                                    select new
+                                    {
+                                        Name = g.Key.Name,
+                                        Qty = g.Sum(x => x.si.Qty),
+                                        Revenue = g.Sum(x => x.si.Qty * x.si.UnitPrice)
+                                    })
+                                    .OrderByDescending(x => x.Revenue)
+                                    .ToListAsync();
+
+            if (productAgg.Count > 0)
+            {
+                const int maxChars = 3500;
+                var sb = new System.Text.StringBuilder("🧾 Товары за период:\n\n");
+                foreach (var p in productAgg)
+                {
+                    var avg = p.Qty > 0 ? p.Revenue / p.Qty : 0;
+                    var line = $"• {p.Name} — {p.Qty:N0} шт × {avg:N0} = {p.Revenue:N0}";
+                    if (sb.Length + line.Length + 1 > maxChars)
+                    {
+                        await _telegram.SendMessageAsync(chatId, sb.ToString());
+                        sb.Clear();
+                        sb.AppendLine("🧾 Товары (продолжение):\n");
+                    }
+                    sb.AppendLine(line);
+                }
+                if (sb.Length > 0)
+                    await _telegram.SendMessageAsync(chatId, sb.ToString());
+            }
+
+            // Разбивка по менеджерам
+            var managers = await (from s in _db.Sales
+                                  where s.CreatedAt >= fromUtc && s.CreatedAt < toUtc
+                                  group s by s.CreatedBy into g
+                                  select new
+                                  {
+                                      Manager = g.Key ?? "unknown",
+                                      SalesCount = g.Count(),
+                                      Revenue = g.Sum(x => x.Total)
+                                  })
+                                  .OrderByDescending(x => x.Revenue)
+                                  .ToListAsync();
+
+            if (managers.Count > 0)
+            {
+                var sb = new System.Text.StringBuilder("👨‍💼 Менеджеры за период:\n\n");
+                foreach (var m in managers)
+                {
+                    sb.AppendLine($"• {m.Manager}: {m.Revenue:N0} UZS ({m.SalesCount} чек.)");
+                }
+                await _telegram.SendMessageAsync(chatId, sb.ToString());
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка отправки развернутого отчёта");
+        }
     }
 
     /// <summary>
@@ -396,6 +488,229 @@ public class AutoReportsService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ошибка отправки списка остатков на конец дня");
+        }
+    }
+
+    /// <summary>
+    /// Сформировать и отправить Excel-отчёт за период: продажи (позиции), товары, менеджеры, возвраты, долги
+    /// </summary>
+    public async Task SendExcelPeriodReportAsync(DateTime fromUtc, DateTime toUtc, long chatId)
+    {
+        try
+        {
+            var offset = TimeSpan.FromMinutes(_tgSettings.TimeZoneOffsetMinutes);
+            var periodLabel = $"{(fromUtc + offset):yyyy-MM-dd}..{(toUtc + offset).AddDays(-1):yyyy-MM-dd}";
+
+            // Sales brief
+            var salesBrief = await _db.Sales
+                .AsNoTracking()
+                .Where(s => s.CreatedAt >= fromUtc && s.CreatedAt < toUtc)
+                .Select(s => new { s.Id, s.CreatedAt, s.CreatedBy, s.ClientName, s.PaymentType, s.Total })
+                .ToListAsync();
+
+            // Sales items with product details
+            var saleItems = await (from s in _db.Sales
+                                   where s.CreatedAt >= fromUtc && s.CreatedAt < toUtc
+                                   join si in _db.SaleItems on s.Id equals si.SaleId
+                                   join p in _db.Products on si.ProductId equals p.Id into gp
+                                   from p in gp.DefaultIfEmpty()
+                                   select new
+                                   {
+                                       s.Id,
+                                       s.CreatedAt,
+                                       s.CreatedBy,
+                                       s.ClientName,
+                                       s.PaymentType,
+                                       si.ProductId,
+                                       Sku = si.Sku ?? p!.Sku,
+                                       Name = si.ProductName ?? p!.Name,
+                                       si.Qty,
+                                       si.UnitPrice,
+                                       si.Cost
+                                   }).ToListAsync();
+
+            // Returns
+            var returnItems = await (from r in _db.Returns
+                                     where r.CreatedAt >= fromUtc && r.CreatedAt < toUtc
+                                     join ri in _db.ReturnItems on r.Id equals ri.ReturnId
+                                     join si in _db.SaleItems on ri.SaleItemId equals si.Id
+                                     join p in _db.Products on si.ProductId equals p.Id into gp
+                                     from p in gp.DefaultIfEmpty()
+                                     join c in _db.Clients on r.ClientId equals c.Id into gc
+                                     from c in gc.DefaultIfEmpty()
+                                     select new
+                                     {
+                                         r.Id,
+                                         r.CreatedAt,
+                                         r.RefSaleId,
+                                         ClientName = c != null ? c.Name : "",
+                                         Name = si.ProductName ?? p!.Name,
+                                         Sku = si.Sku ?? p!.Sku,
+                                         ri.Qty,
+                                         ri.UnitPrice
+                                     }).ToListAsync();
+
+            // Debts and payments
+            var debts = await _db.Debts.AsNoTracking()
+                .Where(d => d.CreatedAt >= fromUtc && d.CreatedAt < toUtc)
+                .Join(_db.Clients, d => d.ClientId, cl => cl.Id, (d, cl) => new
+                {
+                    d.Id, d.SaleId, d.OriginalAmount, d.Amount, d.DueDate, d.Status, d.CreatedAt, d.CreatedBy,
+                    ClientName = cl.Name
+                }).ToListAsync();
+
+            var debtPayments = await _db.DebtPayments.AsNoTracking()
+                .Where(p => p.PaidAt >= fromUtc && p.PaidAt < toUtc)
+                .ToListAsync();
+
+            // Aggregations
+            var revenue = salesBrief.Sum(s => s.Total);
+            var itemRevenue = saleItems.Sum(x => x.Qty * x.UnitPrice);
+            var itemCost = saleItems.Sum(x => x.Qty * x.Cost);
+            var profit = itemRevenue - itemCost;
+
+            var retAmount = returnItems.Sum(r => r.Qty * r.UnitPrice);
+            var debtsCreated = debts.Sum(d => d.OriginalAmount);
+            var debtsPaid = debtPayments.Sum(p => p.Amount);
+            var outstanding = await _db.Debts.AsNoTracking()
+                .Where(d => d.Status == DebtStatus.Open)
+                .SumAsync(d => (decimal?)d.Amount) ?? 0m;
+
+            using var wb = new XLWorkbook();
+
+            // Summary
+            var ws0 = wb.AddWorksheet("Summary");
+            int r0 = 1;
+            ws0.Cell(r0++, 1).Value = "Период"; ws0.Cell(r0 - 1, 2).Value = periodLabel;
+            ws0.Cell(r0++, 1).Value = "Выручка (чеки)"; ws0.Cell(r0 - 1, 2).Value = revenue; ws0.Cell(r0 - 1, 2).Style.NumberFormat.Format = "#,##0";
+            ws0.Cell(r0++, 1).Value = "Выручка (позиции)"; ws0.Cell(r0 - 1, 2).Value = itemRevenue; ws0.Cell(r0 - 1, 2).Style.NumberFormat.Format = "#,##0";
+            ws0.Cell(r0++, 1).Value = "Себестоимость"; ws0.Cell(r0 - 1, 2).Value = itemCost; ws0.Cell(r0 - 1, 2).Style.NumberFormat.Format = "#,##0";
+            ws0.Cell(r0++, 1).Value = "Валовая прибыль"; ws0.Cell(r0 - 1, 2).Value = profit; ws0.Cell(r0 - 1, 2).Style.NumberFormat.Format = "#,##0";
+            ws0.Cell(r0++, 1).Value = "Возвраты"; ws0.Cell(r0 - 1, 2).Value = retAmount; ws0.Cell(r0 - 1, 2).Style.NumberFormat.Format = "#,##0";
+            ws0.Cell(r0++, 1).Value = "Долги (создано)"; ws0.Cell(r0 - 1, 2).Value = debtsCreated; ws0.Cell(r0 - 1, 2).Style.NumberFormat.Format = "#,##0";
+            ws0.Cell(r0++, 1).Value = "Оплаты долгов"; ws0.Cell(r0 - 1, 2).Value = debtsPaid; ws0.Cell(r0 - 1, 2).Style.NumberFormat.Format = "#,##0";
+            ws0.Cell(r0++, 1).Value = "Открытые долги (текущ.)"; ws0.Cell(r0 - 1, 2).Value = outstanding; ws0.Cell(r0 - 1, 2).Style.NumberFormat.Format = "#,##0";
+            ws0.Columns().AdjustToContents();
+
+            // Sales items
+            var ws1 = wb.AddWorksheet("SalesItems");
+            int r1 = 1;
+            ws1.Cell(r1, 1).Value = new[] { "Дата", "SaleId", "SKU", "Товар", "Кол-во", "Цена", "Сумма", "Себест. ед.", "Себест. сумма", "Прибыль", "Менеджер", "Клиент", "Оплата" };
+            r1++;
+            foreach (var x in saleItems.OrderBy(x => x.CreatedAt).ThenBy(x => x.Id))
+            {
+                var dateLocal = x.CreatedAt + offset;
+                var sum = x.Qty * x.UnitPrice; var costSum = x.Qty * x.Cost; var pr = sum - costSum;
+                ws1.Cell(r1, 1).Value = dateLocal; ws1.Cell(r1, 1).Style.DateFormat.Format = "yyyy-MM-dd HH:mm";
+                ws1.Cell(r1, 2).Value = x.Id;
+                ws1.Cell(r1, 3).Value = x.Sku;
+                ws1.Cell(r1, 4).Value = x.Name;
+                ws1.Cell(r1, 5).Value = x.Qty; ws1.Cell(r1, 5).Style.NumberFormat.Format = "#,##0";
+                ws1.Cell(r1, 6).Value = x.UnitPrice; ws1.Cell(r1, 6).Style.NumberFormat.Format = "#,##0";
+                ws1.Cell(r1, 7).Value = sum; ws1.Cell(r1, 7).Style.NumberFormat.Format = "#,##0";
+                ws1.Cell(r1, 8).Value = x.Cost; ws1.Cell(r1, 8).Style.NumberFormat.Format = "#,##0";
+                ws1.Cell(r1, 9).Value = costSum; ws1.Cell(r1, 9).Style.NumberFormat.Format = "#,##0";
+                ws1.Cell(r1, 10).Value = pr; ws1.Cell(r1, 10).Style.NumberFormat.Format = "#,##0";
+                ws1.Cell(r1, 11).Value = x.CreatedBy;
+                ws1.Cell(r1, 12).Value = x.ClientName;
+                ws1.Cell(r1, 13).Value = x.PaymentType;
+                r1++;
+            }
+            ws1.Columns().AdjustToContents();
+
+            // Products
+            var ws2 = wb.AddWorksheet("Products");
+            int r2 = 1;
+            ws2.Cell(r2, 1).Value = new[] { "Товар", "Кол-во", "Выручка", "Средняя цена", "Себест. сумма", "Прибыль" }; r2++;
+            var prodAgg = saleItems
+                .GroupBy(x => x.Name)
+                .Select(g => new { Name = g.Key, Qty = g.Sum(z => z.Qty), Revenue = g.Sum(z => z.Qty * z.UnitPrice), Cost = g.Sum(z => z.Qty * z.Cost) })
+                .OrderByDescending(a => a.Revenue)
+                .ToList();
+            foreach (var p in prodAgg)
+            {
+                var avg = p.Qty > 0 ? p.Revenue / p.Qty : 0m;
+                ws2.Cell(r2, 1).Value = p.Name;
+                ws2.Cell(r2, 2).Value = p.Qty; ws2.Cell(r2, 2).Style.NumberFormat.Format = "#,##0";
+                ws2.Cell(r2, 3).Value = p.Revenue; ws2.Cell(r2, 3).Style.NumberFormat.Format = "#,##0";
+                ws2.Cell(r2, 4).Value = avg; ws2.Cell(r2, 4).Style.NumberFormat.Format = "#,##0";
+                ws2.Cell(r2, 5).Value = p.Cost; ws2.Cell(r2, 5).Style.NumberFormat.Format = "#,##0";
+                ws2.Cell(r2, 6).Value = p.Revenue - p.Cost; ws2.Cell(r2, 6).Style.NumberFormat.Format = "#,##0";
+                r2++;
+            }
+            ws2.Columns().AdjustToContents();
+
+            // Managers
+            var ws3 = wb.AddWorksheet("Managers");
+            int r3 = 1; ws3.Cell(r3, 1).Value = new[] { "Менеджер", "Чеков", "Оборот" }; r3++;
+            var manAgg = salesBrief
+                .GroupBy(s => s.CreatedBy ?? "unknown")
+                .Select(g => new { Manager = g.Key, Count = g.Count(), Revenue = g.Sum(z => z.Total) })
+                .OrderByDescending(x => x.Revenue).ToList();
+            foreach (var m in manAgg)
+            { ws3.Cell(r3, 1).Value = m.Manager; ws3.Cell(r3, 2).Value = m.Count; ws3.Cell(r3, 3).Value = m.Revenue; ws3.Cell(r3, 3).Style.NumberFormat.Format = "#,##0"; r3++; }
+            ws3.Columns().AdjustToContents();
+
+            // Returns
+            var ws4 = wb.AddWorksheet("Returns");
+            int r4 = 1; ws4.Cell(r4, 1).Value = new[] { "Дата", "ReturnId", "SKU", "Товар", "Кол-во", "Цена", "Сумма", "RefSaleId", "Клиент" }; r4++;
+            foreach (var r in returnItems.OrderBy(x => x.CreatedAt).ThenBy(x => x.Id))
+            {
+                var local = r.CreatedAt + offset; var sum = r.Qty * r.UnitPrice;
+                ws4.Cell(r4, 1).Value = local; ws4.Cell(r4, 1).Style.DateFormat.Format = "yyyy-MM-dd HH:mm";
+                ws4.Cell(r4, 2).Value = r.Id;
+                ws4.Cell(r4, 3).Value = r.Sku;
+                ws4.Cell(r4, 4).Value = r.Name;
+                ws4.Cell(r4, 5).Value = r.Qty; ws4.Cell(r4, 5).Style.NumberFormat.Format = "#,##0";
+                ws4.Cell(r4, 6).Value = r.UnitPrice; ws4.Cell(r4, 6).Style.NumberFormat.Format = "#,##0";
+                ws4.Cell(r4, 7).Value = sum; ws4.Cell(r4, 7).Style.NumberFormat.Format = "#,##0";
+                ws4.Cell(r4, 8).Value = r.RefSaleId;
+                ws4.Cell(r4, 9).Value = r.ClientName;
+                r4++;
+            }
+            ws4.Columns().AdjustToContents();
+
+            // Debts
+            var ws5 = wb.AddWorksheet("Debts"); int r5 = 1;
+            ws5.Cell(r5, 1).Value = new[] { "Дата", "DebtId", "Client", "SaleId", "Original", "Remaining", "DueDate", "Status", "CreatedBy" }; r5++;
+            foreach (var d in debts.OrderBy(x => x.CreatedAt))
+            {
+                ws5.Cell(r5, 1).Value = d.CreatedAt + offset; ws5.Cell(r5, 1).Style.DateFormat.Format = "yyyy-MM-dd";
+                ws5.Cell(r5, 2).Value = d.Id;
+                ws5.Cell(r5, 3).Value = d.ClientName;
+                ws5.Cell(r5, 4).Value = d.SaleId;
+                ws5.Cell(r5, 5).Value = d.OriginalAmount; ws5.Cell(r5, 5).Style.NumberFormat.Format = "#,##0";
+                ws5.Cell(r5, 6).Value = d.Amount; ws5.Cell(r5, 6).Style.NumberFormat.Format = "#,##0";
+                ws5.Cell(r5, 7).Value = d.DueDate + offset; ws5.Cell(r5, 7).Style.DateFormat.Format = "yyyy-MM-dd";
+                ws5.Cell(r5, 8).Value = d.Status.ToString();
+                ws5.Cell(r5, 9).Value = d.CreatedBy;
+                r5++;
+            }
+            ws5.Columns().AdjustToContents();
+
+            // Debt payments
+            var ws6 = wb.AddWorksheet("DebtPayments"); int r6 = 1;
+            ws6.Cell(r6, 1).Value = new[] { "PaidAt", "DebtId", "Amount", "Method", "CreatedBy", "Comment" }; r6++;
+            foreach (var p in debtPayments.OrderBy(x => x.PaidAt))
+            {
+                ws6.Cell(r6, 1).Value = p.PaidAt + offset; ws6.Cell(r6, 1).Style.DateFormat.Format = "yyyy-MM-dd";
+                ws6.Cell(r6, 2).Value = p.DebtId;
+                ws6.Cell(r6, 3).Value = p.Amount; ws6.Cell(r6, 3).Style.NumberFormat.Format = "#,##0";
+                ws6.Cell(r6, 4).Value = p.Method;
+                ws6.Cell(r6, 5).Value = p.CreatedBy;
+                ws6.Cell(r6, 6).Value = p.Comment;
+                r6++;
+            }
+            ws6.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            wb.SaveAs(ms); ms.Position = 0;
+            var fileName = $"report-{periodLabel.Replace(':','-').Replace(' ','_')}.xlsx";
+            await _telegram.SendDocumentAsync(chatId, ms, fileName, caption: $"📊 Excel-отчёт {periodLabel}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка формирования Excel отчёта");
         }
     }
 }

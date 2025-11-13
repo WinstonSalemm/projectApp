@@ -62,6 +62,8 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
                         new object[] { new { text = "/report today" }, new { text = "/top today" } },
                         new object[] { new { text = "/report week" }, new { text = "/top week" } },
                         new object[] { new { text = "/report month" }, new { text = "/top month" } },
+                        new object[] { new { text = "/report excel today" }, new { text = "/report excel week" } },
+                        new object[] { new { text = "/reportfull today" }, new { text = "/reportfull week" } },
                         new object[] { new { text = "/stockall" } }
                     },
                     resize_keyboard = true,
@@ -72,6 +74,8 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
                     "/report today|week|month — отчёт по продажам\n" +
                     "/top today|week|month — топ-1 продавец\n" +
                     "/stock <SKU> — остатки по артикулу\n" +
+                    "/report excel today|week|month — Excel-отчёт (подробный, с возвратами и долгами)\n" +
+                    "/reportfull today|week|month — развернутый отчёт (товары и менеджеры)\n" +
                     "/stockall — список остатков по всем товарам\n" +
                     "/whoami — показать ваш chat id",
                     kb,
@@ -82,6 +86,60 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
         if (text.StartsWith("/whoami", StringComparison.OrdinalIgnoreCase))
         {
             await tg.SendMessageAsync(chatId, $"Ваш chat id: {chatId}. Добавьте его в переменную PROJECTAPP__Telegram__AllowedChatIds, чтобы получать уведомления о продажах.", HttpContext.RequestAborted);
+            return Ok();
+        }
+
+        if (text.StartsWith("/report excel", StringComparison.OrdinalIgnoreCase))
+        {
+            // Usage: /report excel today|week|month (uses local time by Telegram settings offset)
+            var preset = "today";
+            var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length >= 3) preset = parts[2].ToLowerInvariant();
+
+            var offset = TimeSpan.FromMinutes(_settings.TimeZoneOffsetMinutes);
+            var nowUtc = DateTime.UtcNow;
+            DateTime fromUtc;
+            DateTime toUtc;
+            switch (preset)
+            {
+                case "week":
+                    var localNow = nowUtc + offset;
+                    var localMonday = StartOfWeekUtc(localNow) + TimeSpan.Zero; // returns 00:00 local Monday but as UTC-kind value; we'll reconstruct
+                    var mondayLocal = new DateTime(localNow.Year, localNow.Month, localNow.Day, 0, 0, 0, DateTimeKind.Unspecified);
+                    // Recompute Monday correctly:
+                    int diff = (7 + (int)mondayLocal.DayOfWeek - (int)DayOfWeek.Monday) % 7;
+                    var weekStartLocal = mondayLocal.AddDays(-diff);
+                    fromUtc = weekStartLocal - offset;
+                    toUtc = fromUtc.AddDays(7);
+                    break;
+                case "month":
+                    var ln = nowUtc + offset;
+                    var firstLocal = new DateTime(ln.Year, ln.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
+                    fromUtc = firstLocal - offset;
+                    toUtc = fromUtc.AddMonths(1);
+                    break;
+                default:
+                    var todayLocal = (nowUtc + offset).Date; // 00:00 local
+                    fromUtc = todayLocal - offset;
+                    toUtc = fromUtc.AddDays(1);
+                    break;
+            }
+
+            await tg.SendMessageAsync(chatId, "⏳ Формирую Excel-отчёт...", HttpContext.RequestAborted);
+            await _reports.SendExcelPeriodReportAsync(fromUtc, toUtc, chatId);
+            return Ok();
+        }
+
+        if (text.StartsWith("/reportfull", StringComparison.OrdinalIgnoreCase))
+        {
+            // Usage: /reportfull today|week|month
+            var preset = "today";
+            var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length >= 2) preset = parts[1].ToLowerInvariant();
+
+            (DateTime from, DateTime to) = ResolveRange(preset);
+            await tg.SendMessageAsync(chatId, "⏳ Формирую развернутый отчёт...", HttpContext.RequestAborted);
+            await _reports.SendDetailedPeriodReportAsync(from, to, chatId);
             return Ok();
         }
 
