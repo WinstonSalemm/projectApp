@@ -142,50 +142,67 @@ public class SalesController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List([FromQuery] DateTime? dateFrom, [FromQuery] DateTime? dateTo, [FromQuery] string? createdBy, [FromQuery] string? paymentType, [FromQuery] int? clientId, [FromQuery] bool all = false, [FromQuery] bool? nd40Transferred = null, CancellationToken ct = default)
     {
-        var isAdmin = User.IsInRole("Admin");
-        var allowAll = isAdmin || all;
-        var effectiveCreatedBy = allowAll ? createdBy : (User?.Identity?.Name ?? createdBy);
-
-        var list = await _sales.QueryAsync(dateFrom, dateTo, effectiveCreatedBy, paymentType, clientId, ct);
-
-        var query = list.AsQueryable();
-
-        Func<Sale, bool> hasNd40Transferred = s =>
+        try
         {
-            using var scope = HttpContext.RequestServices.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var any = (from c in db.SaleItemConsumptions
-                       join si in db.SaleItems on c.SaleItemId equals si.Id
-                       join b in db.Batches on c.BatchId equals b.Id
-                       join sup in db.Supplies on b.Code equals sup.Code
-                       where si.SaleId == s.Id
-                             && c.RegisterAtSale == StockRegister.ND40
-                             && sup.RegisterType == RegisterType.IM40
-                       select c.Id).Any();
-            return any;
-        };
+            var isAdmin = User.IsInRole("Admin");
+            var allowAll = isAdmin || all;
+            var effectiveCreatedBy = allowAll ? createdBy : (User?.Identity?.Name ?? createdBy);
 
-        if (nd40Transferred == true)
-        {
-            query = query.Where(s => hasNd40Transferred(s)).AsQueryable();
-        }
+            var list = await _sales.QueryAsync(dateFrom, dateTo, effectiveCreatedBy, paymentType, clientId, ct);
 
-        var result = query
-            .OrderByDescending(s => s.Id)
-            .Select(s => new
+            // Предварительно вычислим множество продаж с ND→IM одной выборкой
+            var saleIds = list.Select(s => s.Id).ToList();
+            var ndImSet = new HashSet<int>();
+            try
             {
-                s.Id,
-                s.ClientId,
-                s.ClientName,
-                PaymentType = s.PaymentType,
-                s.Total,
-                s.CreatedAt,
-                s.CreatedBy,
-                Nd40Transferred = hasNd40Transferred(s)
-            })
-            .ToList();
+                if (saleIds.Count > 0)
+                {
+                    var ndIds = await (from si in _db.SaleItems.AsNoTracking()
+                                       join c in _db.SaleItemConsumptions.AsNoTracking() on si.Id equals c.SaleItemId
+                                       join b in _db.Batches.AsNoTracking() on c.BatchId equals b.Id
+                                       join sup in _db.Supplies.AsNoTracking() on b.Code equals sup.Code
+                                       where saleIds.Contains(si.SaleId)
+                                             && c.RegisterAtSale == StockRegister.ND40
+                                             && sup.RegisterType == RegisterType.IM40
+                                       select si.SaleId).Distinct().ToListAsync(ct);
+                    ndImSet = ndIds.ToHashSet();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to compute Nd40Transferred set for sales list");
+                ndImSet.Clear();
+            }
 
-        return Ok(result);
+            // Если запрошен фильтр только ND→IM — отфильтруем список здесь
+            if (nd40Transferred == true)
+            {
+                list = list.Where(s => ndImSet.Contains(s.Id)).ToList();
+            }
+
+            var result = list
+                .OrderByDescending(s => s.Id)
+                .Select(s => new
+                {
+                    s.Id,
+                    s.ClientId,
+                    s.ClientName,
+                    PaymentType = s.PaymentType,
+                    s.Total,
+                    s.CreatedAt,
+                    s.CreatedBy,
+                    Nd40Transferred = ndImSet.Contains(s.Id)
+                })
+                .ToList();
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing sales");
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            return ValidationProblem(detail: msg);
+        }
     }
 
     [HttpPost]

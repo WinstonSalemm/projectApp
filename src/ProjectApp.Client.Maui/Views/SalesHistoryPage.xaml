@@ -38,7 +38,14 @@
           <Label Text="Период:" VerticalTextAlignment="Center" TextColor="{DynamicResource Color.Text.Secondary}"/>
           <Label Text="{Binding PeriodText}" VerticalTextAlignment="Center" TextColor="{DynamicResource Color.Text.Secondary}"/>
         </HorizontalStackLayout>
-        <ActivityIndicator Grid.Row="2" Grid.ColumnSpan="4" IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"/>
+        <Grid Grid.Row="2" Grid.ColumnSpan="4">
+          <VerticalStackLayout Spacing="4" IsVisible="{Binding HasError}">
+            <Frame Style="{StaticResource CardFrame}" BackgroundColor="#26DC2626" BorderColor="{DynamicResource Color.Error}">
+              <Label Text="{Binding ErrorMessage}" TextColor="{DynamicResource Color.Error}"/>
+            </Frame>
+          </VerticalStackLayout>
+          <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"/>
+        </Grid>
       </Grid>
     </Frame>
 
@@ -92,7 +99,8 @@
       </CollectionView.ItemTemplate>
       <CollectionView.EmptyView>
         <VerticalStackLayout Padding="12" Spacing="6">
-          <Label Text="Нет продаж" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Secondary}"/>
+          <Label Text="Нет продаж" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Secondary}" IsVisible="{Binding HasError, Converter={StaticResource InvertedBoolConverter}}"/>
+          <Label Text="{Binding ErrorMessage}" TextColor="{DynamicResource Color.Error}" IsVisible="{Binding HasError}"/>
           <Label Text="{Binding PeriodText, StringFormat='Период: {0}'}" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
           <Label Text="Измените даты или включите 'Все продажи'" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
         </VerticalStackLayout>

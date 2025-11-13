@@ -18,6 +18,12 @@ public partial class SalesHistoryViewModel : ObservableObject
     private bool isLoading;
 
     [ObservableProperty]
+    private string? errorMessage;
+
+    [ObservableProperty]
+    private bool hasError;
+
+    [ObservableProperty]
     private DateTime? dateFrom = DateTime.UtcNow.Date.AddDays(-31);
 
     [ObservableProperty]
@@ -73,6 +79,8 @@ public partial class SalesHistoryViewModel : ObservableObject
         try
         {
             IsLoading = true;
+            HasError = false;
+            ErrorMessage = null;
             System.Diagnostics.Debug.WriteLine("[SalesHistoryViewModel] Checking auth...");
             var isAdmin = string.Equals(_auth.Role, "Admin", StringComparison.OrdinalIgnoreCase);
             var createdBy = (ShowAll || isAdmin) ? null : _auth.UserName;
@@ -121,7 +129,10 @@ public partial class SalesHistoryViewModel : ObservableObject
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[SalesHistoryViewModel] LoadAsync ERROR: {ex}");
-            // swallow to prevent app crash; error is logged above
+            HasError = true;
+            ErrorMessage = ex is HttpRequestException hre
+                ? ("Ошибка загрузки истории: " + (hre.Message ?? "HTTP ошибка"))
+                : ("Ошибка загрузки истории: " + ex.Message);
         }
         finally 
         { 
