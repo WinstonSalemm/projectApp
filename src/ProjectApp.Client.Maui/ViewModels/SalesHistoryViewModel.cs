@@ -71,6 +71,18 @@ public partial class SalesHistoryViewModel : ObservableObject
         OnPropertyChanged(nameof(PeriodText));
     }
 
+    partial void OnShowAllChanged(bool value)
+    {
+        if (!IsLoading)
+            _ = LoadAsync();
+    }
+
+    partial void OnNdImOnlyChanged(bool value)
+    {
+        if (!IsLoading)
+            _ = LoadAsync();
+    }
+
     [RelayCommand]
     private async Task LoadAsync()
     {

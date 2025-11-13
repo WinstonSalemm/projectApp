@@ -57,7 +57,6 @@ public class AlertsBackgroundService : BackgroundService
         // 1. Проверяем алерты (каждый раз при запуске)
         await alertsService.CheckCriticalStocksAsync();
         await alertsService.CheckOverdueDebtsAsync();
-        await alertsService.CheckLowCashboxBalancesAsync();
         await alertsService.CheckLongPendingReservationsAsync();
 
         // Напоминания по броням раз в 2 дня
