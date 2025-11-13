@@ -3,6 +3,7 @@ using ProjectApp.Api.Integrations.Telegram;
 using ProjectApp.Api.Integrations.Email;
 using ProjectApp.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace ProjectApp.Api.Services;
 
@@ -16,12 +17,14 @@ public class AutoReportsService
     private readonly IEmailService _email;
     private readonly OwnerDashboardService _dashboardService;
     private readonly ILogger<AutoReportsService> _logger;
+    private readonly TelegramSettings _tgSettings;
 
     public AutoReportsService(
         AppDbContext db,
         ITelegramService telegram,
         IEmailService email,
         OwnerDashboardService dashboardService,
+        IOptions<TelegramSettings> tgOptions,
         ILogger<AutoReportsService> logger)
     {
         _db = db;
@@ -29,6 +32,7 @@ public class AutoReportsService
         _email = email;
         _dashboardService = dashboardService;
         _logger = logger;
+        _tgSettings = tgOptions.Value;
     }
 
     /// <summary>
@@ -247,6 +251,151 @@ public class AutoReportsService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Ошибка отправки еженедельного отчета");
+        }
+    }
+
+    /// <summary>
+    /// Отправить в Telegram список остатков на конец дня (по всем позициям)
+    /// </summary>
+    public async Task SendEndOfDayStockAsync(long? chatId = null)
+    {
+        try
+        {
+            var stocks = await (from s in _db.Stocks.AsNoTracking()
+                                where s.Register == StockRegister.IM40 || s.Register == StockRegister.ND40
+                                group s by s.ProductId into g
+                                select new { ProductId = g.Key, Qty = g.Sum(x => x.Qty) })
+                               .ToListAsync();
+
+            if (stocks.Count == 0)
+            {
+                if (chatId.HasValue) await _telegram.SendMessageAsync(chatId.Value, "📦 Остатки на конец дня: нет данных");
+                else await _telegram.SendMessageToOwnerAsync("📦 Остатки на конец дня: нет данных");
+                return;
+            }
+
+            var productIds = stocks.Select(x => x.ProductId).ToList();
+            var products = await _db.Products.AsNoTracking()
+                .Where(p => productIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.Name })
+                .ToDictionaryAsync(p => p.Id, p => p.Name);
+
+            var lines = stocks
+                .Where(x => x.Qty > 0)
+                .Select(x => new
+                {
+                    Name = products.TryGetValue(x.ProductId, out var name) ? name : $"#{x.ProductId}",
+                    Qty = x.Qty
+                })
+                .OrderBy(x => x.Name)
+                .Select(x => $"{x.Name} - {x.Qty:N0} шт")
+                .ToList();
+
+            if (lines.Count == 0)
+            {
+                if (chatId.HasValue) await _telegram.SendMessageAsync(chatId.Value, "📦 Остатки на конец дня: все нулевые");
+                else await _telegram.SendMessageToOwnerAsync("📦 Остатки на конец дня: все нулевые");
+                return;
+            }
+
+            const int maxChars = 3500;
+            var header = $"📦 Остатки на конец дня ({DateTime.UtcNow:yyyy-MM-dd} UTC)\n\n";
+            var current = new System.Text.StringBuilder(header);
+            var pages = new List<string>();
+            foreach (var line in lines)
+            {
+                if (current.Length + line.Length + 1 > maxChars)
+                {
+                    pages.Add(current.ToString());
+                    current.Clear();
+                    current.Append("📦 Остатки (продолжение)\n\n");
+                }
+                current.AppendLine(line);
+            }
+            if (current.Length > 0) pages.Add(current.ToString());
+
+            foreach (var msg in pages)
+            {
+                if (chatId.HasValue) await _telegram.SendMessageAsync(chatId.Value, msg);
+                else await _telegram.SendMessageToOwnerAsync(msg);
+            }
+
+            _logger.LogInformation($"Отправлен список остатков на конец дня: {lines.Count} позиций, сообщений: {pages.Count}");
+
+            // Определяем товары, которые сегодня закончились (были >0 на начало дня и стали 0 сейчас)
+            var offset = TimeSpan.FromMinutes(_tgSettings.TimeZoneOffsetMinutes);
+            var nowUtc = DateTime.UtcNow;
+            var localToday = (nowUtc + offset).Date;
+            var startUtc = localToday - offset;
+            var endUtc = localToday.AddDays(1) - offset;
+
+            var lastSnapshotTs = await _db.StockSnapshots
+                .Where(x => x.CreatedAt < startUtc)
+                .MaxAsync(x => (DateTime?)x.CreatedAt) ?? null;
+
+            if (lastSnapshotTs != null)
+            {
+                var startRows = await _db.StockSnapshots
+                    .AsNoTracking()
+                    .Where(x => x.CreatedAt == lastSnapshotTs)
+                    .Select(x => new { x.ProductId, x.TotalQty })
+                    .ToListAsync();
+
+                var startedPositive = startRows.Where(r => r.TotalQty > 0).Select(r => r.ProductId).ToList();
+                if (startedPositive.Count > 0)
+                {
+                    var currentTotals = await _db.Stocks.AsNoTracking()
+                        .Where(s => startedPositive.Contains(s.ProductId) && (s.Register == StockRegister.IM40 || s.Register == StockRegister.ND40))
+                        .GroupBy(s => s.ProductId)
+                        .Select(g => new { ProductId = g.Key, Qty = g.Sum(x => x.Qty) })
+                        .ToDictionaryAsync(x => x.ProductId, x => x.Qty);
+
+                    var depleted = startedPositive
+                        .Where(pid => !currentTotals.TryGetValue(pid, out var q) || q <= 0)
+                        .ToList();
+
+                    if (depleted.Count > 0)
+                    {
+                        var prodMap = await _db.Products.AsNoTracking()
+                            .Where(p => depleted.Contains(p.Id))
+                            .Select(p => new { p.Id, p.Name })
+                            .ToDictionaryAsync(p => p.Id, p => p.Name);
+
+                        var lines2 = new List<string>();
+                        foreach (var pid in depleted)
+                        {
+                            var last = await (from si in _db.SaleItems
+                                              join s in _db.Sales on si.SaleId equals s.Id
+                                              where si.ProductId == pid && s.CreatedAt >= startUtc && s.CreatedAt < endUtc
+                                              orderby s.CreatedAt descending
+                                              select new { s.Id, s.CreatedAt, s.CreatedBy, s.ClientName, si.Qty, si.UnitPrice }).FirstOrDefaultAsync();
+
+                            if (last != null)
+                            {
+                                var name = prodMap.TryGetValue(pid, out var n) ? n : $"#{pid}";
+                                var sum = last.Qty * last.UnitPrice;
+                                var tsLocal = last.CreatedAt + offset;
+                                lines2.Add($"{name} — последняя продажа #{last.Id} от {tsLocal:HH:mm}, {last.Qty:N0} шт × {last.UnitPrice:N0} = {sum:N0}");
+                            }
+                        }
+
+                        if (lines2.Count > 0)
+                        {
+                            var header2 = "⚠️ Сегодня закончились (последняя продажа):\n\n";
+                            var sb = new System.Text.StringBuilder(header2);
+                            foreach (var line in lines2)
+                                sb.AppendLine(line);
+                            var text = sb.ToString();
+                            if (chatId.HasValue) await _telegram.SendMessageAsync(chatId.Value, text);
+                            else await _telegram.SendMessageToOwnerAsync(text);
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка отправки списка остатков на конец дня");
         }
     }
 }

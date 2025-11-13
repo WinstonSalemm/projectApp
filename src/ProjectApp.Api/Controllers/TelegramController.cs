@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using ProjectApp.Api.Data;
 using ProjectApp.Api.Integrations.Telegram;
+using ProjectApp.Api.Services;
 using System.Text.Json;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
@@ -12,9 +13,10 @@ namespace ProjectApp.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<TelegramSettings> options) : ControllerBase
+public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<TelegramSettings> options, AutoReportsService reports) : ControllerBase
 {
     private readonly TelegramSettings _settings = options.Value;
+    private readonly AutoReportsService _reports = reports;
 
     // POST /api/telegram/webhook
     [HttpPost("webhook")]
@@ -59,13 +61,19 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
                     {
                         new object[] { new { text = "/report today" }, new { text = "/top today" } },
                         new object[] { new { text = "/report week" }, new { text = "/top week" } },
-                        new object[] { new { text = "/report month" }, new { text = "/top month" } }
+                        new object[] { new { text = "/report month" }, new { text = "/top month" } },
+                        new object[] { new { text = "/stockall" } }
                     },
                     resize_keyboard = true,
                     one_time_keyboard = false
                 };
                 await tg.SendMessageAsync(chatId,
-                    "Добро пожаловать! Доступные команды:\n/report today|week|month — отчёт по продажам\n/top today|week|month — топ-1 продавец\n/stock <SKU> — остатки по артикулу\n/whoami — показать ваш chat id",
+                    "Добро пожаловать! Доступные команды:\n" +
+                    "/report today|week|month — отчёт по продажам\n" +
+                    "/top today|week|month — топ-1 продавец\n" +
+                    "/stock <SKU> — остатки по артикулу\n" +
+                    "/stockall — список остатков по всем товарам\n" +
+                    "/whoami — показать ваш chat id",
                     kb,
                     HttpContext.RequestAborted);
                 return Ok();
@@ -168,6 +176,13 @@ public class TelegramController(AppDbContext db, ITelegramService tg, IOptions<T
                 await tg.SendMessageAsync(chatId, $"SKU {sku} не найден", HttpContext.RequestAborted);
             else
                 await tg.SendMessageAsync(chatId, $"{sku}: всего={res.Total}, IM40={res.IM40}, ND40={res.ND40}", HttpContext.RequestAborted);
+            return Ok();
+        }
+
+        if (text.StartsWith("/stockall", StringComparison.OrdinalIgnoreCase))
+        {
+            await tg.SendMessageAsync(chatId, "⏳ Готовлю список остатков...", HttpContext.RequestAborted);
+            await _reports.SendEndOfDayStockAsync(chatId);
             return Ok();
         }
 

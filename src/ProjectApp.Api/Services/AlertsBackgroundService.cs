@@ -72,6 +72,7 @@ public class AlertsBackgroundService : BackgroundService
             (now - _lastDailyReport).TotalHours >= 23)
         {
             await reportsService.SendDailyReportAsync();
+            await reportsService.SendEndOfDayStockAsync();
             _lastDailyReport = now;
             _logger.LogInformation("Ежедневный отчет отправлен");
         }
