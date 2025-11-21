@@ -595,7 +595,19 @@ public class AutoReportsService
             // Sales items
             var ws1 = wb.AddWorksheet("SalesItems");
             int r1 = 1;
-            ws1.Cell(r1, 1).Value = new[] { "Дата", "SaleId", "SKU", "Товар", "Кол-во", "Цена", "Сумма", "Себест. ед.", "Себест. сумма", "Прибыль", "Менеджер", "Клиент", "Оплата" };
+            ws1.Cell(r1, 1).Value = "Дата";
+            ws1.Cell(r1, 2).Value = "SaleId";
+            ws1.Cell(r1, 3).Value = "SKU";
+            ws1.Cell(r1, 4).Value = "Товар";
+            ws1.Cell(r1, 5).Value = "Кол-во";
+            ws1.Cell(r1, 6).Value = "Цена";
+            ws1.Cell(r1, 7).Value = "Сумма";
+            ws1.Cell(r1, 8).Value = "Себест. ед.";
+            ws1.Cell(r1, 9).Value = "Себест. сумма";
+            ws1.Cell(r1, 10).Value = "Прибыль";
+            ws1.Cell(r1, 11).Value = "Менеджер";
+            ws1.Cell(r1, 12).Value = "Клиент";
+            ws1.Cell(r1, 13).Value = "Оплата";
             r1++;
             foreach (var x in saleItems.OrderBy(x => x.CreatedAt).ThenBy(x => x.Id))
             {
@@ -613,7 +625,7 @@ public class AutoReportsService
                 ws1.Cell(r1, 10).Value = pr; ws1.Cell(r1, 10).Style.NumberFormat.Format = "#,##0";
                 ws1.Cell(r1, 11).Value = x.CreatedBy;
                 ws1.Cell(r1, 12).Value = x.ClientName;
-                ws1.Cell(r1, 13).Value = x.PaymentType;
+                ws1.Cell(r1, 13).Value = x.PaymentType.ToString();
                 r1++;
             }
             ws1.Columns().AdjustToContents();
@@ -621,7 +633,13 @@ public class AutoReportsService
             // Products
             var ws2 = wb.AddWorksheet("Products");
             int r2 = 1;
-            ws2.Cell(r2, 1).Value = new[] { "Товар", "Кол-во", "Выручка", "Средняя цена", "Себест. сумма", "Прибыль" }; r2++;
+            ws2.Cell(r2, 1).Value = "Товар";
+            ws2.Cell(r2, 2).Value = "Кол-во";
+            ws2.Cell(r2, 3).Value = "Выручка";
+            ws2.Cell(r2, 4).Value = "Средняя цена";
+            ws2.Cell(r2, 5).Value = "Себест. сумма";
+            ws2.Cell(r2, 6).Value = "Прибыль";
+            r2++;
             var prodAgg = saleItems
                 .GroupBy(x => x.Name)
                 .Select(g => new { Name = g.Key, Qty = g.Sum(z => z.Qty), Revenue = g.Sum(z => z.Qty * z.UnitPrice), Cost = g.Sum(z => z.Qty * z.Cost) })
@@ -642,7 +660,11 @@ public class AutoReportsService
 
             // Managers
             var ws3 = wb.AddWorksheet("Managers");
-            int r3 = 1; ws3.Cell(r3, 1).Value = new[] { "Менеджер", "Чеков", "Оборот" }; r3++;
+            int r3 = 1;
+            ws3.Cell(r3, 1).Value = "Менеджер";
+            ws3.Cell(r3, 2).Value = "Чеков";
+            ws3.Cell(r3, 3).Value = "Оборот";
+            r3++;
             var manAgg = salesBrief
                 .GroupBy(s => s.CreatedBy ?? "unknown")
                 .Select(g => new { Manager = g.Key, Count = g.Count(), Revenue = g.Sum(z => z.Total) })
@@ -653,7 +675,17 @@ public class AutoReportsService
 
             // Returns
             var ws4 = wb.AddWorksheet("Returns");
-            int r4 = 1; ws4.Cell(r4, 1).Value = new[] { "Дата", "ReturnId", "SKU", "Товар", "Кол-во", "Цена", "Сумма", "RefSaleId", "Клиент" }; r4++;
+            int r4 = 1;
+            ws4.Cell(r4, 1).Value = "Дата";
+            ws4.Cell(r4, 2).Value = "ReturnId";
+            ws4.Cell(r4, 3).Value = "SKU";
+            ws4.Cell(r4, 4).Value = "Товар";
+            ws4.Cell(r4, 5).Value = "Кол-во";
+            ws4.Cell(r4, 6).Value = "Цена";
+            ws4.Cell(r4, 7).Value = "Сумма";
+            ws4.Cell(r4, 8).Value = "RefSaleId";
+            ws4.Cell(r4, 9).Value = "Клиент";
+            r4++;
             foreach (var r in returnItems.OrderBy(x => x.CreatedAt).ThenBy(x => x.Id))
             {
                 var local = r.CreatedAt + offset; var sum = r.Qty * r.UnitPrice;
@@ -672,7 +704,16 @@ public class AutoReportsService
 
             // Debts
             var ws5 = wb.AddWorksheet("Debts"); int r5 = 1;
-            ws5.Cell(r5, 1).Value = new[] { "Дата", "DebtId", "Client", "SaleId", "Original", "Remaining", "DueDate", "Status", "CreatedBy" }; r5++;
+            ws5.Cell(r5, 1).Value = "Дата";
+            ws5.Cell(r5, 2).Value = "DebtId";
+            ws5.Cell(r5, 3).Value = "Client";
+            ws5.Cell(r5, 4).Value = "SaleId";
+            ws5.Cell(r5, 5).Value = "Original";
+            ws5.Cell(r5, 6).Value = "Remaining";
+            ws5.Cell(r5, 7).Value = "DueDate";
+            ws5.Cell(r5, 8).Value = "Status";
+            ws5.Cell(r5, 9).Value = "CreatedBy";
+            r5++;
             foreach (var d in debts.OrderBy(x => x.CreatedAt))
             {
                 ws5.Cell(r5, 1).Value = d.CreatedAt + offset; ws5.Cell(r5, 1).Style.DateFormat.Format = "yyyy-MM-dd";
@@ -690,7 +731,13 @@ public class AutoReportsService
 
             // Debt payments
             var ws6 = wb.AddWorksheet("DebtPayments"); int r6 = 1;
-            ws6.Cell(r6, 1).Value = new[] { "PaidAt", "DebtId", "Amount", "Method", "CreatedBy", "Comment" }; r6++;
+            ws6.Cell(r6, 1).Value = "PaidAt";
+            ws6.Cell(r6, 2).Value = "DebtId";
+            ws6.Cell(r6, 3).Value = "Amount";
+            ws6.Cell(r6, 4).Value = "Method";
+            ws6.Cell(r6, 5).Value = "CreatedBy";
+            ws6.Cell(r6, 6).Value = "Comment";
+            r6++;
             foreach (var p in debtPayments.OrderBy(x => x.PaidAt))
             {
                 ws6.Cell(r6, 1).Value = p.PaidAt + offset; ws6.Cell(r6, 1).Style.DateFormat.Format = "yyyy-MM-dd";
