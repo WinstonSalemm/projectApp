@@ -108,6 +108,9 @@
                 <DataTemplate>
                     <Frame Style="{StaticResource CardFrame}"
                            Margin="0,0,0,12">
+                        <Frame.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnEditProductTapped" />
+                        </Frame.GestureRecognizers>
                         <Grid RowDefinitions="Auto,Auto,Auto"
                               ColumnDefinitions="Auto,*"
                               RowSpacing="12"

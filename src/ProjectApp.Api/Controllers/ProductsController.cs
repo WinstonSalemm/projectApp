@@ -191,6 +191,51 @@ public class ProductsController : ControllerBase
         return Created($"/api/products/{p.Id}", result);
     }
 
+    // PUT /api/products/{id} - обновить основные поля товара
+    [HttpPut("{id}")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "ManagerOnly")]
+    [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProductDto>> Update(int id, [FromBody] ProductCreateDto dto, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Sku) || string.IsNullOrWhiteSpace(dto.Name))
+            return ValidationProblem(detail: "Sku and Name are required");
+
+        var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id, ct);
+        if (product == null)
+            return NotFound();
+
+        product.Sku = dto.Sku.Trim();
+        product.Name = dto.Name.Trim();
+        product.Category = dto.Category?.Trim() ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(product.Category))
+        {
+            var catName = product.Category.Trim();
+            if (!await _db.Categories.AnyAsync(c => c.Name == catName, ct))
+            {
+                _db.Categories.Add(new CategoryRec { Name = catName });
+                await _db.SaveChangesAsync(ct);
+            }
+        }
+
+        await _db.SaveChangesAsync(ct);
+
+        var result = new ProductDto
+        {
+            Id = product.Id,
+            Name = product.Name,
+            Sku = product.Sku,
+            UnitPrice = product.Price,
+            Price = product.Price,
+            Cost = product.Cost,
+            Category = product.Category
+        };
+
+        return Ok(result);
+    }
+
     [HttpPost("seed-standard")]
     [Microsoft.AspNetCore.Authorization.Authorize(Policy = "AdminOnly")]
     [ProducesResponseType(StatusCodes.Status200OK)]

@@ -223,6 +223,8 @@ public static class MauiProgram
         builder.Services.AddTransient<ContractsHistoryPage>();
         builder.Services.AddTransient<ProductCreateViewModel>();
         builder.Services.AddTransient<ProductCreatePage>();
+        builder.Services.AddTransient<ProductEditViewModel>();
+        builder.Services.AddTransient<ProductEditPage>();
         builder.Services.AddTransient<HistoryTabsPage>();
         builder.Services.AddTransient<FinanceDashboardViewModel>();
         builder.Services.AddTransient<FinanceDashboardPage>();

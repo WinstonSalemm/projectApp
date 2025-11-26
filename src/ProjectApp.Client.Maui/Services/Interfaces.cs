@@ -550,6 +550,7 @@ public interface IProductsService
 {
     Task<bool> CreateCategoryAsync(string name, CancellationToken ct = default);
     Task<int?> CreateProductAsync(ProductCreateDraft draft, CancellationToken ct = default);
+    Task<bool> UpdateProductAsync(int id, string sku, string name, string category, CancellationToken ct = default);
 }
 
 // ----- Products (create product and create category) -----

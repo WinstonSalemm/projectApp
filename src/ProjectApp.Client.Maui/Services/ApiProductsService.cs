@@ -24,8 +24,13 @@ public class ApiProductsService : IProductsService
         var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
         client.BaseAddress = new Uri(baseUrl);
         _auth.ConfigureClient(client);
-        var resp = await client.PostAsJsonAsync("/api/categories", new { name = n }, ct);
-        return resp.IsSuccessStatusCode;
+        var dto = new { Name = n };
+        var resp = await client.PostAsJsonAsync("/api/categories", dto, ct);
+        if (resp.IsSuccessStatusCode) return true;
+        // Log error details
+        var body = await resp.Content.ReadAsStringAsync(ct);
+        System.Diagnostics.Debug.WriteLine($"[CreateCategoryAsync] Status={resp.StatusCode}, Body={body}");
+        return false;
     }
 
     private class ProductCreateDto
@@ -64,6 +69,25 @@ public class ApiProductsService : IProductsService
         if (!resp.IsSuccessStatusCode) return null;
         var pd = await resp.Content.ReadFromJsonAsync<ProductDto>(cancellationToken: ct);
         return pd?.Id;
+    }
+
+    public async Task<bool> UpdateProductAsync(int id, string sku, string name, string category, CancellationToken ct = default)
+    {
+        var dto = new ProductCreateDto
+        {
+            Sku = (sku ?? string.Empty).Trim(),
+            Name = (name ?? string.Empty).Trim(),
+            Unit = "шт",
+            Price = 0m,
+            Category = (category ?? string.Empty).Trim()
+        };
+
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+        var resp = await client.PutAsJsonAsync($"/api/products/{id}", dto, ct);
+        return resp.IsSuccessStatusCode;
     }
 }
 

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
+             x:Class="ProjectApp.Client.Maui.Views.ProductEditPage"
+             Title="Редактирование товара">
+    <ScrollView VerticalScrollBarVisibility="Always">
+        <VerticalStackLayout Padding="12"
+                             Spacing="12">
+            <Frame Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Категория"
+                           FontAttributes="Bold" />
+                    <Grid ColumnDefinitions="*,Auto"
+                          ColumnSpacing="8">
+                        <Picker Grid.Column="0"
+                                ItemsSource="{Binding Categories}"
+                                SelectedItem="{Binding SelectedCategory}" />
+                        <Button Grid.Column="1"
+                                Text="Обновить"
+                                Clicked="OnReloadCategoriesClicked"
+                                Style="{StaticResource Button.Secondary}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto"
+                          ColumnSpacing="8">
+                        <Entry Grid.Column="0"
+                               Placeholder="Новая категория"
+                               Text="{Binding NewCategoryName}" />
+                        <Button Grid.Column="1"
+                                Text="Создать"
+                                Clicked="OnCreateCategoryClicked"
+                                Style="{StaticResource Button.Primary}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+            <Frame Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Параметры товара"
+                           FontAttributes="Bold" />
+                    <Entry Placeholder="SKU"
+                           Text="{Binding Sku}" />
+                    <Entry Placeholder="Название"
+                           Text="{Binding Name}" />
+                    <Label Text="Ед. измерения:" />
+                    <Label Text="{Binding Unit}"
+                           FontAttributes="Bold" />
+                </VerticalStackLayout>
+            </Frame>
+            <HorizontalStackLayout Spacing="8">
+                <Button Text="Сохранить изменения"
+                        Clicked="OnSaveClicked"
+                        Style="{StaticResource Button.Primary}" />
+            </HorizontalStackLayout>
+            <Label Text="{Binding StatusMessage}"
+                   TextColor="Orange" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

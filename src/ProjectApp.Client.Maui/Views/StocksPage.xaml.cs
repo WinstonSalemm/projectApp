@@ -112,5 +112,42 @@ public partial class StocksPage : ContentPage
             await DisplayAlert("Ошибка", ex.Message, "OK");
         }
     }
+
+    private async void OnEditProductTapped(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (sender is not Frame frame) return;
+            if (frame.BindingContext is not ProjectApp.Client.Maui.Services.StockViewModel stock) return;
+            var services = App.Services;
+            var editPage = services.GetService<ProductEditPage>();
+            if (editPage == null) return;
+
+            if (editPage.BindingContext is ProductEditViewModel vm)
+            {
+                vm.LoadFromParameters(stock.ProductId, stock.Sku, stock.Name, stock.Category, "шт");
+                await vm.LoadCategoriesAsync();
+            }
+
+            var tcs = new TaskCompletionSource<(int Id, string Sku, string Name, string Category)>();
+            void Handler(object? s, (int Id, string Sku, string Name, string Category) p) => tcs.TrySetResult(p);
+            editPage.ProductUpdated += Handler;
+
+            await Navigation.PushAsync(editPage);
+            var updated = await tcs.Task;
+            editPage.ProductUpdated -= Handler;
+
+            await Navigation.PopAsync();
+
+            if (BindingContext is StocksViewModel stocksVm)
+            {
+                await stocksVm.RefreshCommand.ExecuteAsync(null);
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Ошибка", ex.Message, "OK");
+        }
+    }
 }
 
