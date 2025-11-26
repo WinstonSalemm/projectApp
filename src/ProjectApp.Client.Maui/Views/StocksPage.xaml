@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModels="clr-namespace:ProjectApp.Client.Maui.ViewModels"
@@ -7,354 +7,387 @@
              x:Name="Root"
              Title="Склад (только Админ)"
              BackgroundColor="{DynamicResource Color.Background}">
-  <ContentPage.Resources>
-    <ResourceDictionary>
-      <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
-    </ResourceDictionary>
-  </ContentPage.Resources>
-  <ContentPage.ToolbarItems>
-    <ToolbarItem Text="Обновить" Command="{Binding RefreshCommand}" IconImageSource="{StaticResource IconRefresh}" />
-    <ToolbarItem Text="🗑️ Брак" Clicked="OnDefectivesClicked" />
-    <ToolbarItem Text="🔥 Перезарядка" Clicked="OnRefillsClicked" />
-  </ContentPage.ToolbarItems>
-  <Grid Padding="24" RowDefinitions="*,Auto" RowSpacing="16">
-    <!-- Summary mode (header + list share one scroll) -->
-    <CollectionView Grid.Row="0" ItemsSource="{Binding Items}" IsVisible="{Binding ShowBatches, Converter={StaticResource InverseBoolConverter}}" Margin="0,0,12,0">
-      <CollectionView.EmptyView>
-        <VerticalStackLayout Padding="12" Spacing="6">
-          <Label Text="Нет данных" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Secondary}"/>
-          <Label Text="Измените запрос или категорию" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
-        </VerticalStackLayout>
-      </CollectionView.EmptyView>
-      <CollectionView.Header>
-        <VerticalStackLayout Spacing="16" Padding="0,0,0,16">
-          
-          <!-- Search Section -->
-          <Frame Padding="16" 
-                 CornerRadius="12" 
-                 BackgroundColor="{DynamicResource Color.Surface}"
-                 BorderColor="{DynamicResource Color.Border}"
-                 HasShadow="True">
-            <VerticalStackLayout Spacing="12">
-              <Label Text="🔍 Поиск и фильтры" 
-                     FontSize="14" 
-                     FontAttributes="Bold"
-                     TextColor="{DynamicResource Color.Text.Primary}"/>
-              
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                <Frame Padding="12,8"
-                       CornerRadius="8"
-                       BackgroundColor="{DynamicResource Color.Surface.Muted}"
-                       BorderColor="{DynamicResource Color.Border}"
-                       HasShadow="False">
-                  <Entry Placeholder="Введите SKU или название товара" 
-                         Text="{Binding Query}"
-                         BackgroundColor="Transparent"
-                         FontSize="14"/>
-                </Frame>
-                
-                <Frame Grid.Column="1"
-                       Padding="12,8"
-                       CornerRadius="8"
-                       BackgroundColor="{DynamicResource Color.Surface.Muted}"
-                       BorderColor="{DynamicResource Color.Border}"
-                       HasShadow="False">
-                  <Picker WidthRequest="200" 
-                          ItemsSource="{Binding Categories}" 
-                          SelectedItem="{Binding SelectedCategory}"
-                          BackgroundColor="Transparent"
-                          FontSize="14"/>
-                </Frame>
-              </Grid>
-              
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                <HorizontalStackLayout Spacing="8">
-                  <Label Text="📋" FontSize="16" VerticalOptions="Center"/>
-                  <Label Text="Показывать партии" 
-                         FontSize="13"
-                         VerticalOptions="Center"
-                         TextColor="{DynamicResource Color.Text.Secondary}"/>
-                  <Switch IsToggled="{Binding ShowBatches}" VerticalOptions="Center"/>
-                </HorizontalStackLayout>
-                
-                <Button Grid.Column="2"
-                        Text="🔍 Найти" 
-                        Command="{Binding RefreshCommand}" 
-                        Style="{StaticResource Button.Primary}"
-                        WidthRequest="120"/>
-              </Grid>
-            </VerticalStackLayout>
-          </Frame>
-          
-        </VerticalStackLayout>
-      </CollectionView.Header>
-      <CollectionView.ItemTemplate>
-        <DataTemplate>
-          <Frame Style="{StaticResource CardFrame}" Margin="0,0,0,12">
-            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*" RowSpacing="12" ColumnSpacing="16">
-              
-              <!-- Product Icon -->
-              <Frame Grid.RowSpan="3" 
-                     WidthRequest="60" 
-                     HeightRequest="60"
-                     CornerRadius="12"
-                     Padding="0"
-                     BackgroundColor="{DynamicResource Color.Surface.Muted}"
-                     BorderColor="{DynamicResource Color.Border}"
-                     HasShadow="False">
-                <Label Text="📦" 
-                       FontSize="32" 
-                       HorizontalOptions="Center" 
-                       VerticalOptions="Center"/>
-              </Frame>
-              
-              <!-- Product Info -->
-              <VerticalStackLayout Grid.Column="1" Spacing="4">
-                <Label Text="{Binding Name}" 
-                       FontSize="16"
-                       FontAttributes="Bold"
-                       TextColor="{DynamicResource Color.Text.Primary}"/>
-                <HorizontalStackLayout Spacing="8">
-                  <Label Text="{Binding Sku}" 
-                         FontSize="13" 
-                         TextColor="{DynamicResource Color.Text.Secondary}"
-                         FontFamily="InterSemiBold"/>
-                  <BoxView WidthRequest="1" HeightRequest="14" 
-                           Color="{DynamicResource Color.Border}" 
-                           VerticalOptions="Center"/>
-                  <Label Text="{Binding Category}" 
-                         FontSize="13"
-                         TextColor="{DynamicResource Color.Text.Tertiary}"/>
-                </HorizontalStackLayout>
-              </VerticalStackLayout>
-              
-              <!-- Stock Badges -->
-              <Grid Grid.Row="1" Grid.Column="1" 
-                    ColumnDefinitions="Auto,Auto,*" 
-                    ColumnSpacing="8">
-                <Frame Grid.Column="0"
-                       Padding="12,6"
-                       CornerRadius="8"
-                       HasShadow="False"
-                       BackgroundColor="{Binding Nd40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=bg}"
-                       BorderColor="{Binding Nd40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=border}">
-                  <HorizontalStackLayout Spacing="6">
-                    <Label Text="📍" FontSize="13"/>
-                    <Label Text="{Binding Nd40Qty, StringFormat='ND-40: {0:N0}'}" 
-                           FontSize="13"
-                           FontFamily="InterSemiBold"
-                           TextColor="{Binding Nd40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}"/>
-                  </HorizontalStackLayout>
-                </Frame>
-                
-                <Frame Grid.Column="1"
-                       Padding="12,6"
-                       CornerRadius="8"
-                       HasShadow="False"
-                       BackgroundColor="{Binding Im40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=bg}"
-                       BorderColor="{Binding Im40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=border}">
-                  <HorizontalStackLayout Spacing="6">
-                    <Label Text="🏭" FontSize="13"/>
-                    <Label Text="{Binding Im40Qty, StringFormat='IM-40: {0:N0}'}" 
-                           FontSize="13"
-                           FontFamily="InterSemiBold"
-                           TextColor="{Binding Im40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}"/>
-                  </HorizontalStackLayout>
-                </Frame>
-              </Grid>
-              
-              <!-- Total Badge (larger, prominent) -->
-              <Frame Grid.Row="2" Grid.Column="1"
-                     Padding="14,8"
-                     CornerRadius="10"
-                     HasShadow="True"
-                     BackgroundColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=bg}"
-                     BorderColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=border}">
-                <HorizontalStackLayout Spacing="8">
-                  <Label Text="📊" FontSize="16"/>
-                  <Label Text="ИТОГО:" 
-                         FontSize="12"
-                         FontAttributes="Bold"
-                         VerticalOptions="Center"
-                         TextColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}"/>
-                  <Label Text="{Binding TotalQty, StringFormat='{0:N0} шт.'}" 
-                         FontSize="18"
-                         FontFamily="InterBold"
-                         VerticalOptions="Center"
-                         TextColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}"/>
-                </HorizontalStackLayout>
-              </Frame>
-              
-            </Grid>
-          </Frame>
-        </DataTemplate>
-      </CollectionView.ItemTemplate>
-    </CollectionView>
-
-    <!-- Batches mode -->
-    <CollectionView Grid.Row="0" ItemsSource="{Binding BatchItems}" IsVisible="{Binding ShowBatches}" Margin="0,0,12,0">
-      <CollectionView.EmptyView>
-        <VerticalStackLayout Padding="12" Spacing="6">
-          <Label Text="Нет партий" FontAttributes="Bold" TextColor="{DynamicResource Color.Text.Secondary}"/>
-          <Label Text="Попробуйте другой фильтр или запрос" FontSize="12" TextColor="{DynamicResource Color.Text.Secondary}"/>
-        </VerticalStackLayout>
-      </CollectionView.EmptyView>
-      <CollectionView.Header>
-        <VerticalStackLayout Spacing="16" Padding="0,0,0,16">
-          
-          <!-- Search Section -->
-          <Frame Padding="16" 
-                 CornerRadius="12" 
-                 BackgroundColor="{DynamicResource Color.Surface}"
-                 BorderColor="{DynamicResource Color.Border}"
-                 HasShadow="True">
-            <VerticalStackLayout Spacing="12">
-              <Label Text="🔍 Поиск и фильтры" 
-                     FontSize="14" 
-                     FontAttributes="Bold"
-                     TextColor="{DynamicResource Color.Text.Primary}"/>
-              
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                <Frame Padding="12,8"
-                       CornerRadius="8"
-                       BackgroundColor="{DynamicResource Color.Surface.Muted}"
-                       BorderColor="{DynamicResource Color.Border}"
-                       HasShadow="False">
-                  <Entry Placeholder="Введите SKU или название товара" 
-                         Text="{Binding Query}"
-                         BackgroundColor="Transparent"
-                         FontSize="14"/>
-                </Frame>
-                
-                <Frame Grid.Column="1"
-                       Padding="12,8"
-                       CornerRadius="8"
-                       BackgroundColor="{DynamicResource Color.Surface.Muted}"
-                       BorderColor="{DynamicResource Color.Border}"
-                       HasShadow="False">
-                  <Picker WidthRequest="200" 
-                          ItemsSource="{Binding Categories}" 
-                          SelectedItem="{Binding SelectedCategory}"
-                          BackgroundColor="Transparent"
-                          FontSize="14"/>
-                </Frame>
-              </Grid>
-              
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                <HorizontalStackLayout Spacing="8">
-                  <Label Text="📋" FontSize="16" VerticalOptions="Center"/>
-                  <Label Text="Показывать партии" 
-                         FontSize="13"
-                         VerticalOptions="Center"
-                         TextColor="{DynamicResource Color.Text.Secondary}"/>
-                  <Switch IsToggled="{Binding ShowBatches}" VerticalOptions="Center"/>
-                </HorizontalStackLayout>
-                
-                <Button Grid.Column="2"
-                        Text="🔍 Найти" 
-                        Command="{Binding RefreshCommand}" 
-                        Style="{StaticResource Button.Primary}"
-                        WidthRequest="120"/>
-              </Grid>
-            </VerticalStackLayout>
-          </Frame>
-          
-        </VerticalStackLayout>
-      </CollectionView.Header>
-      <CollectionView.ItemTemplate>
-        <DataTemplate>
-          <Frame Style="{StaticResource CardFrame}" Margin="0,0,0,12">
-            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" RowSpacing="12" ColumnSpacing="16">
-              
-              <!-- Batch Icon -->
-              <Frame Grid.RowSpan="2"
-                     WidthRequest="50" 
-                     HeightRequest="50"
-                     CornerRadius="10"
-                     Padding="0"
-                     BackgroundColor="{DynamicResource Color.Surface.Muted}"
-                     BorderColor="{DynamicResource Color.Border}"
-                     HasShadow="False">
-                <Label Text="📋" 
-                       FontSize="28" 
-                       HorizontalOptions="Center" 
-                       VerticalOptions="Center"/>
-              </Frame>
-              
-              <!-- Product Info -->
-              <VerticalStackLayout Grid.Column="1" Spacing="4">
-                <Label Text="{Binding Name}" 
-                       FontSize="15"
-                       FontAttributes="Bold"
-                       TextColor="{DynamicResource Color.Text.Primary}"/>
-                <HorizontalStackLayout Spacing="8">
-                  <Label Text="{Binding Sku}" 
-                         FontSize="12" 
-                         TextColor="{DynamicResource Color.Text.Secondary}"
-                         FontFamily="InterSemiBold"/>
-                  <BoxView WidthRequest="1" HeightRequest="12" 
-                           Color="{DynamicResource Color.Border}" 
-                           VerticalOptions="Center"/>
-                  <Label Text="{Binding Category}" 
-                         FontSize="12"
-                         TextColor="{DynamicResource Color.Text.Tertiary}"/>
-                </HorizontalStackLayout>
-              </VerticalStackLayout>
-              
-              <!-- Register Badge -->
-              <Frame Grid.Column="2" Style="{StaticResource BadgeFrame}">
-                <Label Text="{Binding Register}" 
-                       FontSize="12"
-                       FontFamily="InterBold"/>
-              </Frame>
-              
-              <!-- Quantity and Cost -->
-              <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
-                    ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                <Frame Padding="12,8"
-                       CornerRadius="8"
-                       BackgroundColor="{DynamicResource Color.Surface.Muted}"
-                       BorderColor="{DynamicResource Color.Border}"
-                       HasShadow="False">
-                  <HorizontalStackLayout Spacing="8">
-                    <Label Text="📦" FontSize="14"/>
-                    <Label Text="Количество:" 
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Обновить"
+                     Command="{Binding RefreshCommand}"
+                     IconImageSource="{StaticResource IconRefresh}" />
+        <ToolbarItem Text="➕ На склад"
+                     Clicked="OnAddToStockClicked" />
+        <ToolbarItem Text="🗑️ Брак"
+                     Clicked="OnDefectivesClicked" />
+        <ToolbarItem Text="🔥 Перезарядка"
+                     Clicked="OnRefillsClicked" />
+    </ContentPage.ToolbarItems>
+    <Grid Padding="24"
+          RowDefinitions="*,Auto"
+          RowSpacing="16">
+        <!-- Summary mode (header + list share one scroll) -->
+        <CollectionView Grid.Row="0"
+                        ItemsSource="{Binding Items}"
+                        IsVisible="{Binding ShowBatches, Converter={StaticResource InverseBoolConverter}}"
+                        Margin="0,0,12,0">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="12"
+                                     Spacing="6">
+                    <Label Text="Нет данных"
+                           FontAttributes="Bold"
+                           TextColor="{DynamicResource Color.Text.Secondary}" />
+                    <Label Text="Измените запрос или категорию"
                            FontSize="12"
-                           TextColor="{DynamicResource Color.Text.Secondary}"
-                           VerticalOptions="Center"/>
-                    <Label Text="{Binding Qty, StringFormat='{0:N3}'}" 
-                           FontSize="16"
-                           FontFamily="InterBold"
-                           TextColor="{DynamicResource Color.Text.Primary}"
-                           VerticalOptions="Center"/>
-                  </HorizontalStackLayout>
-                </Frame>
-                
-                <Frame Grid.Column="1"
-                       Padding="12,8"
-                       CornerRadius="8"
-                       BackgroundColor="{DynamicResource Color.Surface.Muted}"
-                       BorderColor="{DynamicResource Color.Border}"
-                       HasShadow="False">
-                  <HorizontalStackLayout Spacing="8">
-                    <Label Text="💰" FontSize="14"/>
-                    <Label Text="{Binding UnitCost, Converter={StaticResource CurrencyConverter}}" 
-                           FontSize="14"
-                           FontFamily="InterBold"
-                           TextColor="{DynamicResource Color.Text.Primary}"
-                           VerticalOptions="Center"/>
-                  </HorizontalStackLayout>
-                </Frame>
-              </Grid>
-              
-            </Grid>
-          </Frame>
-        </DataTemplate>
-      </CollectionView.ItemTemplate>
-    </CollectionView>
-
-    <Label Grid.Row="1" Text="{Binding StatusMessage}" TextColor="Red"/>
-  </Grid>
+                           TextColor="{DynamicResource Color.Text.Secondary}" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+            <CollectionView.Header>
+                <VerticalStackLayout Spacing="16"
+                                     Padding="0,0,0,16">
+                    <!-- Search Section -->
+                    <Frame Padding="16"
+                           CornerRadius="12"
+                           BackgroundColor="{DynamicResource Color.Surface}"
+                           BorderColor="{DynamicResource Color.Border}"
+                           HasShadow="True">
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="🔍 Поиск и фильтры"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="{DynamicResource Color.Text.Primary}" />
+                            <Grid ColumnDefinitions="*,Auto"
+                                  ColumnSpacing="12">
+                                <Frame Padding="12,8"
+                                       CornerRadius="8"
+                                       BackgroundColor="{DynamicResource Color.Surface.Muted}"
+                                       BorderColor="{DynamicResource Color.Border}"
+                                       HasShadow="False">
+                                    <Entry Placeholder="Введите SKU или название товара"
+                                           Text="{Binding Query}"
+                                           BackgroundColor="Transparent"
+                                           FontSize="14" />
+                                </Frame>
+                                <Frame Grid.Column="1"
+                                       Padding="12,8"
+                                       CornerRadius="8"
+                                       BackgroundColor="{DynamicResource Color.Surface.Muted}"
+                                       BorderColor="{DynamicResource Color.Border}"
+                                       HasShadow="False">
+                                    <Picker WidthRequest="200"
+                                            ItemsSource="{Binding Categories}"
+                                            SelectedItem="{Binding SelectedCategory}"
+                                            BackgroundColor="Transparent"
+                                            FontSize="14" />
+                                </Frame>
+                            </Grid>
+                            <Grid ColumnDefinitions="Auto,*,Auto"
+                                  ColumnSpacing="12">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="📋"
+                                           FontSize="16"
+                                           VerticalOptions="Center" />
+                                    <Label Text="Показывать партии"
+                                           FontSize="13"
+                                           VerticalOptions="Center"
+                                           TextColor="{DynamicResource Color.Text.Secondary}" />
+                                    <Switch IsToggled="{Binding ShowBatches}"
+                                            VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <Button Grid.Column="2"
+                                        Text="🔍 Найти"
+                                        Command="{Binding RefreshCommand}"
+                                        Style="{StaticResource Button.Primary}"
+                                        WidthRequest="120" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Frame>
+                </VerticalStackLayout>
+            </CollectionView.Header>
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame Style="{StaticResource CardFrame}"
+                           Margin="0,0,0,12">
+                        <Grid RowDefinitions="Auto,Auto,Auto"
+                              ColumnDefinitions="Auto,*"
+                              RowSpacing="12"
+                              ColumnSpacing="16">
+                            <!-- Product Icon -->
+                            <Frame Grid.RowSpan="3"
+                                   WidthRequest="60"
+                                   HeightRequest="60"
+                                   CornerRadius="12"
+                                   Padding="0"
+                                   BackgroundColor="{DynamicResource Color.Surface.Muted}"
+                                   BorderColor="{DynamicResource Color.Border}"
+                                   HasShadow="False">
+                                <Label Text="📦"
+                                       FontSize="32"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Frame>
+                            <!-- Product Info -->
+                            <VerticalStackLayout Grid.Column="1"
+                                                 Spacing="4">
+                                <Label Text="{Binding Name}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource Color.Text.Primary}" />
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="{Binding Sku}"
+                                           FontSize="13"
+                                           TextColor="{DynamicResource Color.Text.Secondary}"
+                                           FontFamily="InterSemiBold" />
+                                    <BoxView WidthRequest="1"
+                                             HeightRequest="14"
+                                             Color="{DynamicResource Color.Border}"
+                                             VerticalOptions="Center" />
+                                    <Label Text="{Binding Category}"
+                                           FontSize="13"
+                                           TextColor="{DynamicResource Color.Text.Tertiary}" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                            <!-- Stock Badges -->
+                            <Grid Grid.Row="1"
+                                  Grid.Column="1"
+                                  ColumnDefinitions="Auto,Auto,*"
+                                  ColumnSpacing="8">
+                                <Frame Grid.Column="0"
+                                       Padding="12,6"
+                                       CornerRadius="8"
+                                       HasShadow="False"
+                                       BackgroundColor="{Binding Nd40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=bg}"
+                                       BorderColor="{Binding Nd40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=border}">
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="📍"
+                                               FontSize="13" />
+                                        <Label Text="{Binding Nd40Qty, StringFormat='ND-40: {0:N0}'}"
+                                               FontSize="13"
+                                               FontFamily="InterSemiBold"
+                                               TextColor="{Binding Nd40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}" />
+                                    </HorizontalStackLayout>
+                                </Frame>
+                                <Frame Grid.Column="1"
+                                       Padding="12,6"
+                                       CornerRadius="8"
+                                       HasShadow="False"
+                                       BackgroundColor="{Binding Im40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=bg}"
+                                       BorderColor="{Binding Im40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=border}">
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="🏭"
+                                               FontSize="13" />
+                                        <Label Text="{Binding Im40Qty, StringFormat='IM-40: {0:N0}'}"
+                                               FontSize="13"
+                                               FontFamily="InterSemiBold"
+                                               TextColor="{Binding Im40Qty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}" />
+                                    </HorizontalStackLayout>
+                                </Frame>
+                            </Grid>
+                            <!-- Total Badge (larger, prominent) -->
+                            <Frame Grid.Row="2"
+                                   Grid.Column="1"
+                                   Padding="14,8"
+                                   CornerRadius="10"
+                                   HasShadow="True"
+                                   BackgroundColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=bg}"
+                                   BorderColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=border}">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="📊"
+                                           FontSize="16" />
+                                    <Label Text="ИТОГО:"
+                                           FontSize="12"
+                                           FontAttributes="Bold"
+                                           VerticalOptions="Center"
+                                           TextColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}" />
+                                    <Label Text="{Binding TotalQty, StringFormat='{0:N0} шт.'}"
+                                           FontSize="18"
+                                           FontFamily="InterBold"
+                                           VerticalOptions="Center"
+                                           TextColor="{Binding TotalQty, Converter={StaticResource QtyToAvailabilityColorConverter}, ConverterParameter=text}" />
+                                </HorizontalStackLayout>
+                            </Frame>
+                        </Grid>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        <!-- Batches mode -->
+        <CollectionView Grid.Row="0"
+                        ItemsSource="{Binding BatchItems}"
+                        IsVisible="{Binding ShowBatches}"
+                        Margin="0,0,12,0">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="12"
+                                     Spacing="6">
+                    <Label Text="Нет партий"
+                           FontAttributes="Bold"
+                           TextColor="{DynamicResource Color.Text.Secondary}" />
+                    <Label Text="Попробуйте другой фильтр или запрос"
+                           FontSize="12"
+                           TextColor="{DynamicResource Color.Text.Secondary}" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+            <CollectionView.Header>
+                <VerticalStackLayout Spacing="16"
+                                     Padding="0,0,0,16">
+                    <!-- Search Section -->
+                    <Frame Padding="16"
+                           CornerRadius="12"
+                           BackgroundColor="{DynamicResource Color.Surface}"
+                           BorderColor="{DynamicResource Color.Border}"
+                           HasShadow="True">
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="🔍 Поиск и фильтры"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="{DynamicResource Color.Text.Primary}" />
+                            <Grid ColumnDefinitions="*,Auto"
+                                  ColumnSpacing="12">
+                                <Frame Padding="12,8"
+                                       CornerRadius="8"
+                                       BackgroundColor="{DynamicResource Color.Surface.Muted}"
+                                       BorderColor="{DynamicResource Color.Border}"
+                                       HasShadow="False">
+                                    <Entry Placeholder="Введите SKU или название товара"
+                                           Text="{Binding Query}"
+                                           BackgroundColor="Transparent"
+                                           FontSize="14" />
+                                </Frame>
+                                <Frame Grid.Column="1"
+                                       Padding="12,8"
+                                       CornerRadius="8"
+                                       BackgroundColor="{DynamicResource Color.Surface.Muted}"
+                                       BorderColor="{DynamicResource Color.Border}"
+                                       HasShadow="False">
+                                    <Picker WidthRequest="200"
+                                            ItemsSource="{Binding Categories}"
+                                            SelectedItem="{Binding SelectedCategory}"
+                                            BackgroundColor="Transparent"
+                                            FontSize="14" />
+                                </Frame>
+                            </Grid>
+                            <Grid ColumnDefinitions="Auto,*,Auto"
+                                  ColumnSpacing="12">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="📋"
+                                           FontSize="16"
+                                           VerticalOptions="Center" />
+                                    <Label Text="Показывать партии"
+                                           FontSize="13"
+                                           VerticalOptions="Center"
+                                           TextColor="{DynamicResource Color.Text.Secondary}" />
+                                    <Switch IsToggled="{Binding ShowBatches}"
+                                            VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <Button Grid.Column="2"
+                                        Text="🔍 Найти"
+                                        Command="{Binding RefreshCommand}"
+                                        Style="{StaticResource Button.Primary}"
+                                        WidthRequest="120" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Frame>
+                </VerticalStackLayout>
+            </CollectionView.Header>
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame Style="{StaticResource CardFrame}"
+                           Margin="0,0,0,12">
+                        <Grid RowDefinitions="Auto,Auto"
+                              ColumnDefinitions="Auto,*,Auto"
+                              RowSpacing="12"
+                              ColumnSpacing="16">
+                            <!-- Batch Icon -->
+                            <Frame Grid.RowSpan="2"
+                                   WidthRequest="50"
+                                   HeightRequest="50"
+                                   CornerRadius="10"
+                                   Padding="0"
+                                   BackgroundColor="{DynamicResource Color.Surface.Muted}"
+                                   BorderColor="{DynamicResource Color.Border}"
+                                   HasShadow="False">
+                                <Label Text="📋"
+                                       FontSize="28"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Frame>
+                            <!-- Product Info -->
+                            <VerticalStackLayout Grid.Column="1"
+                                                 Spacing="4">
+                                <Label Text="{Binding Name}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource Color.Text.Primary}" />
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="{Binding Sku}"
+                                           FontSize="12"
+                                           TextColor="{DynamicResource Color.Text.Secondary}"
+                                           FontFamily="InterSemiBold" />
+                                    <BoxView WidthRequest="1"
+                                             HeightRequest="12"
+                                             Color="{DynamicResource Color.Border}"
+                                             VerticalOptions="Center" />
+                                    <Label Text="{Binding Category}"
+                                           FontSize="12"
+                                           TextColor="{DynamicResource Color.Text.Tertiary}" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                            <!-- Register Badge -->
+                            <Frame Grid.Column="2"
+                                   Style="{StaticResource BadgeFrame}">
+                                <Label Text="{Binding Register}"
+                                       FontSize="12"
+                                       FontFamily="InterBold" />
+                            </Frame>
+                            <!-- Quantity and Cost -->
+                            <Grid Grid.Row="1"
+                                  Grid.Column="1"
+                                  Grid.ColumnSpan="2"
+                                  ColumnDefinitions="*,Auto"
+                                  ColumnSpacing="16">
+                                <Frame Padding="12,8"
+                                       CornerRadius="8"
+                                       BackgroundColor="{DynamicResource Color.Surface.Muted}"
+                                       BorderColor="{DynamicResource Color.Border}"
+                                       HasShadow="False">
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Label Text="📦"
+                                               FontSize="14" />
+                                        <Label Text="Количество:"
+                                               FontSize="12"
+                                               TextColor="{DynamicResource Color.Text.Secondary}"
+                                               VerticalOptions="Center" />
+                                        <Label Text="{Binding Qty, StringFormat='{0:N3}'}"
+                                               FontSize="16"
+                                               FontFamily="InterBold"
+                                               TextColor="{DynamicResource Color.Text.Primary}"
+                                               VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+                                </Frame>
+                                <Frame Grid.Column="1"
+                                       Padding="12,8"
+                                       CornerRadius="8"
+                                       BackgroundColor="{DynamicResource Color.Surface.Muted}"
+                                       BorderColor="{DynamicResource Color.Border}"
+                                       HasShadow="False">
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Label Text="💰"
+                                               FontSize="14" />
+                                        <Label Text="{Binding UnitCost, Converter={StaticResource CurrencyConverter}}"
+                                               FontSize="14"
+                                               FontFamily="InterBold"
+                                               TextColor="{DynamicResource Color.Text.Primary}"
+                                               VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+                                </Frame>
+                            </Grid>
+                        </Grid>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        <Label Grid.Row="1"
+               Text="{Binding StatusMessage}"
+               TextColor="Red" />
+    </Grid>
 </ContentPage>
-
-

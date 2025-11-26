@@ -145,8 +145,51 @@ public partial class SupplyEditPage : ContentPage
             keyboard: Keyboard.Numeric);
         if (!decimal.TryParse(N(weightStr), NumberStyles.Any, CultureInfo.InvariantCulture, out var weight)) return;
 
-        var category = await DisplayPromptAsync("Добавить товар", "Категория:", "OK", "Отмена", "Пожарное оборудование");
-        if (string.IsNullOrWhiteSpace(category)) return;
+        string? category = null;
+
+        // Сначала пробуем предложить существующие категории через рулетку (ActionSheet)
+        try
+        {
+            var sp = App.Services;
+            var catalog = sp?.GetService<ICatalogService>();
+            if (catalog != null)
+            {
+                var cats = (await catalog.GetCategoriesAsync()).ToList();
+                if (cats.Count > 0)
+                {
+                    const string newCategoryOption = "Новая категория...";
+                    var actionItems = new List<string>(cats)
+                    {
+                        newCategoryOption
+                    };
+
+                    var picked = await DisplayActionSheet("Категория", "Отмена", null, actionItems.ToArray());
+                    if (string.IsNullOrWhiteSpace(picked) || picked == "Отмена")
+                        return;
+
+                    if (picked == newCategoryOption)
+                    {
+                        category = await DisplayPromptAsync("Добавить товар", "Категория:", "OK", "Отмена", "Пожарное оборудование");
+                        if (string.IsNullOrWhiteSpace(category)) return;
+                    }
+                    else
+                    {
+                        category = picked;
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Если что-то пошло не так с загрузкой категорий - просто переходим к ручному вводу ниже
+        }
+
+        // Если категории так и не выбрали из списка, используем старый вариант с ручным вводом
+        if (string.IsNullOrWhiteSpace(category))
+        {
+            category = await DisplayPromptAsync("Добавить товар", "Категория:", "OK", "Отмена", "Пожарное оборудование");
+            if (string.IsNullOrWhiteSpace(category)) return;
+        }
 
         var supplies = App.Current?.Handler?.MauiContext?.Services?.GetService<ISuppliesService>();
         if (supplies != null && vm.Supply.Id > 0)

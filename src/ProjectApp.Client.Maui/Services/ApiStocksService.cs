@@ -157,6 +157,49 @@ public class ApiStocksService : IStocksService
         });
     }
 
+    // ===== Manual batch creation (admin only) =====
+    private class BatchCreateRequest
+    {
+        public int ProductId { get; set; }
+        public int Register { get; set; } // 0 = ND40, 1 = IM40 (соответствует StockRegister на API)
+        public decimal Qty { get; set; }
+        public decimal UnitCost { get; set; }
+        public string? Note { get; set; }
+    }
+
+    /// <summary>
+    /// Создать партию и пополнить склад через /api/batches.
+    /// Используется для ручного добавления товара на склад (по умолчанию IM-40).
+    /// </summary>
+    public async Task<bool> CreateBatchAsync(int productId, decimal qty, decimal unitCost, string? note = null, bool toIm40 = true, CancellationToken ct = default)
+    {
+        if (qty == 0) return false;
+
+        var client = _httpClientFactory.CreateClient(HttpClientNames.Api);
+        var baseUrl = string.IsNullOrWhiteSpace(_settings.ApiBaseUrl) ? "http://localhost:5028" : _settings.ApiBaseUrl!;
+        client.BaseAddress = new Uri(baseUrl);
+        _auth.ConfigureClient(client);
+
+        var dto = new BatchCreateRequest
+        {
+            ProductId = productId,
+            Register = toIm40 ? 1 : 0,
+            Qty = qty,
+            UnitCost = unitCost,
+            Note = note
+        };
+
+        var resp = await client.PostAsJsonAsync("/api/batches", dto, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var content = await resp.Content.ReadAsStringAsync(ct);
+            _logger.LogError("[ApiStocksService] CreateBatchAsync failed: {Status} {Content}", resp.StatusCode, content);
+            return false;
+        }
+
+        return true;
+    }
+
     private class AvailabilityDto
     {
         public string Key { get; set; } = string.Empty; // productId as string

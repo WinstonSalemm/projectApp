@@ -37,6 +37,26 @@ public class AutoReportsService
         _tgSettings = tgOptions.Value;
     }
 
+    private async Task SendToAllHtmlAsync(string text, CancellationToken ct = default)
+    {
+        var ids = _tgSettings.ParseAllowedChatIds();
+        if (ids.Count == 0) return;
+        foreach (var id in ids)
+        {
+            try { await _telegram.SendMessageAsync(id, text, "HTML", null, ct); } catch { }
+        }
+    }
+
+    private async Task SendToAllTextAsync(string text, CancellationToken ct = default)
+    {
+        var ids = _tgSettings.ParseAllowedChatIds();
+        if (ids.Count == 0) return;
+        foreach (var id in ids)
+        {
+            try { await _telegram.SendMessageAsync(id, text, ct); } catch { }
+        }
+    }
+
     /// <summary>
     /// Отправить развернутый отчёт за произвольный период (продукты и менеджеры)
     /// </summary>
@@ -209,8 +229,8 @@ public class AutoReportsService
 
             message += $"\n⏰ Отчет сгенерирован: {DateTime.UtcNow:HH:mm}";
 
-            // Отправляем в Telegram
-            await _telegram.SendMessageToOwnerAsync(message);
+            // Отправляем в Telegram всем разрешённым chat_id
+            await SendToAllHtmlAsync(message);
             
             // Отправляем на Email (HTML-версия)
             var emailHtml = EmailTemplates.DailyReport(dashboard);
@@ -337,7 +357,7 @@ public class AutoReportsService
 
             message += $"⏰ Отчет сгенерирован: {DateTime.UtcNow:dd.MM.yyyy HH:mm}";
 
-            await _telegram.SendMessageToOwnerAsync(message);
+            await SendToAllHtmlAsync(message);
             _logger.LogInformation($"Еженедельный отчет за {weekStart:dd.MM}-{weekEnd:dd.MM} отправлен");
         }
         catch (Exception ex)
@@ -362,7 +382,7 @@ public class AutoReportsService
             if (stocks.Count == 0)
             {
                 if (chatId.HasValue) await _telegram.SendMessageAsync(chatId.Value, "📦 Остатки на конец дня: нет данных");
-                else await _telegram.SendMessageToOwnerAsync("📦 Остатки на конец дня: нет данных");
+                else await SendToAllTextAsync("📦 Остатки на конец дня: нет данных");
                 return;
             }
 
@@ -386,7 +406,7 @@ public class AutoReportsService
             if (lines.Count == 0)
             {
                 if (chatId.HasValue) await _telegram.SendMessageAsync(chatId.Value, "📦 Остатки на конец дня: все нулевые");
-                else await _telegram.SendMessageToOwnerAsync("📦 Остатки на конец дня: все нулевые");
+                else await SendToAllTextAsync("📦 Остатки на конец дня: все нулевые");
                 return;
             }
 
@@ -409,7 +429,7 @@ public class AutoReportsService
             foreach (var msg in pages)
             {
                 if (chatId.HasValue) await _telegram.SendMessageAsync(chatId.Value, msg);
-                else await _telegram.SendMessageToOwnerAsync(msg);
+                else await SendToAllTextAsync(msg);
             }
 
             _logger.LogInformation($"Отправлен список остатков на конец дня: {lines.Count} позиций, сообщений: {pages.Count}");
@@ -479,7 +499,7 @@ public class AutoReportsService
                                 sb.AppendLine(line);
                             var text = sb.ToString();
                             if (chatId.HasValue) await _telegram.SendMessageAsync(chatId.Value, text);
-                            else await _telegram.SendMessageToOwnerAsync(text);
+                            else await SendToAllTextAsync(text);
                         }
                     }
                 }
